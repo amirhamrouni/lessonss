@@ -1,5 +1,5 @@
 import { collection, doc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore';
-import { Card, Rating, State, createEmptyCard, fsrs } from 'ts-fsrs';
+import { Card, Grade, Rating, State, createEmptyCard, fsrs } from 'ts-fsrs';
 import { db } from './firebase';
 
 export type ReviewSeed = {
@@ -79,7 +79,7 @@ export function buildInitialReviewCard(seed: ReviewSeed, now = new Date()): Stor
 }
 
 export function scheduleReview(card: StoredReviewCard, rating: Rating, now = new Date()): StoredReviewCard {
-  const next = scheduler.next(hydrate(card), now, rating).card;
+  const next = scheduler.next(hydrate(card), now, rating as Grade).card;
   return serialize(card, next);
 }
 
