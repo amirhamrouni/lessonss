@@ -156,14 +156,15 @@ export function AssessmentMode() {
   const result = useMemo(() => scorePlacement(answers), [answers]);
   if (loading) return <Loading />;
   if (!user) return <Navigate to="/" replace />;
+  const uid = user.uid;
   const question = placementQuestions[index];
   async function finish() {
     setSaving(true);
     try {
       const final = scorePlacement(answers);
       await Promise.all([
-        setDoc(doc(db, 'users', user.uid), { placementLevel: final.level, placementCompletedAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true }),
-        setDoc(doc(db, 'users', user.uid, 'assessments', 'latest'), { ...final, answers, completedAt: serverTimestamp() }),
+        setDoc(doc(db, 'users', uid), { placementLevel: final.level, placementCompletedAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true }),
+        setDoc(doc(db, 'users', uid, 'assessments', 'latest'), { ...final, answers, completedAt: serverTimestamp() }),
       ]);
       setFinished(true);
     } finally { setSaving(false); }
