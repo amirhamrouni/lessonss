@@ -82,5 +82,9 @@ export const lessons:Lesson[]=[
 ]}
 ];
 
-export const lessonById=(id:string)=>lessons.find(l=>l.id===id);
+export const lessonById=(id:string):Lesson=>{
+  const lesson=lessons.find(l=>l.id===id);
+  if(!lesson) throw new Error(`Unknown lesson: ${id}`);
+  return lesson;
+};
 export const lessonsForUnit=(unitId:string)=>lessons.filter(l=>l.unitId===unitId);
