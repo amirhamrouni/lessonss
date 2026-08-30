@@ -17,8 +17,8 @@ function Dock() {
   ].map(([to, Icon, label]: any) => <NavLink end={to === '/'} key={to} to={to}><Icon /><small>{label}</small></NavLink>)}</nav>;
 }
 
-function Frame({ children }: { children: React.ReactNode }) {
-  return <div className="app-shell"><div className="phone"><main className="page">{children}</main><Dock /></div></div>;
+function Frame({ children, dir = 'ltr' }: { children: React.ReactNode; dir?: 'ltr' | 'rtl' }) {
+  return <div className="app-shell" dir={dir}><div className="phone"><main className="page">{children}</main><Dock /></div></div>;
 }
 
 function renderActivity(activity: Activity, selected: string, setSelected: (value: string) => void, fill: string, setFill: (value: string) => void, supportLanguage: string, locked: boolean) {
@@ -64,11 +64,14 @@ export default function AutoLessonPlayer() {
 
   if (loading) return <Frame><p>Loading lesson…</p></Frame>;
   if (!user) return <Navigate to="/welcome" replace />;
+  if (!profile.nativeLanguage) return <Navigate to="/setup" replace />;
   if (!lesson) return <Frame><button className="back" onClick={() => nav('/learn')}><ArrowLeft /> Learn</button><h2>Lesson not found</h2></Frame>;
 
   const uid = user.uid;
   const currentLesson = lesson;
   const supportLanguage = normalizeLanguage(profile.explanationLanguage || profile.nativeLanguage);
+  const dir = directionFor(supportLanguage);
+  const ar = supportLanguage === 'Arabic';
   const activity = currentLesson.activities[index];
   const progressPercent = Math.round(((index + (finished ? 1 : 0)) / currentLesson.activities.length) * 100);
 
@@ -127,18 +130,18 @@ export default function AutoLessonPlayer() {
 
   if (finished) {
     const score = total ? Math.round((correct / total) * 100) : 100;
-    return <Frame><button className="back" onClick={() => nav('/learn')}><ArrowLeft /> Learn</button><section className="lesson-complete"><CheckCircle2 /><span className="eyebrow">LESSON COMPLETE</span><h1>{currentLesson.title}</h1><strong>{score}%</strong><p>{correct} correct out of {total} scored activities.</p><button className="primary" onClick={() => nav('/learn')}>Continue roadmap</button></section></Frame>;
+    return <Frame dir={dir}><button className="back" onClick={() => nav('/learn')}><ArrowLeft /> {ar ? 'التعلّم' : 'Learn'}</button><section className="lesson-complete"><CheckCircle2 /><span className="eyebrow">{ar ? 'اكتمل الدرس' : 'LESSON COMPLETE'}</span><h1>{currentLesson.title}</h1><strong>{score}%</strong><p>{ar ? `${correct} إجابات صحيحة من أصل ${total}.` : `${correct} correct out of ${total} scored activities.`}</p><button className="primary" onClick={() => nav('/learn')}>{ar ? 'متابعة المسار' : 'Continue roadmap'}</button></section></Frame>;
   }
 
-  return <Frame>
-    <button className="back" onClick={() => nav('/learn')}><ArrowLeft /> Exit lesson</button>
-    <div className="lesson-top"><div><span className="eyebrow">{currentLesson.id.startsWith('a2-') ? 'A2' : 'A1'} · {currentLesson.skill.toUpperCase()} · {currentLesson.minutes} MIN</span><h1>{currentLesson.title}</h1><p>{currentLesson.objective}</p></div><span>{index + 1}/{currentLesson.activities.length}</span></div>
-    <div className="lesson-language-chip" dir={directionFor(supportLanguage)}><Languages /> {supportLanguage} support · English target</div>
+  return <Frame dir={dir}>
+    <button className="back" onClick={() => nav('/learn')}><ArrowLeft /> {ar ? 'الخروج من الدرس' : 'Exit lesson'}</button>
+    <div className="lesson-top"><div><span className="eyebrow">{currentLesson.id.startsWith('a2-') ? 'A2' : 'A1'} · {currentLesson.skill.toUpperCase()} · {currentLesson.minutes} {ar ? 'د' : 'MIN'}</span><h1>{currentLesson.title}</h1><p>{currentLesson.objective}</p></div><span>{index + 1}/{currentLesson.activities.length}</span></div>
+    <div className="lesson-language-chip" dir={dir}><Languages /> {ar ? 'الشرح بالعربية · الإجابة بالإنجليزية' : `${supportLanguage} support · English target`}</div>
     <div className="progress-track"><i style={{ width: `${progressPercent}%` }} /></div>
     <section className="activity-card">
       {renderActivity(activity, selected, setSelected, fill, setFill, supportLanguage, transitioning || saving)}
-      {feedback && <div className={`feedback ${feedback.ok ? 'ok' : 'bad'}`}>{feedback.ok ? <CheckCircle2 /> : <XCircle />}<div dir={directionFor(supportLanguage)}><b>{feedback.ok ? t(supportLanguage, 'correct') : t(supportLanguage, 'retry')}</b><small className="feedback-label">{t(supportLanguage, 'explanation')}</small><p>{feedback.text}</p></div></div>}
-      <button className="primary activity-action" disabled={saving || transitioning || (activity.type !== 'explain' && !(selected || fill.trim()))} onClick={check}>{saving ? 'Saving…' : transitioning ? (index >= currentLesson.activities.length - 1 ? 'Finishing…' : 'Next question…') : activity.type === 'explain' ? t(supportLanguage, 'continue') : t(supportLanguage, 'check')}</button>
+      {feedback && <div className={`feedback ${feedback.ok ? 'ok' : 'bad'}`}>{feedback.ok ? <CheckCircle2 /> : <XCircle />}<div dir={dir}><b>{feedback.ok ? t(supportLanguage, 'correct') : t(supportLanguage, 'retry')}</b><small className="feedback-label">{t(supportLanguage, 'explanation')}</small><p>{feedback.text}</p></div></div>}
+      <button className="primary activity-action" disabled={saving || transitioning || (activity.type !== 'explain' && !(selected || fill.trim()))} onClick={check}>{saving ? (ar ? 'جارٍ الحفظ…' : 'Saving…') : transitioning ? (index >= currentLesson.activities.length - 1 ? (ar ? 'إنهاء…' : 'Finishing…') : (ar ? 'السؤال التالي…' : 'Next question…')) : activity.type === 'explain' ? t(supportLanguage, 'continue') : t(supportLanguage, 'check')}</button>
     </section>
   </Frame>;
 }
