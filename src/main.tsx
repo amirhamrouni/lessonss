@@ -6,7 +6,7 @@ import SmartHomeV2 from './SmartHomeV2';
 import LearnerSetup from './LearnerSetup';
 import { AssessmentMode, PracticeHub, ReviewMode, SentenceBuilderMode } from './LearningModes';
 import { LearnJourney, UnifiedLessonPlayer } from './LearningPath';
-import TwinCoach from './TwinCoach';
+import TutorMode from './TutorMode';
 import './styles.css';
 import './lesson.css';
 import './twin.css';
@@ -24,7 +24,7 @@ function Root() {
       <Route path="/review" element={<ReviewMode />} />
       <Route path="/sentence-builder" element={<SentenceBuilderMode />} />
       <Route path="/assessment" element={<AssessmentMode />} />
-      <Route path="/twin" element={<TwinCoach />} />
+      <Route path="/twin" element={<TutorMode />} />
       <Route path="/*" element={<App />} />
     </Routes>
   );
