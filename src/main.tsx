@@ -8,6 +8,7 @@ import { AssessmentMode, PracticeHub, ReviewMode, SentenceBuilderMode } from './
 import { LearnJourney } from './LearningPath';
 import AutoLessonPlayer from './AutoLessonPlayer';
 import TutorMode from './TutorMode';
+import { MistakeMemory, ProfileHub } from './ProfileHub';
 import './styles.css';
 import './lesson.css';
 import './twin.css';
@@ -26,6 +27,8 @@ function Root() {
       <Route path="/sentence-builder" element={<SentenceBuilderMode />} />
       <Route path="/assessment" element={<AssessmentMode />} />
       <Route path="/twin" element={<TutorMode />} />
+      <Route path="/profile" element={<ProfileHub />} />
+      <Route path="/mistakes" element={<MistakeMemory />} />
       <Route path="/*" element={<App />} />
     </Routes>
   );
