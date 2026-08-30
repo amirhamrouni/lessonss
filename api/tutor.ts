@@ -4,11 +4,15 @@ import { z } from 'zod';
 type VercelRequest = { method?: string; body?: unknown };
 type VercelResponse = { status: (code: number) => VercelResponse; json: (body: unknown) => void };
 
+const languageSchema = z.enum(['English', 'Arabic', 'Dutch', 'French', 'German', 'Spanish']);
+
 const requestSchema = z.object({
   message: z.string().trim().min(1).max(1200),
   level: z.enum(['A1', 'A2', 'B1', 'B2', 'C1', 'C2']).default('A1'),
   goal: z.string().trim().max(160).default('Daily conversation'),
   context: z.array(z.string().trim().max(500)).max(8).default([]),
+  nativeLanguage: languageSchema.default('English'),
+  explanationLanguage: languageSchema.default('English'),
 });
 
 const outputSchema = z.object({
@@ -33,12 +37,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const ai = new GoogleGenAI({ apiKey });
-    const { message, level, goal, context } = parsed.data;
+    const { message, level, goal, context, nativeLanguage, explanationLanguage } = parsed.data;
     const instruction = [
       'You are English Twin, a concise supportive English coach.',
       `Learner CEFR level: ${level}. Goal: ${goal}.`,
-      'Reply in natural English appropriate to the learner level.',
-      'Correct only meaningful mistakes. Do not overwhelm the learner.',
+      `Learner native language: ${nativeLanguage}. Explanation language: ${explanationLanguage}.`,
+      'The learner is studying English. Keep the conversational reply and suggestedReply in English.',
+      `Write correction explanations and mistake reasons in ${explanationLanguage}.`,
+      'Correct only meaningful mistakes that affect naturalness, clarity, grammar, or intended meaning. Do not overwhelm the learner.',
+      'Do not translate the learner task into another target language; English remains the production language.',
       'Return ONLY valid JSON with keys: reply, correction, explanation, suggestedReply, detectedMistakes.',
       'correction/explanation/suggestedReply may be null.',
       'detectedMistakes is an array of {original, corrected, reason}.',
