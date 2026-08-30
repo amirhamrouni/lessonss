@@ -7,6 +7,7 @@ import { auth, db } from './firebase';
 import { loadLessonProgress, ProgressMap } from './learning';
 import { placementQuestions, scorePlacement } from './assessment';
 import { Rating, StoredReviewCard, dueCards, ensureReviewCards, saveReviewRating } from './review';
+import { directionFor, normalizeLanguage } from './languageSupport';
 
 function useLearner() {
   const [user, setUser] = useState<User | null>(null);
@@ -37,6 +38,14 @@ function Frame({ children }: { children: React.ReactNode }) {
 
 function Loading() { return <Frame><div className="mode-loading"><BrainCircuit /><p>Loading your learning engine…</p></div></Frame>; }
 
+function learnerLanguage(profile: Record<string, any> | null) {
+  return normalizeLanguage(profile?.interfaceLanguage || profile?.instructionLanguage || profile?.nativeLanguage);
+}
+
+function isArabic(profile: Record<string, any> | null) {
+  return learnerLanguage(profile) === 'Arabic';
+}
+
 export function PracticeHub() {
   const { user, progress, profile, loading } = useLearner();
   const nav = useNavigate();
@@ -49,17 +58,20 @@ export function PracticeHub() {
   if (loading) return <Loading />;
   if (!user) return <Navigate to="/" replace />;
   const completed = Object.values(progress).filter(p => p.completed).length;
+  const ar = isArabic(profile);
   return <Frame>
-    <header><div><span className="eyebrow">TRAIN, TEST, RETAIN</span><h1>Practice</h1><p>Different engines for different learning jobs.</p></div></header>
-    <section className="practice-command">
-      <div><span className="mode-kicker">RECOMMENDED</span><h2>{dueCount ? `${dueCount} reviews are due now.` : completed ? 'Build recall before it fades.' : 'Complete a lesson, then train recall.'}</h2><p>FSRS schedules vocabulary from lessons you actually completed.</p></div>
-      <button disabled={!dueCount} onClick={() => nav('/review')}>{dueCount ? 'Review now' : 'Nothing due'} <ChevronRight /></button>
-    </section>
-    <div className="mode-list">
-      <button onClick={() => nav('/review')}><RotateCcw /><div><span>MEMORY</span><h3>Smart Review</h3><p>FSRS vocabulary review with Again / Hard / Good / Easy scheduling.</p></div><ChevronRight /></button>
-      <button onClick={() => nav('/sentence-builder')}><Sparkles /><div><span>OUTPUT</span><h3>Sentence Builder</h3><p>Build correct English from shuffled words instead of only tapping answers.</p></div><ChevronRight /></button>
-      <button onClick={() => nav('/assessment')}><Gauge /><div><span>DIAGNOSTIC</span><h3>Placement Test</h3><p>{profile?.placementLevel ? `Current placement: ${profile.placementLevel}. Retake any time.` : 'Deterministic CEFR diagnostic across grammar, vocabulary and reading.'}</p></div><ChevronRight /></button>
-      <button onClick={() => nav('/speak')}><Mic /><div><span>VOICE</span><h3>Conversation Lab</h3><p>Move from structured practice into spontaneous speech with your Twin.</p></div><ChevronRight /></button>
+    <div dir={ar ? 'rtl' : 'ltr'}>
+      <header><div><span className="eyebrow">{ar ? 'تدرّب · اختبر · ثبّت' : 'TRAIN, TEST, RETAIN'}</span><h1>{ar ? 'التدريب' : 'Practice'}</h1><p>{ar ? 'كل وضع تدريب له وظيفة مختلفة في تعلّم الإنجليزية.' : 'Different engines for different learning jobs.'}</p></div></header>
+      <section className="practice-command">
+        <div><span className="mode-kicker">{ar ? 'المقترح الآن' : 'RECOMMENDED'}</span><h2>{ar ? (dueCount ? `لديك ${dueCount} مراجعات مستحقة الآن.` : completed ? 'ثبّت ما تعلمته قبل أن يضعف التذكّر.' : 'أكمل درسًا أولًا، ثم ابدأ تدريب الذاكرة.') : (dueCount ? `${dueCount} reviews are due now.` : completed ? 'Build recall before it fades.' : 'Complete a lesson, then train recall.')}</h2><p>{ar ? 'يجدول FSRS كلمات الدروس التي أكملتها فعليًا فقط.' : 'FSRS schedules vocabulary from lessons you actually completed.'}</p></div>
+        <button disabled={!dueCount} onClick={() => nav('/review')}>{ar ? (dueCount ? 'ابدأ المراجعة' : 'لا توجد مراجعة الآن') : (dueCount ? 'Review now' : 'Nothing due')} <ChevronRight /></button>
+      </section>
+      <div className="mode-list">
+        <button onClick={() => nav('/review')}><RotateCcw /><div><span>{ar ? 'الذاكرة' : 'MEMORY'}</span><h3>{ar ? 'مراجعة ذكية' : 'Smart Review'}</h3><p>{ar ? 'مراجعة مفردات بنظام FSRS وفق أداءك الحقيقي.' : 'FSRS vocabulary review with Again / Hard / Good / Easy scheduling.'}</p></div><ChevronRight /></button>
+        <button onClick={() => nav('/sentence-builder')}><Sparkles /><div><span>{ar ? 'الإنتاج' : 'OUTPUT'}</span><h3>{ar ? 'بناء الجملة' : 'Sentence Builder'}</h3><p>{ar ? 'رتّب الكلمات لتبني جملة إنجليزية صحيحة بدل الاكتفاء بالتعرّف على الإجابة.' : 'Build correct English from shuffled words instead of only tapping answers.'}</p></div><ChevronRight /></button>
+        <button onClick={() => nav('/assessment')}><Gauge /><div><span>{ar ? 'تشخيص المستوى' : 'DIAGNOSTIC'}</span><h3>{ar ? 'اختبار تحديد المستوى' : 'Placement Test'}</h3><p>{ar ? (profile?.placementLevel ? `مستواك المقاس حاليًا: ${profile.placementLevel}. يمكنك إعادة الاختبار في أي وقت.` : 'اختبار CEFR ثابت يقيس القواعد والمفردات والقراءة بدون تخمين ذاتي.') : (profile?.placementLevel ? `Current placement: ${profile.placementLevel}. Retake any time.` : 'Deterministic CEFR diagnostic across grammar, vocabulary and reading.')}</p></div><ChevronRight /></button>
+        <button onClick={() => nav('/speak')}><Mic /><div><span>{ar ? 'الصوت' : 'VOICE'}</span><h3>{ar ? 'مختبر المحادثة' : 'Conversation Lab'}</h3><p>{ar ? 'انتقل من التمارين المنظمة إلى الكلام العفوي مع الـTwin.' : 'Move from structured practice into spontaneous speech with your Twin.'}</p></div><ChevronRight /></button>
+      </div>
     </div>
   </Frame>;
 }
@@ -147,7 +159,7 @@ export function SentenceBuilderMode() {
 }
 
 export function AssessmentMode() {
-  const { user, loading } = useLearner();
+  const { user, profile, loading } = useLearner();
   const nav = useNavigate();
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -156,6 +168,8 @@ export function AssessmentMode() {
   const result = useMemo(() => scorePlacement(answers), [answers]);
   if (loading) return <Loading />;
   if (!user) return <Navigate to="/" replace />;
+  const ar = isArabic(profile);
+  const dir = directionFor(learnerLanguage(profile));
   const uid = user.uid;
   const question = placementQuestions[index];
   async function finish() {
@@ -169,12 +183,21 @@ export function AssessmentMode() {
       setFinished(true);
     } finally { setSaving(false); }
   }
-  if (finished) return <Frame><button className="back" onClick={() => nav('/practice')}><ArrowLeft /> Practice</button><section className="assessment-result"><span className="mode-kicker">PLACEMENT RESULT</span><strong>{result.level}</strong><h2>{result.percent}% overall</h2><p>{result.correct} of {result.total} deterministic questions correct.</p><div className="skill-result">{Object.entries(result.skillScores).map(([skill, score]) => <div key={skill}><span>{skill}</span><b>{score}%</b></div>)}</div><button onClick={() => { setAnswers({}); setIndex(0); setFinished(false); }}>Retake assessment</button></section></Frame>;
+  if (finished) return <Frame><div dir={dir}><button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {ar ? 'التدريب' : 'Practice'}</button><section className="assessment-result"><span className="mode-kicker">{ar ? 'نتيجة تحديد المستوى' : 'PLACEMENT RESULT'}</span><strong>{result.level}</strong><h2>{ar ? `${result.percent}% النتيجة الإجمالية` : `${result.percent}% overall`}</h2><p>{ar ? `${result.correct} إجابات صحيحة من أصل ${result.total} سؤالًا ثابتًا.` : `${result.correct} of ${result.total} deterministic questions correct.`}</p><div className="skill-result">{Object.entries(result.skillScores).map(([skill, score]) => <div key={skill}><span>{ar ? ({ Grammar: 'القواعد', Vocabulary: 'المفردات', Reading: 'القراءة' } as Record<string, string>)[skill] || skill : skill}</span><b>{score}%</b></div>)}</div><button onClick={() => { setAnswers({}); setIndex(0); setFinished(false); }}>{ar ? 'إعادة الاختبار' : 'Retake assessment'}</button></section></div></Frame>;
   const selected = answers[question.id];
+  const skillLabel = ar ? ({ Grammar: 'القواعد', Vocabulary: 'المفردات', Reading: 'القراءة' } as Record<string, string>)[question.skill] || question.skill : question.skill;
   return <Frame>
-    <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> Practice</button>
-    <header><div><span className="eyebrow">CEFR DIAGNOSTIC</span><h1>Placement</h1><p>No self-rating shortcuts. Answer what you actually know.</p></div></header>
-    <div className="assessment-progress"><i style={{ width: `${((index + 1) / placementQuestions.length) * 100}%` }} /></div>
-    <section className="assessment-card"><span className="mode-kicker">{question.skill} · {question.level} · {index + 1}/{placementQuestions.length}</span><h2>{question.prompt}</h2><div className="assessment-options">{question.options.map(option => <button className={selected === option ? 'selected' : ''} key={option} onClick={() => setAnswers({ ...answers, [question.id]: option })}>{option}</button>)}</div><button className="assessment-next" disabled={!selected || saving} onClick={() => index === placementQuestions.length - 1 ? void finish() : setIndex(index + 1)}>{saving ? 'Saving…' : index === placementQuestions.length - 1 ? 'Finish assessment' : 'Next question'}</button></section>
+    <div dir={dir}>
+      <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {ar ? 'التدريب' : 'Practice'}</button>
+      <header><div><span className="eyebrow">{ar ? 'تشخيص CEFR' : 'CEFR DIAGNOSTIC'}</span><h1>{ar ? 'تحديد المستوى' : 'Placement'}</h1><p>{ar ? 'بدون تقييم ذاتي أو تخمين. أجب فقط عمّا تعرفه فعلًا.' : 'No self-rating shortcuts. Answer what you actually know.'}</p></div></header>
+      <div className="assessment-progress"><i style={{ width: `${((index + 1) / placementQuestions.length) * 100}%` }} /></div>
+      <section className="assessment-card">
+        <span className="mode-kicker">{skillLabel} · {question.level} · {index + 1}/{placementQuestions.length}</span>
+        <div className="native-instruction" dir={dir}>{ar ? 'اختر الإجابة الإنجليزية الصحيحة.' : 'Choose the correct English answer.'}</div>
+        <h2 dir="ltr">{question.prompt}</h2>
+        <div className="assessment-options" dir="ltr">{question.options.map(option => <button className={selected === option ? 'selected' : ''} key={option} onClick={() => setAnswers({ ...answers, [question.id]: option })}>{option}</button>)}</div>
+        <button className="assessment-next" disabled={!selected || saving} onClick={() => index === placementQuestions.length - 1 ? void finish() : setIndex(index + 1)}>{saving ? (ar ? 'جارٍ الحفظ…' : 'Saving…') : index === placementQuestions.length - 1 ? (ar ? 'إنهاء الاختبار' : 'Finish assessment') : (ar ? 'السؤال التالي' : 'Next question')}</button>
+      </section>
+    </div>
   </Frame>;
 }
