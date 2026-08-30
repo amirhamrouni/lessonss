@@ -3,7 +3,7 @@ import { Navigate, NavLink, useNavigate, useParams } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { ArrowLeft, BookOpen, CheckCircle2, ChevronRight, Gauge, Home, Mic, UserRound, XCircle } from 'lucide-react';
 import { auth } from './firebase';
-import { Activity, lessonById, lessonsForLevel, lessonsForUnit, units } from './curriculumAll';
+import { Activity, Lesson, lessonById, lessonsForLevel, lessonsForUnit, units } from './curriculumAll';
 import { loadLessonProgress, ProgressMap, saveLessonCompletion, summarizeProgress } from './learning';
 
 function Dock() {
@@ -39,7 +39,8 @@ export function LearnJourney() {
     <header><div><span className="eyebrow">CEFR ROADMAP</span><h1>Learn</h1><p>Structured progression from survival English to real-world independence.</p></div></header>
     {levels.map(level => {
       const levelLessons = lessonsForLevel(level);
-      const summary = summarizeProgress(progress, levelLessons.length);
+      const scopedProgress = Object.fromEntries(levelLessons.map(lesson => [lesson.id, progress[lesson.id]]).filter(([, value]) => Boolean(value))) as ProgressMap;
+      const summary = summarizeProgress(scopedProgress, levelLessons.length);
       const levelUnits = units.filter(unit => level === 'A2' ? unit.id.startsWith('a2-') : !unit.id.startsWith('a2-'));
       return <section key={level} className="level-section">
         <div className="learn-overview">
@@ -90,7 +91,8 @@ export function UnifiedLessonPlayer() {
 
   if (loading) return <Frame><p>Loading lesson…</p></Frame>;
   if (!user) return <Navigate to="/welcome" replace />;
-  let lesson;
+  const currentUser: User = user;
+  let lesson: Lesson;
   try { lesson = lessonById(lessonId); } catch { return <Frame><button className="back" onClick={() => nav('/learn')}><ArrowLeft /> Learn</button><h2>Lesson not found</h2></Frame>; }
   const activity = lesson.activities[index];
   const progressPercent = Math.round(((index + (finished ? 1 : 0)) / lesson.activities.length) * 100);
@@ -98,7 +100,7 @@ export function UnifiedLessonPlayer() {
   async function finish(nextCorrect = correct, nextTotal = total) {
     setSaving(true);
     try {
-      const saved = await saveLessonCompletion(user.uid, lesson.id, nextCorrect, nextTotal);
+      const saved = await saveLessonCompletion(currentUser.uid, lesson.id, nextCorrect, nextTotal);
       setProgress({ ...progress, [lesson.id]: saved });
       setFinished(true);
     } finally { setSaving(false); }
