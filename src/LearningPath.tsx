@@ -114,6 +114,7 @@ export function UnifiedLessonPlayer() {
   if (!user) return <Navigate to="/welcome" replace />;
   if (!lesson) return <Frame><button className="back" onClick={() => nav('/learn')}><ArrowLeft /> Learn</button><h2>Lesson not found</h2></Frame>;
 
+  const uid = user.uid;
   const currentLesson = lesson;
   const supportLanguage = normalizeLanguage(profile.explanationLanguage || profile.nativeLanguage);
   const activity = currentLesson.activities[index];
@@ -122,7 +123,7 @@ export function UnifiedLessonPlayer() {
   async function finish(nextCorrect = correct, nextTotal = total) {
     setSaving(true);
     try {
-      const saved = await saveLessonCompletion(user.uid, currentLesson.id, nextCorrect, nextTotal);
+      const saved = await saveLessonCompletion(uid, currentLesson.id, nextCorrect, nextTotal);
       setProgress({ ...progress, [currentLesson.id]: saved });
       setFinished(true);
     } finally { setSaving(false); }
