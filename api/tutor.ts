@@ -1,7 +1,8 @@
 import { GoogleGenAI } from '@google/genai';
 import { z } from 'zod';
+import { requireFirebaseUser } from './_auth';
 
-type VercelRequest = { method?: string; body?: unknown };
+type VercelRequest = { method?: string; body?: unknown; headers?: { authorization?: string | string[] } };
 type VercelResponse = { status: (code: number) => VercelResponse; json: (body: unknown) => void };
 
 const languageSchema = z.enum(['English', 'Arabic', 'Dutch', 'French', 'German', 'Spanish']);
@@ -29,6 +30,12 @@ const outputSchema = z.object({
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  try {
+    await requireFirebaseUser(req.headers);
+  } catch {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
   const parsed = requestSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
 
