@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import App from './App';
 import SmartHomeV2 from './SmartHomeV2';
 import LearnerSetup from './LearnerSetup';
+import BeginnerFoundation from './BeginnerFoundation';
 import { AssessmentMode, PracticeHub, ReviewMode, SentenceBuilderMode } from './LearningModes';
 import { LearnJourney } from './LearningPath';
 import AutoLessonPlayer from './AutoLessonPlayer';
@@ -15,12 +16,14 @@ import './lesson.css';
 import './twin.css';
 import './modes.css';
 import './language.css';
+import './beginner.css';
 
 function Root() {
   return (
     <Routes>
       <Route path="/" element={<SmartHomeV2 />} />
       <Route path="/setup" element={<LearnerSetup />} />
+      <Route path="/start" element={<BeginnerFoundation />} />
       <Route path="/learn" element={<LearnJourney />} />
       <Route path="/lesson/:lessonId" element={<AutoLessonPlayer />} />
       <Route path="/practice" element={<PracticeHub />} />
