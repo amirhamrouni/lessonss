@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Navigate, NavLink, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { ArrowLeft, BookOpen, Gauge, Home, Mic, MicOff, Radio, Square, UserRound, Volume2 } from 'lucide-react';
+import { ArrowLeft, BookOpen, Gauge, Home, Mic, Radio, Square, UserRound, Volume2 } from 'lucide-react';
 import { auth, db } from './firebase';
 
 type VoiceState = 'READY' | 'CONNECTING' | 'LISTENING' | 'AI_SPEAKING' | 'ERROR';
@@ -78,6 +78,13 @@ export default function VoiceLab() {
   const nextPlayTimeRef = useRef(0);
   const startedAtRef = useRef<number | null>(null);
   const transcriptRef = useRef<TranscriptItem[]>([]);
+  const inputDraftRef = useRef('');
+  const outputDraftRef = useRef('');
+  const stateRef = useRef<VoiceState>('READY');
+
+  function applyState(next: VoiceState) { stateRef.current = next; setState(next); }
+  function applyInputDraft(next: string) { inputDraftRef.current = next; setInputDraft(next); }
+  function applyOutputDraft(next: string) { outputDraftRef.current = next; setOutputDraft(next); }
 
   useEffect(() => onAuthStateChanged(auth, current => { setUser(current); setLoading(false); }), []);
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
@@ -114,27 +121,27 @@ export default function VoiceLab() {
     const raw = event.data instanceof Blob ? await event.data.text() : event.data instanceof ArrayBuffer ? new TextDecoder().decode(event.data) : String(event.data);
     let data: any;
     try { data = JSON.parse(raw); } catch { return; }
-    if (data.setupComplete) { setState('LISTENING'); return; }
+    if (data.setupComplete) { applyState('LISTENING'); return; }
     const content = data.serverContent;
     if (!content) return;
 
     if (content.inputTranscription?.text) {
-      const next = `${inputDraft}${content.inputTranscription.text}`;
-      setInputDraft(next);
-      if (content.inputTranscription.finished) { pushTranscript('learner', next); setInputDraft(''); }
+      const next = `${inputDraftRef.current}${content.inputTranscription.text}`;
+      applyInputDraft(next);
+      if (content.inputTranscription.finished) { pushTranscript('learner', next); applyInputDraft(''); }
     }
     if (content.outputTranscription?.text) {
-      const next = `${outputDraft}${content.outputTranscription.text}`;
-      setOutputDraft(next);
-      if (content.outputTranscription.finished) { pushTranscript('twin', next); setOutputDraft(''); }
+      const next = `${outputDraftRef.current}${content.outputTranscription.text}`;
+      applyOutputDraft(next);
+      if (content.outputTranscription.finished) { pushTranscript('twin', next); applyOutputDraft(''); }
     }
 
     const parts = content.modelTurn?.parts || [];
     for (const part of parts) {
-      if (part.inlineData?.data) { setState('AI_SPEAKING'); await playPcm(part.inlineData.data); }
+      if (part.inlineData?.data) { applyState('AI_SPEAKING'); await playPcm(part.inlineData.data); }
     }
-    if (content.turnComplete) setState('LISTENING');
-    if (content.interrupted) { nextPlayTimeRef.current = 0; setState('LISTENING'); }
+    if (content.turnComplete) applyState('LISTENING');
+    if (content.interrupted) { nextPlayTimeRef.current = 0; applyState('LISTENING'); }
   }
 
   async function createAudioRuntime(ws: WebSocket) {
@@ -151,7 +158,7 @@ export default function VoiceLab() {
     silentGain.connect(inputContext.destination);
 
     processor.onaudioprocess = event => {
-      if (ws.readyState !== WebSocket.OPEN || state === 'AI_SPEAKING') return;
+      if (ws.readyState !== WebSocket.OPEN) return;
       const samples = event.inputBuffer.getChannelData(0);
       const pcm = floatToPcm16(downsample(samples, inputContext.sampleRate, 16000));
       ws.send(JSON.stringify({ realtimeInput: { audio: { mimeType: 'audio/pcm;rate=16000', data: bytesToBase64(pcm) } } }));
@@ -161,12 +168,12 @@ export default function VoiceLab() {
   }
 
   async function start() {
-    if (!user || state !== 'READY' && state !== 'ERROR') return;
+    if (!user || (stateRef.current !== 'READY' && stateRef.current !== 'ERROR')) return;
     setError('');
     setTranscript([]);
-    setInputDraft('');
-    setOutputDraft('');
-    setState('CONNECTING');
+    applyInputDraft('');
+    applyOutputDraft('');
+    applyState('CONNECTING');
     try {
       if (!navigator.mediaDevices?.getUserMedia) throw new Error('Microphone is not available in this browser.');
       const idToken = await user.getIdToken();
@@ -177,8 +184,8 @@ export default function VoiceLab() {
       const ws = new WebSocket(`wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=${encodeURIComponent(tokenPayload.token)}`);
       wsRef.current = ws;
       ws.onmessage = event => { void handleServerMessage(event); };
-      ws.onerror = () => { setError('Gemini Live connection error.'); setState('ERROR'); };
-      ws.onclose = () => { if (state !== 'READY') setState('READY'); };
+      ws.onerror = () => { setError('Gemini Live connection error.'); applyState('ERROR'); };
+      ws.onclose = () => { if (stateRef.current !== 'READY') applyState('READY'); };
       ws.onopen = async () => {
         try {
           ws.send(JSON.stringify({ setup: {
@@ -192,13 +199,13 @@ export default function VoiceLab() {
           startedAtRef.current = Date.now();
         } catch (err) {
           setError(err instanceof Error ? err.message : 'Could not start microphone.');
-          setState('ERROR');
+          applyState('ERROR');
           void teardown(false);
         }
       };
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not start voice session.');
-      setState('ERROR');
+      applyState('ERROR');
     }
   }
 
@@ -232,7 +239,9 @@ export default function VoiceLab() {
         });
       } catch { /* session saving should not block cleanup */ }
     }
-    setState('READY');
+    applyInputDraft('');
+    applyOutputDraft('');
+    applyState('READY');
   }
 
   const active = state === 'CONNECTING' || state === 'LISTENING' || state === 'AI_SPEAKING';
