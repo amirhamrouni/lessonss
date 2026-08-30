@@ -11,6 +11,7 @@ import './styles.css';
 import './lesson.css';
 import './twin.css';
 import './modes.css';
+import './language.css';
 
 function Root() {
   return (
