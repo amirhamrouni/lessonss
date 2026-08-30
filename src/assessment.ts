@@ -31,7 +31,23 @@ export type PlacementResult = {
   total: number;
   percent: number;
   skillScores: Record<'Vocabulary' | 'Grammar' | 'Reading', number>;
+  skillLevels: Record<'Vocabulary' | 'Grammar' | 'Reading', PlacementLevel>;
 };
+
+function estimateSkillLevel(skillName: PlacementQuestion['skill'], answers: Record<string, string>): PlacementLevel {
+  const questions = placementQuestions.filter(question => question.skill === skillName);
+  let level: PlacementLevel = 'A1';
+  for (const candidate of levelOrder) {
+    const evidence = questions.filter(question => levelOrder.indexOf(question.level) <= levelOrder.indexOf(candidate));
+    if (!evidence.length) continue;
+    const answered = evidence.filter(question => answers[question.id] !== undefined);
+    if (answered.length !== evidence.length) break;
+    const accuracy = answered.filter(question => answers[question.id] === question.answer).length / answered.length;
+    if (accuracy >= 0.6) level = candidate;
+    else break;
+  }
+  return level;
+}
 
 export function scorePlacement(answers: Record<string, string>): PlacementResult {
   let correct = 0;
@@ -75,6 +91,11 @@ export function scorePlacement(answers: Record<string, string>): PlacementResult
       Vocabulary: toPercent(skill.Vocabulary),
       Grammar: toPercent(skill.Grammar),
       Reading: toPercent(skill.Reading),
+    },
+    skillLevels: {
+      Vocabulary: estimateSkillLevel('Vocabulary', answers),
+      Grammar: estimateSkillLevel('Grammar', answers),
+      Reading: estimateSkillLevel('Reading', answers),
     },
   };
 }
