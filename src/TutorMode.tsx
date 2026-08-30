@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Navigate, NavLink, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, increment, serverTimestamp, setDoc } from 'firebase/firestore';
 import { ArrowLeft, BookOpen, BrainCircuit, Gauge, Home, Mic, Send, Sparkles, UserRound } from 'lucide-react';
 import { auth, db } from './firebase';
 
@@ -13,7 +13,13 @@ type TutorResponse = {
   detectedMistakes: Array<{ original: string; corrected: string; reason: string }>;
 };
 
-type Profile = { placementLevel?: string; cefrLevel?: string; learningGoal?: string };
+type Profile = {
+  placementLevel?: string;
+  cefrLevel?: string;
+  learningGoal?: string;
+  nativeLanguage?: 'English' | 'Arabic' | 'Dutch' | 'French' | 'German' | 'Spanish';
+  explanationLanguage?: 'English' | 'Arabic' | 'Dutch' | 'French' | 'German' | 'Spanish';
+};
 
 type Message = { role: 'learner' | 'twin'; text: string; detail?: TutorResponse };
 
@@ -21,6 +27,11 @@ function Dock() {
   return <nav className="dock">{[
     ['/', Home, 'Home'], ['/learn', BookOpen, 'Learn'], ['/practice', Gauge, 'Practice'], ['/speak', Mic, 'Speak'], ['/profile', UserRound, 'Me'],
   ].map(([to, Icon, label]: any) => <NavLink end={to === '/'} key={to} to={to}><Icon /><small>{label}</small></NavLink>)}</nav>;
+}
+
+function mistakeKey(original: string, corrected: string, index: number) {
+  const safe = `${original}-${corrected}`.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 100);
+  return safe || `mistake-${Date.now()}-${index}`;
 }
 
 export default function TutorMode() {
@@ -47,6 +58,24 @@ export default function TutorMode() {
   if (loading) return <div className="app-shell"><div className="phone"><main className="page"><BrainCircuit /><p>Loading your Twin…</p></main><Dock /></div></div>;
   if (!user) return <Navigate to="/welcome" replace />;
 
+  async function rememberMistakes(detail: TutorResponse, learnerMessage: string) {
+    if (!user || !detail.detectedMistakes.length) return;
+    await Promise.all(detail.detectedMistakes.map((mistake, index) => setDoc(
+      doc(db, 'users', user.uid, 'mistakes', mistakeKey(mistake.original, mistake.corrected, index)),
+      {
+        original: mistake.original,
+        corrected: mistake.corrected,
+        reason: mistake.reason,
+        latestExample: learnerMessage,
+        timesSeen: increment(1),
+        lastSeenAt: serverTimestamp(),
+        source: 'twin-coach',
+        status: 'active',
+      },
+      { merge: true },
+    )));
+  }
+
   async function send(event: FormEvent) {
     event.preventDefault();
     const text = input.trim();
@@ -64,12 +93,15 @@ export default function TutorMode() {
           message: text,
           level: profile.placementLevel || profile.cefrLevel || 'A1',
           goal: profile.learningGoal || 'Daily conversation',
+          nativeLanguage: profile.nativeLanguage || 'English',
+          explanationLanguage: profile.explanationLanguage || profile.nativeLanguage || 'English',
           context,
         }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.error || 'Tutor unavailable');
       const detail = payload as TutorResponse;
+      await rememberMistakes(detail, text);
       setMessages(current => [...current, { role: 'twin', text: detail.reply, detail }]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Tutor unavailable');
@@ -78,7 +110,7 @@ export default function TutorMode() {
 
   return <div className="app-shell"><div className="phone"><main className="page">
     <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> Practice</button>
-    <header><div><span className="eyebrow">AI LANGUAGE COACH</span><h1>Twin Coach</h1><p>Real Gemini feedback through a server-side validated endpoint.</p></div></header>
+    <header><div><span className="eyebrow">AI LANGUAGE COACH</span><h1>Twin Coach</h1><p>Real Gemini feedback, explanations in your support language, and persistent error memory.</p></div></header>
     <section className="tutor-thread">
       {messages.map((message, index) => <article className={`tutor-message ${message.role}`} key={`${message.role}-${index}`}>
         <span>{message.role === 'twin' ? 'TWIN' : 'YOU'}</span>
