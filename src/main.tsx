@@ -5,7 +5,8 @@ import App from './App';
 import SmartHomeV2 from './SmartHomeV2';
 import LearnerSetup from './LearnerSetup';
 import { AssessmentMode, PracticeHub, ReviewMode, SentenceBuilderMode } from './LearningModes';
-import { LearnJourney, UnifiedLessonPlayer } from './LearningPath';
+import { LearnJourney } from './LearningPath';
+import AutoLessonPlayer from './AutoLessonPlayer';
 import TutorMode from './TutorMode';
 import './styles.css';
 import './lesson.css';
@@ -19,7 +20,7 @@ function Root() {
       <Route path="/" element={<SmartHomeV2 />} />
       <Route path="/setup" element={<LearnerSetup />} />
       <Route path="/learn" element={<LearnJourney />} />
-      <Route path="/lesson/:lessonId" element={<UnifiedLessonPlayer />} />
+      <Route path="/lesson/:lessonId" element={<AutoLessonPlayer />} />
       <Route path="/practice" element={<PracticeHub />} />
       <Route path="/review" element={<ReviewMode />} />
       <Route path="/sentence-builder" element={<SentenceBuilderMode />} />
