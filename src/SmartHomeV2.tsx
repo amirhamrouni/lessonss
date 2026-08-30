@@ -14,6 +14,9 @@ type Profile = {
   learningGoal?: string;
   dailyTargetMinutes?: number;
   onboardingCompleted?: boolean;
+  nativeLanguage?: string;
+  explanationLanguage?: string;
+  interfaceLanguage?: string;
   placementLevel?: string;
   skillLevels?: Partial<SkillLevels>;
 };
@@ -73,7 +76,7 @@ export default function SmartHomeV2(){
 
   if(loading)return <main className="center wake"><BrainCircuit/><p>Reading your learning state…</p></main>;
   if(!user)return <Navigate to="/welcome" replace/>;
-  if(!profile?.onboardingCompleted)return <Navigate to="/setup" replace/>;
+  if(!profile?.onboardingCompleted || !profile?.nativeLanguage)return <Navigate to="/setup" replace/>;
 
   return <div className="app-shell"><div className="phone"><main className="page">
     <header className="home-header"><div><span className="eyebrow">ENGLISH TWIN · ADAPTIVE HOME</span><h1>{profile.displayName||user.displayName||'Learner'}</h1><p>{profile.learningGoal||'Personal English'} · {profile.dailyTargetMinutes||15} min daily</p></div><button className="icon" onClick={()=>nav('/profile')}><Settings/></button></header>
