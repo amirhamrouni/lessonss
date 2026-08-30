@@ -25,3 +25,11 @@ jobs:
         run: npm test
       - name: Production build
         run: npm run build
+      - name: Upload production build
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: english-twin-dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
