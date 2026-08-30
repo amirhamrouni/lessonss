@@ -2,7 +2,16 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-const configuredFirebase = {
+const productionFallback = {
+  apiKey: 'AIzaSyAEhnv2ZhP1EU5SYAtR3C_D4j-R5zbuXWg',
+  authDomain: 'gen-lang-client-0217548336.firebaseapp.com',
+  projectId: 'gen-lang-client-0217548336',
+  storageBucket: 'gen-lang-client-0217548336.firebasestorage.app',
+  messagingSenderId: '391040417078',
+  appId: '1:391040417078:web:9e80a3a907190e51c10797',
+};
+
+const envFirebase = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
@@ -11,23 +20,12 @@ const configuredFirebase = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-export const isFirebaseConfigured = Object.values(configuredFirebase).every(Boolean);
+const envConfigured = Object.values(envFirebase).every(Boolean);
+const configuredFirebase = envConfigured ? envFirebase : productionFallback;
 
-// Firebase Auth validates apiKey even when tests only import deterministic learning logic.
-// A local placeholder project prevents import-time crashes in CI; real auth remains disabled
-// in the UI until every VITE_FIREBASE_* value is supplied.
-const bootstrapFirebase = isFirebaseConfigured
-  ? configuredFirebase
-  : {
-      apiKey: 'AIzaSyEnglishTwinLocalBootstrap000000000',
-      authDomain: 'english-twin-local.invalid',
-      projectId: 'english-twin-local',
-      storageBucket: 'english-twin-local.invalid',
-      messagingSenderId: '000000000000',
-      appId: '1:000000000000:web:english-twin-local',
-    };
+export const isFirebaseConfigured = true;
 
-const app = getApps().length ? getApps()[0] : initializeApp(bootstrapFirebase);
+const app = getApps().length ? getApps()[0] : initializeApp(configuredFirebase);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
