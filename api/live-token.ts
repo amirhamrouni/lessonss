@@ -1,5 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
-import { requireFirebaseUser } from './_auth';
+import { requireFirebaseUser } from './_auth.js';
 
 type VercelRequest = { method?: string; headers?: { authorization?: string | string[] } };
 type VercelResponse = { status: (code: number) => VercelResponse; json: (body: unknown) => void };
