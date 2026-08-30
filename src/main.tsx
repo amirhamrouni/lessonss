@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import App from './App';
 import SmartHomeV2 from './SmartHomeV2';
+import TutorMode from './TutorMode';
 import { AssessmentMode, PracticeHub, ReviewMode, SentenceBuilderMode } from './LearningModes';
 import { LearnJourney, UnifiedLessonPlayer } from './LearningPath';
 import './styles.css';
@@ -20,6 +21,7 @@ function Root() {
       <Route path="/review" element={<ReviewMode />} />
       <Route path="/sentence-builder" element={<SentenceBuilderMode />} />
       <Route path="/assessment" element={<AssessmentMode />} />
+      <Route path="/tutor" element={<TutorMode />} />
       <Route path="/*" element={<App />} />
     </Routes>
   );
