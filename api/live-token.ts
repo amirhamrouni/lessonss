@@ -1,10 +1,16 @@
 import { GoogleGenAI } from '@google/genai';
+import { requireFirebaseUser } from './_auth';
 
-type VercelRequest = { method?: string };
+type VercelRequest = { method?: string; headers?: { authorization?: string | string[] } };
 type VercelResponse = { status: (code: number) => VercelResponse; json: (body: unknown) => void };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  try {
+    await requireFirebaseUser(req.headers);
+  } catch {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(503).json({ error: 'Live AI is not configured' });
