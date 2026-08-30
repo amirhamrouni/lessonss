@@ -79,16 +79,17 @@ export default function TutorMode() {
   async function send(event: FormEvent) {
     event.preventDefault();
     const text = input.trim();
-    if (!text || busy) return;
+    if (!text || busy || !user) return;
     setError('');
     setInput('');
     setMessages(current => [...current, { role: 'learner', text }]);
     setBusy(true);
     try {
       const context = messages.slice(-6).map(message => `${message.role}: ${message.text}`);
+      const idToken = await user.getIdToken();
       const response = await fetch('/api/tutor', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
         body: JSON.stringify({
           message: text,
           level: profile.placementLevel || profile.cefrLevel || 'A1',
