@@ -1,0 +1,58 @@
+name: English Twin Instant Preview
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: instant-preview-main
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy temporary live preview
+        id: deploy
+        shell: bash
+        run: |
+          set -o pipefail
+          npx --yes netlify-cli@latest deploy --allow-anonymous --dir=dist 2>&1 | tee netlify-preview.log
+          echo "### English Twin instant preview" >> "$GITHUB_STEP_SUMMARY"
+          echo "This preview is temporary and is generated from the exact main commit after tests and build pass." >> "$GITHUB_STEP_SUMMARY"
+          echo '```text' >> "$GITHUB_STEP_SUMMARY"
+          cat netlify-preview.log >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload preview log
+        uses: actions/upload-artifact@v4
+        with:
+          name: instant-preview-url
+          path: netlify-preview.log
+          if-no-files-found: error
+          retention-days: 1
