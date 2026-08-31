@@ -39,9 +39,11 @@ function Root() {
   );
 }
 
+const routerBase = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={routerBase}>
       <Root />
     </BrowserRouter>
   </React.StrictMode>,
