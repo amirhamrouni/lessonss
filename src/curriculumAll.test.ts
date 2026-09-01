@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { lessonById, lessons, lessonsForLevel, lessonsForUnit, units } from './curriculumAll';
+import { lessons, lessonsForLevel, lessonsForUnit, units } from './curriculumAll';
+import { richA1Lessons } from './richLesson';
 
 describe('unified A1-A2 curriculum', () => {
   it('has unique lesson ids', () => {
@@ -28,20 +29,27 @@ describe('unified A1-A2 curriculum', () => {
     }
   });
 
-  it('starts A1 with a visual and listening-first lesson instead of grammar', () => {
-    const first = lessonById('a1-u1-l1') as unknown as { activities: Array<{ type: string }>; skill: string };
-    const types = first.activities.map(activity => activity.type);
-
-    expect(first.skill).toBe('Vocabulary');
-    expect(types[0]).toBe('visual_word');
-    expect(types).toContain('listen_select');
-    expect(types).toContain('image_choice');
-    expect(types).toContain('sentence_build');
-    expect(types).not.toContain('grammar');
+  it('ships a multi-unit rich beginner pack instead of one demo lesson', () => {
+    expect(richA1Lessons.length).toBeGreaterThanOrEqual(6);
+    expect(new Set(richA1Lessons.map(lesson => lesson.unitId)).size).toBeGreaterThanOrEqual(5);
   });
 
-  it('keeps the first rich lesson substantial enough for a real learning session', () => {
-    const first = lessonById('a1-u1-l1');
-    expect(first.activities.length).toBeGreaterThanOrEqual(8);
+  it('makes every rich beginner lesson multimodal', () => {
+    for (const lesson of richA1Lessons) {
+      const types = lesson.activities.map(activity => activity.type);
+      expect(types).toContain('visual_word');
+      expect(types).toContain('listen_select');
+      expect(lesson.activities.length).toBeGreaterThanOrEqual(5);
+    }
+  });
+
+  it('keeps the first two lessons meaning-first instead of grammar-first', () => {
+    const firstTwo = richA1Lessons.filter(lesson => lesson.id === 'a1-u1-l1' || lesson.id === 'a1-u1-l2');
+    expect(firstTwo).toHaveLength(2);
+    for (const lesson of firstTwo) {
+      expect(lesson.skill).not.toBe('Grammar');
+      expect(lesson.activities[0]?.type).toBe('visual_word');
+      expect(lesson.activities.some(activity => activity.type === 'listen_select')).toBe(true);
+    }
   });
 });
