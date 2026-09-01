@@ -3,6 +3,8 @@ import { getFirestore } from 'firebase-admin/firestore';
 export type QuotaState = { count: number; resetAtMs: number };
 export type QuotaResult = { allowed: boolean; remaining: number; retryAfterSeconds: number };
 
+const memoryQuota = new Map<string, QuotaState>();
+
 export function evaluateQuotaState(
   current: QuotaState | null,
   limit: number,
@@ -33,23 +35,36 @@ function safeQuotaId(key: string) {
   return key.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 180);
 }
 
+function checkMemoryQuota(key: string, limit: number, windowMs: number, now: number) {
+  const id = safeQuotaId(key);
+  const current = memoryQuota.get(id) || null;
+  const { next, result } = evaluateQuotaState(current, limit, windowMs, now);
+  if (result.allowed) memoryQuota.set(id, next);
+  return result;
+}
+
 export async function checkPersistentQuota(
   key: string,
   limit: number,
   windowMs: number,
   now = Date.now(),
 ): Promise<QuotaResult> {
-  const db = getFirestore();
-  const ref = db.collection('__serverQuotas').doc(safeQuotaId(key));
+  try {
+    const db = getFirestore();
+    const ref = db.collection('__serverQuotas').doc(safeQuotaId(key));
 
-  return db.runTransaction(async transaction => {
-    const snapshot = await transaction.get(ref);
-    const raw = snapshot.exists ? snapshot.data() : undefined;
-    const current = raw && typeof raw.count === 'number' && typeof raw.resetAtMs === 'number'
-      ? { count: raw.count, resetAtMs: raw.resetAtMs }
-      : null;
-    const { next, result } = evaluateQuotaState(current, limit, windowMs, now);
-    if (result.allowed) transaction.set(ref, next, { merge: true });
-    return result;
-  });
+    return await db.runTransaction(async transaction => {
+      const snapshot = await transaction.get(ref);
+      const raw = snapshot.exists ? snapshot.data() : undefined;
+      const current = raw && typeof raw.count === 'number' && typeof raw.resetAtMs === 'number'
+        ? { count: raw.count, resetAtMs: raw.resetAtMs }
+        : null;
+      const { next, result } = evaluateQuotaState(current, limit, windowMs, now);
+      if (result.allowed) transaction.set(ref, next, { merge: true });
+      return result;
+    });
+  } catch (error) {
+    console.warn('Persistent quota unavailable; using instance-local fallback', error instanceof Error ? error.message : 'unknown');
+    return checkMemoryQuota(key, limit, windowMs, now);
+  }
 }
