@@ -9,6 +9,7 @@ import {
   reviewSeeds,
   scheduleReview,
   seedsForCompletedLessons,
+  seedsForMistake,
 } from './review';
 
 describe('smart review engine', () => {
@@ -50,6 +51,24 @@ describe('smart review engine', () => {
     expect(meaningForLanguage(hello!, 'Arabic')).toBe('مرحبا');
     expect(meaningForLanguage(hello!, 'dutch')).toBe('Hallo');
     expect(meaningForLanguage(hello!, 'Unknown')).toBe(hello!.meaning);
+  });
+
+  it('targets the review word that appears in a real lesson mistake context', () => {
+    const targeted = seedsForMistake('a1-u1-l1', 'I wrote: I am home. Target: I am at home.');
+    expect(targeted.map(seed => seed.id)).toEqual(['home']);
+  });
+
+  it('falls back to the lesson vocabulary when a mistake has no direct vocabulary match', () => {
+    const lessonSeeds = reviewSeeds.filter(seed => seed.sourceLessonId === 'a1-u1-l1');
+    const targeted = seedsForMistake('a1-u1-l1', 'The word order was incorrect.');
+    expect(targeted.map(seed => seed.id).sort()).toEqual(lessonSeeds.map(seed => seed.id).sort());
+  });
+
+  it('puts mistake-boosted due cards before otherwise equivalent review cards', () => {
+    const now = new Date('2026-09-01T12:00:00.000Z');
+    const first = buildInitialReviewCard(reviewSeeds[0], now);
+    const second = { ...buildInitialReviewCard(reviewSeeds[1], now), mistakeBoosts: 3 };
+    expect(dueCards([first, second], now)[0].id).toBe(second.id);
   });
 
   it('uses FSRS to move a reviewed card into the future', () => {
