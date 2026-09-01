@@ -18,6 +18,7 @@ const AutoLessonPlayer = React.lazy(() => import('./AutoLessonPlayer'));
 const TutorMode = React.lazy(() => import('./TutorMode'));
 const SpeechDrill = React.lazy(() => import('./SpeechDrill'));
 const VoiceLab = React.lazy(() => import('./VoiceLab'));
+const PrivacyPolicy = React.lazy(() => import('./PrivacyPolicy'));
 const LearnJourney = React.lazy(() => import('./LearningPath').then(module => ({ default: module.LearnJourney })));
 const PracticeHub = React.lazy(() => import('./LearningModes').then(module => ({ default: module.PracticeHub })));
 const ReviewMode = React.lazy(() => import('./LearningModes').then(module => ({ default: module.ReviewMode })));
@@ -48,6 +49,7 @@ function Root() {
           <Route path="/speak/live" element={<VoiceLab />} />
           <Route path="/profile" element={<ProfileHub />} />
           <Route path="/mistakes" element={<MistakeMemory />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/*" element={<App />} />
         </Routes>
       </Suspense>
