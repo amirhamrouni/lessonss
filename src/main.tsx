@@ -10,6 +10,7 @@ import AdaptiveSentenceBuilder from './AdaptiveSentenceBuilder';
 import { LearnJourney } from './LearningPath';
 import AutoLessonPlayer from './AutoLessonPlayer';
 import TutorMode from './TutorMode';
+import SpeechDrill from './SpeechDrill';
 import VoiceLab from './VoiceLab';
 import { MistakeMemory, ProfileHub } from './ProfileHub';
 import './styles.css';
@@ -32,7 +33,8 @@ function Root() {
       <Route path="/sentence-builder" element={<AdaptiveSentenceBuilder />} />
       <Route path="/assessment" element={<AssessmentMode />} />
       <Route path="/twin" element={<TutorMode />} />
-      <Route path="/speak" element={<VoiceLab />} />
+      <Route path="/speak" element={<SpeechDrill />} />
+      <Route path="/speak/live" element={<VoiceLab />} />
       <Route path="/profile" element={<ProfileHub />} />
       <Route path="/mistakes" element={<MistakeMemory />} />
       <Route path="/*" element={<App />} />
