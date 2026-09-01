@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lessons, lessonsForLevel, lessonsForUnit, units } from './curriculumAll';
-import { richA1Lessons } from './richLesson';
+import { lessons, lessonsForLevel, lessonsForUnit, richA1, units } from './curriculumAll';
 
 describe('unified A1-A2 curriculum', () => {
   it('has unique lesson ids', () => {
@@ -29,13 +28,13 @@ describe('unified A1-A2 curriculum', () => {
     }
   });
 
-  it('ships a multi-unit rich beginner pack instead of one demo lesson', () => {
-    expect(richA1Lessons.length).toBeGreaterThanOrEqual(6);
-    expect(new Set(richA1Lessons.map(lesson => lesson.unitId)).size).toBeGreaterThanOrEqual(5);
+  it('ships a practical multi-unit rich beginner pack', () => {
+    expect(richA1.length).toBeGreaterThanOrEqual(9);
+    expect(new Set(richA1.map(lesson => lesson.unitId)).size).toBe(6);
   });
 
-  it('makes every rich beginner lesson multimodal', () => {
-    for (const lesson of richA1Lessons) {
+  it('makes vocabulary-rich beginner lessons multimodal', () => {
+    for (const lesson of richA1.filter(lesson => lesson.skill === 'Vocabulary')) {
       const types = lesson.activities.map(activity => activity.type);
       expect(types).toContain('visual_word');
       expect(types).toContain('listen_select');
@@ -44,12 +43,19 @@ describe('unified A1-A2 curriculum', () => {
   });
 
   it('keeps the first two lessons meaning-first instead of grammar-first', () => {
-    const firstTwo = richA1Lessons.filter(lesson => lesson.id === 'a1-u1-l1' || lesson.id === 'a1-u1-l2');
+    const firstTwo = richA1.filter(lesson => lesson.id === 'a1-u1-l1' || lesson.id === 'a1-u1-l2');
     expect(firstTwo).toHaveLength(2);
     for (const lesson of firstTwo) {
       expect(lesson.skill).not.toBe('Grammar');
       expect(lesson.activities[0]?.type).toBe('visual_word');
       expect(lesson.activities.some(activity => activity.type === 'listen_select')).toBe(true);
     }
+  });
+
+  it('includes practical speaking before abstract grammar expansion', () => {
+    const ids = new Set(richA1.map(lesson => lesson.id));
+    expect(ids.has('a1-u4-l2')).toBe(true);
+    expect(ids.has('a1-u5-l2')).toBe(true);
+    expect(ids.has('a1-u6-l1')).toBe(true);
   });
 });
