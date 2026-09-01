@@ -17,6 +17,7 @@ type AudioRuntime = {
 };
 
 const LIVE_MODEL = 'gemini-3.1-flash-live-preview';
+const CONSENT_KEY = 'english-twin-voice-consent-v1';
 
 function Dock() {
   return <nav className="dock">{[
@@ -73,6 +74,8 @@ export default function VoiceLab() {
   const [transcript, setTranscript] = useState<TranscriptItem[]>([]);
   const [inputDraft, setInputDraft] = useState('');
   const [outputDraft, setOutputDraft] = useState('');
+  const [voiceConsent, setVoiceConsent] = useState(() => localStorage.getItem(CONSENT_KEY) === 'accepted');
+  const [showConsent, setShowConsent] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const audioRef = useRef<AudioRuntime | null>(null);
   const nextPlayTimeRef = useRef(0);
@@ -97,6 +100,13 @@ export default function VoiceLab() {
     const clean = text.trim();
     if (!clean) return;
     setTranscript(current => [...current, { role, text: clean }]);
+  }
+
+  function acceptConsent() {
+    localStorage.setItem(CONSENT_KEY, 'accepted');
+    setVoiceConsent(true);
+    setShowConsent(false);
+    void start(true);
   }
 
   async function playPcm(base64: string) {
@@ -167,7 +177,8 @@ export default function VoiceLab() {
     audioRef.current = { inputContext, outputContext, stream, source, processor };
   }
 
-  async function start() {
+  async function start(consentOverride = false) {
+    if (!voiceConsent && !consentOverride) { setShowConsent(true); return; }
     if (!user || (stateRef.current !== 'READY' && stateRef.current !== 'ERROR')) return;
     setError('');
     setTranscript([]);
@@ -249,6 +260,12 @@ export default function VoiceLab() {
   return <div className="app-shell"><div className="phone"><main className="page voice-live">
     <button className="back" onClick={() => nav('/')}><ArrowLeft /> Home</button>
     <header><span className="eyebrow">GEMINI LIVE · REAL MICROPHONE</span><h1>Speak with your Twin</h1><p>Your microphone streams directly to Gemini Live through a short-lived authenticated token. The permanent API key never reaches the browser.</p></header>
+
+    {showConsent && <section className="rich-activity-card" role="dialog" aria-modal="true" aria-labelledby="voice-consent-title">
+      <div className="section-heading"><span>VOICE PRIVACY</span><h3 id="voice-consent-title">Before the microphone starts</h3></div>
+      <p>Your live microphone audio is sent to Gemini Live to run the conversation. English Twin stores the resulting transcript and session duration inside your account so it can improve your learning history. The microphone does not start until you accept.</p>
+      <div className="lesson-actions"><button className="ghost" onClick={() => setShowConsent(false)}>Not now</button><button className="primary lime" onClick={acceptConsent}>I understand · Start</button></div>
+    </section>}
 
     <section className={`voice-stage ${state.toLowerCase()}`}><div className="voice-pulse"><Mic /></div><span className="status-dot">{state}</span><h2>{state === 'READY' ? 'Ready when you are.' : state === 'CONNECTING' ? 'Securing live session…' : state === 'LISTENING' ? 'I’m listening.' : state === 'AI_SPEAKING' ? 'Twin is speaking.' : 'Session needs attention.'}</h2><p>{state === 'READY' ? 'Use headphones for the cleanest conversation.' : 'Speak naturally. Gemini handles turn detection and interruption.'}</p><button className={active ? 'voice-stop' : 'primary lime'} onClick={() => active ? void teardown(true) : void start()}>{active ? <><Square /> End session</> : <><Mic /> Start speaking</>}</button></section>
 
