@@ -1,8 +1,6 @@
 name: English Twin Instant Preview
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -44,7 +42,7 @@ jobs:
           set -o pipefail
           npx --yes netlify-cli@latest deploy --allow-anonymous --dir=dist 2>&1 | tee netlify-preview.log
           echo "### English Twin instant preview" >> "$GITHUB_STEP_SUMMARY"
-          echo "This preview is temporary and is generated from the exact main commit after tests and build pass." >> "$GITHUB_STEP_SUMMARY"
+          echo "This preview is temporary and is generated only when manually requested." >> "$GITHUB_STEP_SUMMARY"
           echo '```text' >> "$GITHUB_STEP_SUMMARY"
           cat netlify-preview.log >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
