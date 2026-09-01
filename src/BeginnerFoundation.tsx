@@ -5,24 +5,7 @@ import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { ArrowLeft, CheckCircle2, Headphones, Volume2 } from 'lucide-react';
 import { auth, db } from './firebase';
 import { directionFor, normalizeLanguage, SupportedLanguage } from './languageSupport';
-
-type WordCard = {
-  id: string;
-  emoji: string;
-  word: string;
-  phonetic: string;
-  meanings: Record<SupportedLanguage, string>;
-  example: string;
-};
-
-const words: WordCard[] = [
-  { id: 'hello', emoji: '👋', word: 'hello', phonetic: 'heh-LOH', example: 'Hello!', meanings: { English: 'hello', Arabic: 'مرحبًا', Dutch: 'hallo', French: 'bonjour', German: 'hallo', Spanish: 'hola' } },
-  { id: 'water', emoji: '💧', word: 'water', phonetic: 'WAW-ter', example: 'Water, please.', meanings: { English: 'water', Arabic: 'ماء', Dutch: 'water', French: 'eau', German: 'Wasser', Spanish: 'agua' } },
-  { id: 'apple', emoji: '🍎', word: 'apple', phonetic: 'AP-uhl', example: 'An apple.', meanings: { English: 'apple', Arabic: 'تفاحة', Dutch: 'appel', French: 'pomme', German: 'Apfel', Spanish: 'manzana' } },
-  { id: 'home', emoji: '🏠', word: 'home', phonetic: 'HOHM', example: 'I am home.', meanings: { English: 'home', Arabic: 'المنزل', Dutch: 'thuis', French: 'maison', German: 'Zuhause', Spanish: 'casa' } },
-  { id: 'coffee', emoji: '☕', word: 'coffee', phonetic: 'KAW-fee', example: 'Coffee, please.', meanings: { English: 'coffee', Arabic: 'قهوة', Dutch: 'koffie', French: 'café', German: 'Kaffee', Spanish: 'café' } },
-  { id: 'name', emoji: '🪪', word: 'name', phonetic: 'NAYM', example: 'My name is Amir.', meanings: { English: 'name', Arabic: 'اسم', Dutch: 'naam', French: 'nom', German: 'Name', Spanish: 'nombre' } },
-];
+import { foundationVocabulary as words } from './foundationVocabulary';
 
 const ui: Record<SupportedLanguage, Record<string, string>> = {
   English: { title: 'Your first English words', subtitle: 'See it. Hear it. Say it. Then use it.', listen: 'Listen', say: 'Say it aloud', meaning: 'Meaning', choose: 'Which picture matches this word?', next: 'Next', check: 'Check', correct: 'Correct', tryAgain: 'Try again', example: 'Tiny sentence', finish: 'Start my learning path', progress: 'First words', loading: 'Preparing your first lesson…' },
@@ -58,7 +41,7 @@ export default function BeginnerFoundation() {
   const current = words[index];
   const options = useMemo(() => {
     const others = words.filter(item => item.id !== current.id);
-    return [current, others[(index + 1) % others.length], others[(index + 3) % others.length]];
+    return [current, others[(index + 7) % others.length], others[(index + 19) % others.length]];
   }, [current, index]);
 
   function speak(text: string) {
@@ -81,6 +64,7 @@ export default function BeginnerFoundation() {
     try {
       await setDoc(doc(db, 'users', user.uid), {
         beginnerFoundationCompleted: true,
+        beginnerFoundationWordCount: words.length,
         beginnerFoundationCompletedAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       }, { merge: true });
@@ -101,7 +85,7 @@ export default function BeginnerFoundation() {
     </header>
 
     <main className="beginner-main">
-      <div className="beginner-heading"><span>A0 → A1</span><h1>{copy.title}</h1><p>{copy.subtitle}</p></div>
+      <div className="beginner-heading"><span>A0 → A1 · {current.category.toUpperCase()}</span><h1>{copy.title}</h1><p>{copy.subtitle}</p></div>
       <div className="beginner-progress"><i style={{ width: `${((index + (stage === 'match' ? 0.65 : 0.2)) / words.length) * 100}%` }} /></div>
 
       {stage === 'learn' ? <section className="word-stage">
