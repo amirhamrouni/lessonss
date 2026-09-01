@@ -8,6 +8,7 @@ import { Activity, Lesson, lessonById } from './curriculumAll';
 import type { RichActivity } from './richLesson';
 import { loadLessonProgress, ProgressMap, saveLessonCompletion } from './learning';
 import { directionFor, normalizeLanguage, t } from './languageSupport';
+import { prioritizeReviewFromMistake } from './review';
 
 type LearnerProfile = { nativeLanguage?: string; explanationLanguage?: string };
 type Feedback = { ok: boolean; text: string };
@@ -159,19 +160,24 @@ export default function AutoLessonPlayer() {
 
   async function rememberObjectiveMistake(given: string, expected: string, explanation: string) {
     const id = `${currentLesson.id}-activity-${index}`;
-    await setDoc(doc(db, 'users', uid, 'mistakes', id), {
-      lessonId: currentLesson.id,
-      activityIndex: index,
-      skill: currentLesson.skill,
-      original: given,
-      corrected: expected,
-      reason: explanation,
-      latestExample: 'prompt' in activity && typeof activity.prompt === 'string' ? activity.prompt : currentLesson.title,
-      timesSeen: increment(1),
-      lastSeenAt: serverTimestamp(),
-      source: 'lesson',
-      status: 'active',
-    }, { merge: true });
+    const prompt = 'prompt' in activity && typeof activity.prompt === 'string' ? activity.prompt : currentLesson.title;
+    const reviewContext = `${expected} ${given} ${prompt} ${explanation}`;
+    await Promise.all([
+      setDoc(doc(db, 'users', uid, 'mistakes', id), {
+        lessonId: currentLesson.id,
+        activityIndex: index,
+        skill: currentLesson.skill,
+        original: given,
+        corrected: expected,
+        reason: explanation,
+        latestExample: prompt,
+        timesSeen: increment(1),
+        lastSeenAt: serverTimestamp(),
+        source: 'lesson',
+        status: 'active',
+      }, { merge: true }),
+      prioritizeReviewFromMistake(uid, currentLesson.id, reviewContext).catch(() => []),
+    ]);
   }
 
   async function finish(nextCorrect = correct, nextTotal = total) {
