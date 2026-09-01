@@ -1,4 +1,4 @@
-import { richA1 } from './curriculumAll';
+import { richLearningLessons } from './curriculumAll';
 
 export type SpeakingPrompt = {
   id: string;
@@ -83,7 +83,7 @@ export function scoreSpokenAttempt(target: string, transcript: string): SpeechSc
   };
 }
 
-export function buildSpeakingPrompts(lessons = richA1): SpeakingPrompt[] {
+export function buildSpeakingPrompts(lessons = richLearningLessons): SpeakingPrompt[] {
   const prompts: SpeakingPrompt[] = [];
   for (const lesson of lessons) {
     for (let index = 0; index < lesson.activities.length; index += 1) {
