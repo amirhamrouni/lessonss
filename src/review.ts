@@ -1,13 +1,18 @@
 import { collection, doc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore';
 import { Card, Grade, Rating, State, createEmptyCard, fsrs } from 'ts-fsrs';
 import { db } from './firebase';
+import { richA1 } from './curriculumAll';
+import type { RichVisualWordActivity } from './richLesson';
 
 export type ReviewSeed = {
   id: string;
   sourceLessonId: string;
   term: string;
   meaning: string;
+  meanings?: Record<string, string>;
   example: string;
+  phonetic?: string;
+  visualId?: unknown;
 };
 
 export type StoredReviewCard = ReviewSeed & {
@@ -24,22 +29,57 @@ export type StoredReviewCard = ReviewSeed & {
   updatedAt?: unknown;
 };
 
-export const reviewSeeds: ReviewSeed[] = [
-  { id: 'hello', sourceLessonId: 'a1-u1-l1', term: 'hello', meaning: 'a greeting', example: 'Hello, nice to meet you.' },
-  { id: 'goodbye', sourceLessonId: 'a1-u1-l1', term: 'goodbye', meaning: 'a phrase used when leaving', example: 'Goodbye! See you tomorrow.' },
-  { id: 'meet', sourceLessonId: 'a1-u1-l1', term: 'meet', meaning: 'to see someone for the first time or by arrangement', example: 'Nice to meet you.' },
-  { id: 'name', sourceLessonId: 'a1-u1-l2', term: 'name', meaning: 'the word used to identify a person', example: 'My name is Lina.' },
-  { id: 'wake-up', sourceLessonId: 'a1-u2-l1', term: 'wake up', meaning: 'to stop sleeping', example: 'I wake up at seven.' },
-  { id: 'breakfast', sourceLessonId: 'a1-u2-l1', term: 'breakfast', meaning: 'the first meal of the day', example: 'I eat breakfast at eight.' },
-  { id: 'parents', sourceLessonId: 'a1-u3-l1', term: 'parents', meaning: 'your mother and father', example: 'My parents live nearby.' },
-  { id: 'brother', sourceLessonId: 'a1-u3-l1', term: 'brother', meaning: 'a male sibling', example: 'I have one brother.' },
-  { id: 'coffee', sourceLessonId: 'a1-u4-l1', term: 'coffee', meaning: 'a common hot drink', example: 'I would like a coffee, please.' },
-  { id: 'water', sourceLessonId: 'a1-u4-l1', term: 'water', meaning: 'a clear drink', example: 'Can I have some water?' },
-  { id: 'pharmacy', sourceLessonId: 'a1-u5-l1', term: 'pharmacy', meaning: 'a place where medicine is sold', example: 'The pharmacy is next to the bank.' },
-  { id: 'station', sourceLessonId: 'a1-u5-l1', term: 'station', meaning: 'a place where trains or buses arrive and leave', example: 'Where is the station?' },
-  { id: 'student', sourceLessonId: 'a1-u6-l1', term: 'student', meaning: 'a person who studies', example: 'I am a student.' },
-  { id: 'teacher', sourceLessonId: 'a1-u6-l1', term: 'teacher', meaning: 'a person who teaches', example: 'She is an English teacher.' },
-];
+const normalizeSeedId = (term: string) => term
+  .trim()
+  .toLowerCase()
+  .replace(/[’']/g, '')
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '');
+
+const isVisualWord = (activity: unknown): activity is RichVisualWordActivity => {
+  if (!activity || typeof activity !== 'object') return false;
+  return (activity as { type?: string }).type === 'visual_word';
+};
+
+export function buildReviewSeedsFromRichLessons(lessons = richA1): ReviewSeed[] {
+  const seeds: ReviewSeed[] = [];
+  const usedIds = new Set<string>();
+
+  for (const lesson of lessons) {
+    for (const activity of lesson.activities) {
+      if (!isVisualWord(activity)) continue;
+
+      const baseId = normalizeSeedId(activity.word) || `${lesson.id}-word`;
+      const id = usedIds.has(baseId) ? `${baseId}-${lesson.id}` : baseId;
+      usedIds.add(id);
+
+      seeds.push({
+        id,
+        sourceLessonId: lesson.id,
+        term: activity.word,
+        meaning: activity.meanings.English || activity.word,
+        meanings: activity.meanings,
+        example: activity.example,
+        phonetic: activity.phonetic,
+        visualId: activity.visualId,
+      });
+    }
+  }
+
+  return seeds;
+}
+
+export const reviewSeeds: ReviewSeed[] = buildReviewSeedsFromRichLessons();
+
+export function meaningForLanguage(seed: ReviewSeed, language?: string | null): string {
+  if (!language) return seed.meaning;
+  const direct = seed.meanings?.[language];
+  if (direct) return direct;
+
+  const normalized = language.trim().toLowerCase();
+  const match = Object.entries(seed.meanings || {}).find(([key]) => key.toLowerCase() === normalized);
+  return match?.[1] || seed.meaning;
+}
 
 const scheduler = fsrs({ request_retention: 0.9, maximum_interval: 3650, enable_fuzz: true, enable_short_term: true });
 
