@@ -8,6 +8,7 @@ import './twin.css';
 import './modes.css';
 import './language.css';
 import './beginner.css';
+import './release-polish.css';
 
 const App = React.lazy(() => import('./App'));
 const SmartHomeV2 = React.lazy(() => import('./SmartHomeV2'));
