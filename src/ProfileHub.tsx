@@ -60,7 +60,7 @@ async function deleteCollectionDocuments(uid: string, name: string) {
 
 async function deleteLearnerData(uid: string) {
   for (const name of userSubcollections) await deleteCollectionDocuments(uid, name);
-  await Promise.allSettled([
+  await Promise.all([
     deleteDoc(doc(db, 'learningProfiles', uid)),
     deleteDoc(doc(db, 'users', uid)),
   ]);
