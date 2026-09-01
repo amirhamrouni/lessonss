@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import AppErrorBoundary from './AppErrorBoundary';
 import './styles.css';
 import './lesson.css';
@@ -10,7 +10,7 @@ import './language.css';
 import './beginner.css';
 import './release-polish.css';
 
-const App = React.lazy(() => import('./App'));
+const AuthGateway = React.lazy(() => import('./AuthGateway'));
 const SmartHomeV2 = React.lazy(() => import('./SmartHomeV2'));
 const LearnerSetup = React.lazy(() => import('./LearnerSetup'));
 const BeginnerFoundation = React.lazy(() => import('./BeginnerFoundation'));
@@ -36,6 +36,7 @@ function Root() {
     <AppErrorBoundary>
       <Suspense fallback={<RouteFallback />}>
         <Routes>
+          <Route path="/welcome" element={<AuthGateway />} />
           <Route path="/" element={<SmartHomeV2 />} />
           <Route path="/setup" element={<LearnerSetup />} />
           <Route path="/start" element={<BeginnerFoundation />} />
@@ -51,7 +52,7 @@ function Root() {
           <Route path="/profile" element={<ProfileHub />} />
           <Route path="/mistakes" element={<MistakeMemory />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/*" element={<App />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
     </AppErrorBoundary>
