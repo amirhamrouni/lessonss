@@ -5,6 +5,7 @@ import { collection, doc, getDocs, increment, serverTimestamp, setDoc } from 'fi
 import { ArrowLeft, BookOpen, Gauge, Headphones, Home, Mic, RotateCcw, Sparkles, UserRound, Volume2 } from 'lucide-react';
 import { auth, db } from './firebase';
 import { prioritizeSpeakingPrompts, scoreSpokenAttempt, speakingPrompts, SpeakingMistakeSignal, SpeechScore } from './speakingEngine';
+import { prioritizeReviewFromMistake } from './review';
 
 type RecognitionAlternative = { transcript: string };
 type RecognitionResult = { isFinal: boolean; 0: RecognitionAlternative };
@@ -77,19 +78,23 @@ export default function SpeechDrill() {
   async function saveWeakAttempt(result: SpeechScore, heard: string) {
     if (!user || result.verdict !== 'retry') return;
     const id = `speech-${item.id}`;
-    await setDoc(doc(db, 'users', user.uid, 'mistakes', id), {
-      lessonId: item.lessonId,
-      skill: 'Speaking',
-      original: heard,
-      corrected: item.target,
-      reason: result.missingWords.length ? `Missing or unclear words: ${result.missingWords.join(', ')}` : 'Speech transcript did not match the target closely enough.',
-      latestExample: item.prompt,
-      timesSeen: increment(1),
-      lastSeenAt: serverTimestamp(),
-      source: 'speech-drill',
-      status: 'active',
-      speechAccuracy: result.accuracy,
-    }, { merge: true });
+    const context = `${heard} ${item.target} ${item.prompt} ${result.missingWords.join(' ')}`;
+    await Promise.all([
+      setDoc(doc(db, 'users', user.uid, 'mistakes', id), {
+        lessonId: item.lessonId,
+        skill: 'Speaking',
+        original: heard,
+        corrected: item.target,
+        reason: result.missingWords.length ? `Missing or unclear words: ${result.missingWords.join(', ')}` : 'Speech transcript did not match the target closely enough.',
+        latestExample: item.prompt,
+        timesSeen: increment(1),
+        lastSeenAt: serverTimestamp(),
+        source: 'speech-drill',
+        status: 'active',
+        speechAccuracy: result.accuracy,
+      }, { merge: true }),
+      prioritizeReviewFromMistake(user.uid, item.lessonId, context).catch(() => []),
+    ]);
   }
 
   function startListening() {
