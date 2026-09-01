@@ -1,9 +1,10 @@
-import { GoogleGenAI } from '@google/genai';
 import { requireFirebaseUser } from './_auth.js';
 import { checkPersistentQuota } from './_quota.js';
 
 type VercelRequest = { method?: string; headers?: { authorization?: string | string[] } };
 type VercelResponse = { status: (code: number) => VercelResponse; json: (body: unknown) => void };
+
+type AuthTokenResponse = { name?: string; error?: { message?: string } };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -33,22 +34,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!apiKey) return res.status(503).json({ error: 'Live AI is not configured' });
 
   try {
-    const ai = new GoogleGenAI({ apiKey });
     const expireTime = new Date(Date.now() + 20 * 60 * 1000).toISOString();
     const newSessionExpireTime = new Date(Date.now() + 2 * 60 * 1000).toISOString();
-
-    const token = await ai.authTokens.create({
-      config: {
+    const model = process.env.GEMINI_LIVE_MODEL || 'gemini-3.1-flash-live-preview';
+    const tokenResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/auth_tokens?key=${encodeURIComponent(apiKey)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         uses: 1,
         expireTime,
         newSessionExpireTime,
-        liveConnectConstraints: {
-          model: process.env.GEMINI_LIVE_MODEL || 'gemini-3.1-flash-live-preview',
+        bidiGenerateContentSetup: {
+          model: `models/${model}`,
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName: 'Kore' },
+              },
+            },
+          },
+          systemInstruction: {
+            parts: [{
+              text: 'You are English Twin, a patient English speaking coach. Keep the conversation in English, adapt to the learner, ask one natural question at a time, and gently recast meaningful errors without interrupting fluency.',
+            }],
+          },
+          inputAudioTranscription: {},
+          outputAudioTranscription: {},
         },
-      },
+      }),
     });
 
-    return res.status(200).json({ token: token.name, expiresAt: expireTime });
+    const payload = await tokenResponse.json() as AuthTokenResponse;
+    if (!tokenResponse.ok || !payload.name) {
+      console.error('Live token API error', tokenResponse.status, payload.error?.message || 'unknown');
+      return res.status(502).json({ error: 'Could not create live session token' });
+    }
+
+    return res.status(200).json({ token: payload.name, expiresAt: expireTime, model });
   } catch (error) {
     console.error('Live token error', error instanceof Error ? error.message : 'unknown');
     return res.status(502).json({ error: 'Could not create live session token' });
