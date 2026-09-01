@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">English Twin</title>
+  <desc id="desc">English Twin app icon with a speech bubble and twin learning mark.</desc>
+  <rect width="512" height="512" rx="112" fill="#07101f"/>
+  <path d="M112 136h288v178c0 61-49 110-110 110h-68l-64 52v-52h-46V136Z" fill="#ffffff"/>
+  <path d="M168 198h72v34h-34v82h34v34h-72v-34h34v-82h-34v-34Zm104 0h72v34h-19v116h-34V232h-19v-34Z" fill="#07101f"/>
+  <circle cx="376" cy="152" r="34" fill="#b9ff66"/>
+</svg>
