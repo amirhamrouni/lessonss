@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Navigate, NavLink, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { ArrowLeft, BookOpen, BrainCircuit, Check, ChevronRight, Gauge, Home, Mic, RotateCcw, Sparkles, UserRound } from 'lucide-react';
+import { ArrowLeft, BookOpen, BrainCircuit, Check, ChevronRight, Gauge, Home, Mic, RotateCcw, Sparkles, UserRound, Volume2 } from 'lucide-react';
 import { auth, db } from './firebase';
 import { loadLessonProgress, ProgressMap } from './learning';
 import { placementQuestions, scorePlacement } from './assessment';
-import { Rating, StoredReviewCard, dueCards, ensureReviewCards, saveReviewRating } from './review';
+import { Rating, StoredReviewCard, dueCards, ensureReviewCards, meaningForLanguage, saveReviewRating } from './review';
 import { directionFor, normalizeLanguage } from './languageSupport';
 
 function useLearner() {
@@ -42,8 +42,22 @@ function learnerLanguage(profile: Record<string, any> | null) {
   return normalizeLanguage(profile?.interfaceLanguage || profile?.instructionLanguage || profile?.nativeLanguage);
 }
 
+function reviewLanguage(profile: Record<string, any> | null) {
+  return normalizeLanguage(profile?.nativeLanguage || profile?.explanationLanguage || profile?.instructionLanguage || profile?.interfaceLanguage);
+}
+
 function isArabic(profile: Record<string, any> | null) {
   return learnerLanguage(profile) === 'Arabic';
+}
+
+function speakEnglish(text: string) {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'en-US';
+  utterance.rate = 0.82;
+  utterance.pitch = 1;
+  window.speechSynthesis.speak(utterance);
 }
 
 export function PracticeHub() {
@@ -77,7 +91,7 @@ export function PracticeHub() {
 }
 
 export function ReviewMode() {
-  const { user, progress, loading } = useLearner();
+  const { user, progress, profile, loading } = useLearner();
   const nav = useNavigate();
   const [cards, setCards] = useState<StoredReviewCard[]>([]);
   const [showAnswer, setShowAnswer] = useState(false);
@@ -92,6 +106,10 @@ export function ReviewMode() {
   if (!user) return <Navigate to="/" replace />;
   const queue = dueCards(cards);
   const card = queue[0];
+  const nativeLanguage = reviewLanguage(profile);
+  const dir = directionFor(nativeLanguage);
+  const ar = nativeLanguage === 'Arabic';
+  const nativeMeaning = card ? meaningForLanguage(card, nativeLanguage) : '';
   async function rate(rating: Rating) {
     if (!card || !user) return;
     setBusy(true);
@@ -102,22 +120,31 @@ export function ReviewMode() {
     } finally { setBusy(false); }
   }
   return <Frame>
-    <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> Practice</button>
-    <header><div><span className="eyebrow">FSRS MEMORY</span><h1>Review</h1><p>{queue.length} cards due now.</p></div></header>
-    {!card ? <section className="mode-empty"><Check /><h2>You’re caught up.</h2><p>FSRS will bring items back when memory strength predicts they should be reviewed.</p><button onClick={() => nav('/practice')}>Back to practice</button></section> :
-      <section className="review-card">
-        <span className="mode-kicker">VOCABULARY · {queue.length} LEFT</span>
-        <h2>{card.term}</h2>
-        {!showAnswer ? <><p>Recall the meaning before revealing it.</p><button className="reveal" onClick={() => setShowAnswer(true)}>Reveal answer</button></> : <>
-          <div className="review-answer"><strong>{card.meaning}</strong><p>{card.example}</p></div>
-          <div className="rating-row">
-            <button disabled={busy} onClick={() => rate(Rating.Again)}><span>Again</span><small>Forgot</small></button>
-            <button disabled={busy} onClick={() => rate(Rating.Hard)}><span>Hard</span><small>Struggled</small></button>
-            <button disabled={busy} onClick={() => rate(Rating.Good)}><span>Good</span><small>Recalled</small></button>
-            <button disabled={busy} onClick={() => rate(Rating.Easy)}><span>Easy</span><small>Instant</small></button>
+    <div dir={dir}>
+      <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {ar ? 'التدريب' : 'Practice'}</button>
+      <header><div><span className="eyebrow">FSRS MEMORY</span><h1>{ar ? 'المراجعة الذكية' : 'Smart Review'}</h1><p>{ar ? `${queue.length} بطاقات مستحقة الآن.` : `${queue.length} cards due now.`}</p></div></header>
+      {!card ? <section className="mode-empty"><Check /><h2>{ar ? 'أنت مواكب للمراجعة.' : 'You’re caught up.'}</h2><p>{ar ? 'سيعيد FSRS الكلمات عندما يتوقع أن الذاكرة تحتاج إلى تعزيز.' : 'FSRS will bring items back when memory strength predicts they should be reviewed.'}</p><button onClick={() => nav('/practice')}>{ar ? 'العودة للتدريب' : 'Back to practice'}</button></section> :
+        <section className="review-card">
+          <span className="mode-kicker">{ar ? `مفردات · ${queue.length} متبقية` : `VOCABULARY · ${queue.length} LEFT`}</span>
+          <div dir="ltr" className="review-term-row">
+            <div>
+              <h2>{card.term}</h2>
+              {card.phonetic && <small className="review-phonetic">{card.phonetic}</small>}
+            </div>
+            <button className="review-audio" type="button" aria-label={`Play ${card.term}`} onClick={() => speakEnglish(card.term)}><Volume2 /></button>
           </div>
-        </>}
-      </section>}
+          {!showAnswer ? <><p>{ar ? 'تذكّر المعنى أولًا، ثم اكشف الإجابة.' : 'Recall the meaning before revealing it.'}</p><button className="reveal" onClick={() => setShowAnswer(true)}>{ar ? 'اكشف المعنى' : 'Reveal answer'}</button></> : <>
+            <div className="review-answer" dir={dir}><strong>{nativeMeaning}</strong><p dir="ltr">{card.example}</p></div>
+            <button className="review-example-audio" type="button" onClick={() => speakEnglish(card.example)}><Volume2 /> {ar ? 'اسمع المثال' : 'Hear example'}</button>
+            <div className="rating-row">
+              <button disabled={busy} onClick={() => rate(Rating.Again)}><span>{ar ? 'نسيت' : 'Again'}</span><small>{ar ? 'أعدها قريبًا' : 'Forgot'}</small></button>
+              <button disabled={busy} onClick={() => rate(Rating.Hard)}><span>{ar ? 'صعب' : 'Hard'}</span><small>{ar ? 'تذكّرت بصعوبة' : 'Struggled'}</small></button>
+              <button disabled={busy} onClick={() => rate(Rating.Good)}><span>{ar ? 'جيد' : 'Good'}</span><small>{ar ? 'تذكّرت' : 'Recalled'}</small></button>
+              <button disabled={busy} onClick={() => rate(Rating.Easy)}><span>{ar ? 'سهل' : 'Easy'}</span><small>{ar ? 'فوري' : 'Instant'}</small></button>
+            </div>
+          </>}
+        </section>}
+    </div>
   </Frame>;
 }
 
