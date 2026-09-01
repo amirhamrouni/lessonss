@@ -1,9 +1,12 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Navigate, NavLink, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc, increment, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, increment, serverTimestamp, setDoc } from 'firebase/firestore';
 import { ArrowLeft, BookOpen, BrainCircuit, Gauge, Home, Mic, Send, Sparkles, UserRound } from 'lucide-react';
 import { auth, db } from './firebase';
+import { loadLessonProgress } from './learning';
+import { loadReviewCards } from './review';
+import { buildTwinSnapshot, trimTwinConversation, TwinLearnerSnapshot, TwinMemoryMessage } from './twinMemory';
 
 type TutorResponse = {
   reply: string;
@@ -23,6 +26,14 @@ type Profile = {
 
 type Message = { role: 'learner' | 'twin'; text: string; detail?: TutorResponse };
 
+const EMPTY_SNAPSHOT: TwinLearnerSnapshot = {
+  completedLessons: [],
+  weakSkills: [],
+  recentMistakes: [],
+  dueReviewTerms: [],
+  recentConversation: [],
+};
+
 function Dock() {
   return <nav className="dock">{[
     ['/', Home, 'Home'], ['/learn', BookOpen, 'Learn'], ['/practice', Gauge, 'Practice'], ['/speak', Mic, 'Speak'], ['/profile', UserRound, 'Me'],
@@ -38,24 +49,45 @@ export default function TutorMode() {
   const nav = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile>({});
+  const [snapshot, setSnapshot] = useState<TwinLearnerSnapshot>(EMPTY_SNAPSHOT);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'twin', text: 'Tell me something you would actually say in real life. I’ll help you make it sound natural.' },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [error, setError] = useState('');
 
   useEffect(() => onAuthStateChanged(auth, async current => {
     setUser(current);
     if (!current) { setLoading(false); return; }
     try {
-      const snap = await getDoc(doc(db, 'users', current.uid));
-      if (snap.exists()) setProfile(snap.data() as Profile);
+      const [profileSnap, progress, mistakesSnap, reviewCards, twinStateSnap] = await Promise.all([
+        getDoc(doc(db, 'users', current.uid)),
+        loadLessonProgress(current.uid),
+        getDocs(collection(db, 'users', current.uid, 'mistakes')),
+        loadReviewCards(current.uid),
+        getDoc(doc(db, 'users', current.uid, 'twin', 'state')),
+      ]);
+
+      const nextProfile = profileSnap.exists() ? profileSnap.data() as Profile : {};
+      const savedConversation = twinStateSnap.exists()
+        ? trimTwinConversation((twinStateSnap.data().recentConversation || []) as TwinMemoryMessage[])
+        : [];
+      const learnerSnapshot = buildTwinSnapshot({
+        progress: Object.values(progress),
+        mistakes: mistakesSnap.docs.map(item => item.data()),
+        reviewCards,
+        conversation: savedConversation,
+      });
+
+      setProfile(nextProfile);
+      setSnapshot(learnerSnapshot);
+      setMessages(savedConversation.length
+        ? savedConversation.map(message => ({ ...message }))
+        : [{ role: 'twin', text: 'Tell me something you would actually say in real life. I’ll adapt to what you are learning and what you keep finding difficult.' }]);
     } finally { setLoading(false); }
   }), []);
 
-  if (loading) return <div className="app-shell"><div className="phone"><main className="page"><BrainCircuit /><p>Loading your Twin…</p></main><Dock /></div></div>;
+  if (loading) return <div className="app-shell"><div className="phone"><main className="page"><BrainCircuit /><p>Loading your Twin memory…</p></main><Dock /></div></div>;
   if (!user) return <Navigate to="/welcome" replace />;
 
   async function rememberMistakes(detail: TutorResponse, learnerMessage: string) {
@@ -70,10 +102,22 @@ export default function TutorMode() {
         timesSeen: increment(1),
         lastSeenAt: serverTimestamp(),
         source: 'twin-coach',
+        skill: 'twin-coach',
         status: 'active',
       },
       { merge: true },
     )));
+  }
+
+  async function persistConversation(nextMessages: Message[]) {
+    if (!user) return;
+    const recentConversation = trimTwinConversation(nextMessages.map(message => ({ role: message.role, text: message.text })));
+    await setDoc(doc(db, 'users', user.uid, 'twin', 'state'), {
+      recentConversation,
+      interactionCount: increment(1),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    setSnapshot(current => ({ ...current, recentConversation }));
   }
 
   async function send(event: FormEvent) {
@@ -82,10 +126,12 @@ export default function TutorMode() {
     if (!text || busy || !user) return;
     setError('');
     setInput('');
-    setMessages(current => [...current, { role: 'learner', text }]);
+    const learnerTurn: Message = { role: 'learner', text };
+    const conversationBeforeReply = [...messages, learnerTurn];
+    setMessages(conversationBeforeReply);
     setBusy(true);
     try {
-      const context = messages.slice(-6).map(message => `${message.role}: ${message.text}`);
+      const recentConversation = trimTwinConversation(conversationBeforeReply.map(message => ({ role: message.role, text: message.text })));
       const idToken = await user.getIdToken();
       const response = await fetch('/api/tutor', {
         method: 'POST',
@@ -96,14 +142,17 @@ export default function TutorMode() {
           goal: profile.learningGoal || 'Daily conversation',
           nativeLanguage: profile.nativeLanguage || 'English',
           explanationLanguage: profile.explanationLanguage || profile.nativeLanguage || 'English',
-          context,
+          context: recentConversation.map(message => `${message.role}: ${message.text}`),
+          learnerSnapshot: { ...snapshot, recentConversation },
         }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.error || 'Tutor unavailable');
       const detail = payload as TutorResponse;
-      await rememberMistakes(detail, text);
-      setMessages(current => [...current, { role: 'twin', text: detail.reply, detail }]);
+      const twinTurn: Message = { role: 'twin', text: detail.reply, detail };
+      const nextMessages = [...conversationBeforeReply, twinTurn];
+      await Promise.all([rememberMistakes(detail, text), persistConversation(nextMessages)]);
+      setMessages(nextMessages);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Tutor unavailable');
     } finally { setBusy(false); }
@@ -111,7 +160,11 @@ export default function TutorMode() {
 
   return <div className="app-shell"><div className="phone"><main className="page">
     <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> Practice</button>
-    <header><div><span className="eyebrow">AI LANGUAGE COACH</span><h1>Twin Coach</h1><p>Real Gemini feedback, explanations in your support language, and persistent error memory.</p></div></header>
+    <header><div><span className="eyebrow">AI LANGUAGE COACH · LEARNER MEMORY</span><h1>English Twin</h1><p>The Twin uses your level, completed lessons, repeated mistakes, due vocabulary and recent conversation — not a blank chat.</p></div></header>
+    {(snapshot.weakSkills.length > 0 || snapshot.dueReviewTerms.length > 0) && <section className="twin-memory-strip">
+      <BrainCircuit />
+      <div><b>What your Twin is watching</b><p>{snapshot.weakSkills.slice(0, 3).map(item => item.skill).join(' · ') || 'learning progress'}{snapshot.dueReviewTerms.length ? ` · review: ${snapshot.dueReviewTerms.slice(0, 4).join(', ')}` : ''}</p></div>
+    </section>}
     <section className="tutor-thread">
       {messages.map((message, index) => <article className={`tutor-message ${message.role}`} key={`${message.role}-${index}`}>
         <span>{message.role === 'twin' ? 'TWIN' : 'YOU'}</span>
@@ -120,7 +173,7 @@ export default function TutorMode() {
         {message.detail?.detectedMistakes?.length ? <div className="tutor-mistakes">{message.detail.detectedMistakes.map((mistake, i) => <div key={i}><del>{mistake.original}</del><b>{mistake.corrected}</b><small>{mistake.reason}</small></div>)}</div> : null}
         {message.detail?.suggestedReply && <button className="ghost tutor-suggestion" onClick={() => setInput(message.detail!.suggestedReply!)}>Try: “{message.detail.suggestedReply}”</button>}
       </article>)}
-      {busy && <article className="tutor-message twin"><span>TWIN</span><p>Thinking about meaning, grammar and naturalness…</p></article>}
+      {busy && <article className="tutor-message twin"><span>TWIN</span><p>Reading your learning context and preparing the next useful step…</p></article>}
     </section>
     {error && <p className="error">{error}</p>}
     <form className="tutor-composer" onSubmit={send}>
