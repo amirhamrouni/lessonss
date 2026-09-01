@@ -8,83 +8,27 @@ import { lessons, lessonsForLevel } from './curriculumAll';
 import { loadLessonProgress, ProgressMap, summarizeProgress } from './learning';
 import { dueCards, ensureReviewCards } from './review';
 import { buildDailyPlan, SkillLevels, weakestMeasuredSkill } from './adaptiveLearning';
+import { directionFor, normalizeLanguage } from './languageSupport';
 
-type Profile = {
-  displayName?: string;
-  learningGoal?: string;
-  dailyTargetMinutes?: number;
-  onboardingCompleted?: boolean;
-  beginnerFoundationCompleted?: boolean;
-  nativeLanguage?: string;
-  explanationLanguage?: string;
-  interfaceLanguage?: string;
-  placementLevel?: string;
-  skillLevels?: Partial<SkillLevels>;
-};
-type Recommendation = { kind: 'foundation'|'assessment'|'review'|'lesson'|'speak'; eyebrow:string; title:string; body:string; action:string; to:string };
+type Profile = { displayName?:string; learningGoal?:string; dailyTargetMinutes?:number; onboardingCompleted?:boolean; beginnerFoundationCompleted?:boolean; nativeLanguage?:string; explanationLanguage?:string; interfaceLanguage?:string; placementLevel?:string; skillLevels?:Partial<SkillLevels> };
+type Recommendation = { kind:'foundation'|'assessment'|'review'|'lesson'|'speak'; eyebrow:string; title:string; body:string; action:string; to:string };
+const arCopy={home:'الرئيسية',learn:'تعلّم',practice:'تدريب',speak:'تحدث',me:'أنا',loading:'نقرأ حالة تعلّمك…',adaptive:'ENGLISH TWIN · تعلم تكيفي',personal:'إنجليزية شخصية',start:'ابدأ هنا · A0 → A1',see:'شاهدها. اسمعها. قلها.',seeBody:'ابدأ بصور واضحة وكلمات يومية ونطق وجمل قصيرة. لا اختبار قواعد في البداية.',first:'ابدأ بالكلمات الأولى',ask:'اسأل الـTwin',today:'اليوم',plan:'خطتك التكيفية',firstWords:'الكلمات الأولى',firstWordsBody:'صور · استماع · نطق · معنى · جمل قصيرة',path:'المسار',state:'حالة تعلم A1 → A2',reviews:'مراجعات مستحقة',signals:'الخيارات',route:'اختر مسارك',beginner:'بداية المبتدئ',completed:'مكتمل — يمكنك إعادته متى شئت',recommended:'موصى به إذا كنت تبدأ من الصفر',placement:'تحديد المستوى · اختياري',placementBody:'استخدمه فقط إذا كنت تعرف بعض الإنجليزية',memory:'الذاكرة',noReview:'لا توجد مراجعة مستحقة',real:'لا يوجد تقدم وهمي.',realBody:'تقدمك يبدأ من كلمات وأنشطة حقيقية، وليس من مستوى مصطنع.',reviewNow:'راجع الآن',continueLesson:'تابع الدرس',speaking:'افتح مختبر المحادثة'};
 
-function Dock(){return <nav className="dock">{[['/',Home,'Home'],['/learn',BookOpen,'Learn'],['/practice',Gauge,'Practice'],['/speak',Mic,'Speak'],['/profile',UserRound,'Me']].map(([to,Icon,label]:any)=><NavLink end={to==='/'} key={to} to={to}><Icon/><small>{label}</small></NavLink>)}</nav>}
-
+function Dock({ar}:{ar:boolean}){const labels=ar?[arCopy.home,arCopy.learn,arCopy.practice,arCopy.speak,arCopy.me]:['Home','Learn','Practice','Speak','Me'];return <nav className="dock">{[['/',Home],['/learn',BookOpen],['/practice',Gauge],['/speak',Mic],['/profile',UserRound]].map(([to,Icon]:any,i)=><NavLink end={to==='/'} key={to} to={to}><Icon/><small>{labels[i]}</small></NavLink>)}</nav>}
 export default function SmartHomeV2(){
-  const nav=useNavigate();
-  const [user,setUser]=useState<User|null>(null);
-  const [profile,setProfile]=useState<Profile|null>(null);
-  const [progress,setProgress]=useState<ProgressMap>({});
-  const [dueCount,setDueCount]=useState(0);
-  const [loading,setLoading]=useState(true);
-
-  useEffect(()=>onAuthStateChanged(auth,async current=>{
-    setLoading(true);setUser(current);
-    if(!current){setProfile(null);setProgress({});setDueCount(0);setLoading(false);return;}
-    try{
-      const [snap,p]=await Promise.all([getDoc(doc(db,'users',current.uid)),loadLessonProgress(current.uid)]);
-      const next=snap.exists()?snap.data() as Profile:{};setProfile(next);setProgress(p);
-      const completed=Object.values(p).filter(x=>x.completed).map(x=>x.lessonId);
-      const cards=await ensureReviewCards(current.uid,completed);setDueCount(dueCards(cards).length);
-    }catch{setDueCount(0)}finally{setLoading(false)}
-  }),[]);
-
-  const nextLesson=useMemo(()=>lessons.find(l=>!progress[l.id]?.completed),[progress]);
-  const weakestSkill=useMemo(()=>weakestMeasuredSkill(profile?.skillLevels),[profile?.skillLevels]);
-  const dailyPlan=useMemo(()=>buildDailyPlan({
-    dailyTargetMinutes:profile?.dailyTargetMinutes||15,
-    dueReviews:dueCount,
-    nextLessonId:nextLesson?.id,
-    weakestSkill,
-    speakingAvailable:true,
-  }),[profile?.dailyTargetMinutes,dueCount,nextLesson?.id,weakestSkill]);
-  const a1Summary=useMemo(()=>summarizeProgress(progress,lessonsForLevel('A1').length),[progress]);
-  const a2Summary=useMemo(()=>{
-    const a2Ids=new Set(lessonsForLevel('A2').map(l=>l.id));
-    const scoped=Object.fromEntries(Object.entries(progress).filter(([id])=>a2Ids.has(id)));
-    return summarizeProgress(scoped,lessonsForLevel('A2').length);
-  },[progress]);
-
-  const recommendation:Recommendation=useMemo(()=>{
-    if(!profile?.beginnerFoundationCompleted)return{kind:'foundation',eyebrow:'START HERE · A0 → A1',title:'See it. Hear it. Say it.',body:'Start with clear pictures, everyday words, pronunciation and tiny sentences. No grammar test first.',action:'Start first words',to:'/start'};
-    const first=dailyPlan[0];
-    if(first?.id==='review')return{kind:'review',eyebrow:'MEMORY PRIORITY',title:`${dueCount} review${dueCount===1?'':'s'} due now.`,body:first.reason,action:'Review now',to:'/review'};
-    if(first?.id==='lesson'&&nextLesson)return{kind:'lesson',eyebrow:nextLesson.id.startsWith('a2-')?'A2 · NEXT BEST STEP':'A1 · NEXT BEST STEP',title:nextLesson.title,body:`${nextLesson.objective} · ${first.minutes} min today`,action:'Continue lesson',to:`/lesson/${nextLesson.id}`};
-    return{kind:'speak',eyebrow:'TRANSFER TO SPEECH',title:'Use what you learned in conversation.',body:'Turn stored knowledge into real-time production.',action:'Open speaking lab',to:'/speak'};
-  },[profile?.beginnerFoundationCompleted,dailyPlan,dueCount,nextLesson]);
-
-  function planRoute(itemId:string,lessonId?:string){
-    if(itemId==='review')return '/review';
-    if(itemId==='lesson'&&lessonId)return `/lesson/${lessonId}`;
-    if(itemId==='speaking')return '/speak';
-    return '/practice';
-  }
-
-  if(loading)return <main className="center wake"><BrainCircuit/><p>Reading your learning state…</p></main>;
-  if(!user)return <Navigate to="/welcome" replace/>;
-  if(!profile?.onboardingCompleted || !profile?.nativeLanguage)return <Navigate to="/setup" replace/>;
-
-  return <div className="app-shell"><div className="phone"><main className="page">
-    <header className="home-header"><div><span className="eyebrow">ENGLISH TWIN · ADAPTIVE HOME</span><h1>{profile.displayName||user.displayName||'Learner'}</h1><p>{profile.learningGoal||'Personal English'} · {profile.dailyTargetMinutes||15} min daily</p></div><button className="icon" onClick={()=>nav('/profile')}><Settings/></button></header>
-    <section className="twin-stage"><div className="twin-copy"><span className="status-dot">{recommendation.eyebrow}</span><h2>{recommendation.title}</h2><p>{recommendation.body}</p><div className="hero-actions"><button className="primary lime" onClick={()=>nav(recommendation.to)}>{recommendation.kind==='review'?<RotateCcw/>:recommendation.kind==='assessment'?<Gauge/>:recommendation.kind==='speak'?<Mic/>:<BookOpen/>}{recommendation.action}</button><button className="ghost" onClick={()=>nav('/twin')}>Ask your Twin <ChevronRight/></button></div></div><div className="twin idle"><div className="twin-aura"/><div className="twin-orbit orbit-a"/><div className="twin-orbit orbit-b"/><div className="twin-core"><span className="twin-eye left"/><span className="twin-eye right"/><i className="twin-mouth"/></div><div className="twin-wave"><i/><i/><i/><i/><i/></div></div></section>
-    <section><div className="section-heading"><span>TODAY</span><h3>Your adaptive plan</h3></div><div className="daily-plan">{!profile.beginnerFoundationCompleted?<button onClick={()=>nav('/start')}><span className="plan-no">01</span><div><b>First words</b><small>Pictures · listening · pronunciation · meaning · tiny sentences</small></div><ChevronRight/></button>:dailyPlan.map((item,index)=><button key={`${item.id}-${index}`} onClick={()=>nav(planRoute(item.id,item.lessonId))}><span className="plan-no">{String(index+1).padStart(2,'0')}</span><div><b>{item.id==='review'?'Memory review':item.id==='lesson'?'Next lesson':item.id==='weak-skill'?`Strengthen ${item.skill}`:'Speaking transfer'}</b><small>{item.minutes} min · {item.reason}</small></div><ChevronRight/></button>)}</div></section>
-    <section><div className="section-heading"><span>PATH</span><h3>A1 → A2 learning state</h3></div><div className="metric-strip"><div><strong>{a1Summary.percent}%</strong><span>A1</span></div><div><strong>{a2Summary.percent}%</strong><span>A2</span></div><div><strong>{dueCount}</strong><span>Reviews due</span></div></div></section>
-    <section><div className="section-heading"><span>SIGNALS</span><h3>Choose your route</h3></div><div className="daily-plan"><button onClick={()=>nav('/start')}><span className="plan-no">01</span><div><b>Beginner start</b><small>{profile.beginnerFoundationCompleted?'Completed — repeat any time':'Recommended if you are starting from zero'}</small></div><ChevronRight/></button><button onClick={()=>nav('/assessment')}><span className="plan-no">02</span><div><b>Placement · optional</b><small>{profile.placementLevel?`Measured: ${profile.placementLevel}`:'Use this only if you already know some English'}</small></div><ChevronRight/></button><button onClick={()=>nav('/review')}><span className="plan-no">03</span><div><b>Memory</b><small>{dueCount?`${dueCount} cards due`:'No review due'}</small></div><ChevronRight/></button></div></section>
-    {!Object.keys(progress).length&&<div className="signal-empty"><Sparkles/><div><b>No invented progress.</b><p>Your progress starts from real words and real activities, not a fake level score.</p></div></div>}
-  </main><Dock/></div></div>;
+ const nav=useNavigate(); const [user,setUser]=useState<User|null>(null); const [profile,setProfile]=useState<Profile|null>(null); const [progress,setProgress]=useState<ProgressMap>({}); const [dueCount,setDueCount]=useState(0); const [loading,setLoading]=useState(true);
+ useEffect(()=>onAuthStateChanged(auth,async current=>{setLoading(true);setUser(current);if(!current){setProfile(null);setProgress({});setDueCount(0);setLoading(false);return;}try{const [snap,p]=await Promise.all([getDoc(doc(db,'users',current.uid)),loadLessonProgress(current.uid)]);const next=snap.exists()?snap.data() as Profile:{};setProfile(next);setProgress(p);const completed=Object.values(p).filter(x=>x.completed).map(x=>x.lessonId);const cards=await ensureReviewCards(current.uid,completed);setDueCount(dueCards(cards).length);}catch{setDueCount(0)}finally{setLoading(false)}}),[]);
+ const support=normalizeLanguage(profile?.explanationLanguage||profile?.nativeLanguage||profile?.interfaceLanguage); const ar=support==='Arabic'; const dir=directionFor(support);
+ const nextLesson=useMemo(()=>lessons.find(l=>!progress[l.id]?.completed),[progress]); const weakestSkill=useMemo(()=>weakestMeasuredSkill(profile?.skillLevels),[profile?.skillLevels]);
+ const dailyPlan=useMemo(()=>buildDailyPlan({dailyTargetMinutes:profile?.dailyTargetMinutes||15,dueReviews:dueCount,nextLessonId:nextLesson?.id,weakestSkill,speakingAvailable:true}),[profile?.dailyTargetMinutes,dueCount,nextLesson?.id,weakestSkill]);
+ const a1Summary=useMemo(()=>summarizeProgress(progress,lessonsForLevel('A1').length),[progress]); const a2Summary=useMemo(()=>{const ids=new Set(lessonsForLevel('A2').map(l=>l.id));return summarizeProgress(Object.fromEntries(Object.entries(progress).filter(([id])=>ids.has(id))),lessonsForLevel('A2').length)},[progress]);
+ const recommendation:Recommendation=useMemo(()=>{if(!profile?.beginnerFoundationCompleted)return{kind:'foundation',eyebrow:ar?arCopy.start:'START HERE · A0 → A1',title:ar?arCopy.see:'See it. Hear it. Say it.',body:ar?arCopy.seeBody:'Start with clear pictures, everyday words, pronunciation and tiny sentences. No grammar test first.',action:ar?arCopy.first:'Start first words',to:'/start'};const first=dailyPlan[0];if(first?.id==='review')return{kind:'review',eyebrow:ar?'أولوية الذاكرة':'MEMORY PRIORITY',title:ar?`${dueCount} مراجعات مستحقة الآن.`:`${dueCount} review${dueCount===1?'':'s'} due now.`,body:ar?'ثبّت الكلمات المستحقة قبل أن يضعف التذكّر.':first.reason,action:ar?arCopy.reviewNow:'Review now',to:'/review'};if(first?.id==='lesson'&&nextLesson)return{kind:'lesson',eyebrow:nextLesson.id.startsWith('a2-')?'A2 · NEXT BEST STEP':'A1 · NEXT BEST STEP',title:nextLesson.title,body:ar?`الدرس التالي الأنسب · ${first.minutes} دقائق اليوم`:`${nextLesson.objective} · ${first.minutes} min today`,action:ar?arCopy.continueLesson:'Continue lesson',to:`/lesson/${nextLesson.id}`};return{kind:'speak',eyebrow:ar?'انقل التعلم إلى الكلام':'TRANSFER TO SPEECH',title:ar?'استخدم ما تعلمته في محادثة.':'Use what you learned in conversation.',body:ar?'حوّل معرفتك إلى كلام فعلي.':'Turn stored knowledge into real-time production.',action:ar?arCopy.speaking:'Open speaking lab',to:'/speak'}},[profile?.beginnerFoundationCompleted,dailyPlan,dueCount,nextLesson,ar]);
+ function planRoute(id:string,lessonId?:string){if(id==='review')return'/review';if(id==='lesson'&&lessonId)return`/lesson/${lessonId}`;if(id==='speaking')return'/speak';return'/practice'}
+ if(loading)return <main className="center wake" dir={dir}><BrainCircuit/><p>{ar?arCopy.loading:'Reading your learning state…'}</p></main>; if(!user)return <Navigate to="/welcome" replace/>; if(!profile?.onboardingCompleted||!profile?.nativeLanguage)return <Navigate to="/setup" replace/>;
+ return <div className="app-shell" dir={dir}><div className="phone"><main className="page"><header className="home-header"><div><span className="eyebrow">{ar?arCopy.adaptive:'ENGLISH TWIN · ADAPTIVE HOME'}</span><h1>{profile.displayName||user.displayName||'Learner'}</h1><p>{ar?`${profile.learningGoal||arCopy.personal} · ${profile.dailyTargetMinutes||15} دقيقة يوميًا`:`${profile.learningGoal||'Personal English'} · ${profile.dailyTargetMinutes||15} min daily`}</p></div><button className="icon" onClick={()=>nav('/profile')}><Settings/></button></header>
+ <section className="twin-stage"><div className="twin-copy"><span className="status-dot">{recommendation.eyebrow}</span><h2>{recommendation.title}</h2><p>{recommendation.body}</p><div className="hero-actions"><button className="primary lime" onClick={()=>nav(recommendation.to)}>{recommendation.kind==='review'?<RotateCcw/>:recommendation.kind==='speak'?<Mic/>:<BookOpen/>}{recommendation.action}</button><button className="ghost" onClick={()=>nav('/twin')}>{ar?arCopy.ask:'Ask your Twin'} <ChevronRight/></button></div></div><div className="twin idle"><div className="twin-aura"/><div className="twin-orbit orbit-a"/><div className="twin-orbit orbit-b"/><div className="twin-core"><span className="twin-eye left"/><span className="twin-eye right"/><i className="twin-mouth"/></div></div></section>
+ <section><div className="section-heading"><span>{ar?arCopy.today:'TODAY'}</span><h3>{ar?arCopy.plan:'Your adaptive plan'}</h3></div><div className="daily-plan">{!profile.beginnerFoundationCompleted?<button onClick={()=>nav('/start')}><span className="plan-no">01</span><div><b>{ar?arCopy.firstWords:'First words'}</b><small>{ar?arCopy.firstWordsBody:'Pictures · listening · pronunciation · meaning · tiny sentences'}</small></div><ChevronRight/></button>:dailyPlan.map((item,index)=><button key={`${item.id}-${index}`} onClick={()=>nav(planRoute(item.id,item.lessonId))}><span className="plan-no">{String(index+1).padStart(2,'0')}</span><div><b>{ar?(item.id==='review'?'مراجعة الذاكرة':item.id==='lesson'?'الدرس التالي':item.id==='weak-skill'?'تقوية المهارة':'تدريب الكلام'):(item.id==='review'?'Memory review':item.id==='lesson'?'Next lesson':item.id==='weak-skill'?`Strengthen ${item.skill}`:'Speaking transfer')}</b><small>{ar?`${item.minutes} دقائق`:`${item.minutes} min · ${item.reason}`}</small></div><ChevronRight/></button>)}</div></section>
+ <section><div className="section-heading"><span>{ar?arCopy.path:'PATH'}</span><h3>{ar?arCopy.state:'A1 → A2 learning state'}</h3></div><div className="metric-strip"><div><strong>{a1Summary.percent}%</strong><span>A1</span></div><div><strong>{a2Summary.percent}%</strong><span>A2</span></div><div><strong>{dueCount}</strong><span>{ar?arCopy.reviews:'Reviews due'}</span></div></div></section>
+ <section><div className="section-heading"><span>{ar?arCopy.signals:'SIGNALS'}</span><h3>{ar?arCopy.route:'Choose your route'}</h3></div><div className="daily-plan"><button onClick={()=>nav('/start')}><span className="plan-no">01</span><div><b>{ar?arCopy.beginner:'Beginner start'}</b><small>{ar?(profile.beginnerFoundationCompleted?arCopy.completed:arCopy.recommended):(profile.beginnerFoundationCompleted?'Completed — repeat any time':'Recommended if you are starting from zero')}</small></div><ChevronRight/></button><button onClick={()=>nav('/assessment')}><span className="plan-no">02</span><div><b>{ar?arCopy.placement:'Placement · optional'}</b><small>{ar?(profile.placementLevel?`المستوى المقاس: ${profile.placementLevel}`:arCopy.placementBody):(profile.placementLevel?`Measured: ${profile.placementLevel}`:'Use this only if you already know some English')}</small></div><ChevronRight/></button><button onClick={()=>nav('/review')}><span className="plan-no">03</span><div><b>{ar?arCopy.memory:'Memory'}</b><small>{ar?(dueCount?`${dueCount} بطاقات مستحقة`:arCopy.noReview):(dueCount?`${dueCount} cards due`:'No review due')}</small></div><ChevronRight/></button></div></section>
+ {!Object.keys(progress).length&&<div className="signal-empty"><Sparkles/><div><b>{ar?arCopy.real:'No invented progress.'}</b><p>{ar?arCopy.realBody:'Your progress starts from real words and real activities, not a fake level score.'}</p></div></div>}</main><Dock ar={ar}/></div></div>;
 }
