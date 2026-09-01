@@ -1,10 +1,11 @@
 import { Activity, Lesson, Unit, lessonById as baseLessonById, lessons as a1Lessons, lessonsForUnit as baseLessonsForUnit, units as a1Units } from './curriculum';
 import { a2Lessons, a2Units } from './curriculumA2';
-import { richBeginnerLesson } from './richLesson';
+import { richA1Lessons } from './richLesson';
 
 const typedA2Lessons = a2Lessons as Lesson[];
 const typedA2Units = a2Units as Unit[];
-const enrichedA1Lessons = a1Lessons.map(lesson => lesson.id === richBeginnerLesson.id ? richBeginnerLesson as unknown as Lesson : lesson);
+const richById = new Map(richA1Lessons.map(lesson => [lesson.id, lesson]));
+const enrichedA1Lessons = a1Lessons.map(lesson => (richById.get(lesson.id) || lesson) as unknown as Lesson);
 
 export type { Activity, Lesson, Unit } from './curriculum';
 
