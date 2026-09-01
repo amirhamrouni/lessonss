@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import AppErrorBoundary from './AppErrorBoundary';
 import './styles.css';
 import './lesson.css';
 import './twin.css';
@@ -30,25 +31,27 @@ function RouteFallback() {
 
 function Root() {
   return (
-    <Suspense fallback={<RouteFallback />}>
-      <Routes>
-        <Route path="/" element={<SmartHomeV2 />} />
-        <Route path="/setup" element={<LearnerSetup />} />
-        <Route path="/start" element={<BeginnerFoundation />} />
-        <Route path="/learn" element={<LearnJourney />} />
-        <Route path="/lesson/:lessonId" element={<AutoLessonPlayer />} />
-        <Route path="/practice" element={<PracticeHub />} />
-        <Route path="/review" element={<ReviewMode />} />
-        <Route path="/sentence-builder" element={<AdaptiveSentenceBuilder />} />
-        <Route path="/assessment" element={<AssessmentMode />} />
-        <Route path="/twin" element={<TutorMode />} />
-        <Route path="/speak" element={<SpeechDrill />} />
-        <Route path="/speak/live" element={<VoiceLab />} />
-        <Route path="/profile" element={<ProfileHub />} />
-        <Route path="/mistakes" element={<MistakeMemory />} />
-        <Route path="/*" element={<App />} />
-      </Routes>
-    </Suspense>
+    <AppErrorBoundary>
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
+          <Route path="/" element={<SmartHomeV2 />} />
+          <Route path="/setup" element={<LearnerSetup />} />
+          <Route path="/start" element={<BeginnerFoundation />} />
+          <Route path="/learn" element={<LearnJourney />} />
+          <Route path="/lesson/:lessonId" element={<AutoLessonPlayer />} />
+          <Route path="/practice" element={<PracticeHub />} />
+          <Route path="/review" element={<ReviewMode />} />
+          <Route path="/sentence-builder" element={<AdaptiveSentenceBuilder />} />
+          <Route path="/assessment" element={<AssessmentMode />} />
+          <Route path="/twin" element={<TutorMode />} />
+          <Route path="/speak" element={<SpeechDrill />} />
+          <Route path="/speak/live" element={<VoiceLab />} />
+          <Route path="/profile" element={<ProfileHub />} />
+          <Route path="/mistakes" element={<MistakeMemory />} />
+          <Route path="/*" element={<App />} />
+        </Routes>
+      </Suspense>
+    </AppErrorBoundary>
   );
 }
 
