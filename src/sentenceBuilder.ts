@@ -1,4 +1,4 @@
-import { richA1 } from './curriculumAll';
+import { richLearningLessons } from './curriculumAll';
 
 export type AdaptiveBuilderItem = {
   id: string;
@@ -26,7 +26,7 @@ const slug = (value: string) => value
 
 export function buildSentenceItems() : AdaptiveBuilderItem[] {
   const items: AdaptiveBuilderItem[] = [];
-  for (const lesson of richA1) {
+  for (const lesson of richLearningLessons) {
     lesson.activities.forEach((activity, index) => {
       if (activity.type !== 'sentence_build') return;
       const answerText = activity.answer.trim();
