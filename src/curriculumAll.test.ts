@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lessons, lessonsForLevel, lessonsForUnit, richA1, units } from './curriculumAll';
+import { a1, lessons, lessonsForLevel, lessonsForUnit, richA1, units } from './curriculumAll';
 
 describe('unified A1-A2 curriculum', () => {
   it('has unique lesson ids', () => {
@@ -28,8 +28,9 @@ describe('unified A1-A2 curriculum', () => {
     }
   });
 
-  it('ships a practical multi-unit rich beginner pack', () => {
-    expect(richA1.length).toBeGreaterThanOrEqual(9);
+  it('replaces every A1 lesson with the rich engine', () => {
+    expect(richA1).toHaveLength(a1.length);
+    expect(new Set(richA1.map(lesson => lesson.id))).toEqual(new Set(a1.map(lesson => lesson.id)));
     expect(new Set(richA1.map(lesson => lesson.unitId)).size).toBe(6);
   });
 
@@ -49,6 +50,18 @@ describe('unified A1-A2 curriculum', () => {
       expect(lesson.skill).not.toBe('Grammar');
       expect(lesson.activities[0]?.type).toBe('visual_word');
       expect(lesson.activities.some(activity => activity.type === 'listen_select')).toBe(true);
+    }
+  });
+
+  it('teaches grammar through context before abstract checking', () => {
+    const grammarLessons = richA1.filter(lesson => lesson.skill === 'Grammar');
+    expect(grammarLessons).toHaveLength(4);
+    for (const lesson of grammarLessons) {
+      expect(lesson.activities[0]?.type).toBe('visual_word');
+      expect(lesson.activities[1]?.type).toBe('listen_select');
+      expect(lesson.activities.some(activity => activity.type === 'sentence_build')).toBe(true);
+      expect(lesson.activities[0]?.type).not.toBe('fill');
+      expect(lesson.activities[0]?.type).not.toBe('explain');
     }
   });
 
