@@ -1,11 +1,13 @@
-import { applicationDefault, cert, getApps, initializeApp } from 'firebase-admin/app';
+import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 
 type HeaderBag = { authorization?: string | string[] };
 
+const PRODUCTION_PROJECT_ID = 'gen-lang-client-0217548336';
+
 function ensureAdmin() {
   if (getApps().length) return;
-  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
+  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || PRODUCTION_PROJECT_ID;
   const rawServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 
   if (rawServiceAccount) {
@@ -14,7 +16,10 @@ function ensureAdmin() {
     return;
   }
 
-  initializeApp({ credential: applicationDefault(), projectId });
+  // ID-token verification only needs a trusted project ID plus Google's public
+  // signing certificates. Privileged Firestore/Admin operations still require
+  // service-account credentials and are handled separately.
+  initializeApp({ projectId });
 }
 
 export async function requireFirebaseUser(headers: HeaderBag | undefined) {
@@ -26,7 +31,7 @@ export async function requireFirebaseUser(headers: HeaderBag | undefined) {
 
   try {
     ensureAdmin();
-    return await getAuth().verifyIdToken(token, true);
+    return await getAuth().verifyIdToken(token);
   } catch (error) {
     if (error instanceof Error && error.message === 'UNAUTHORIZED') throw error;
     throw new Error('UNAUTHORIZED');
