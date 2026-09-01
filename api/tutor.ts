@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { z } from 'zod';
 import { requireFirebaseUser } from './_auth.js';
+import { checkRateLimit, clearExpiredRateLimits } from './_rateLimit.js';
 
 type VercelRequest = { method?: string; body?: unknown; headers?: { authorization?: string | string[] } };
 type VercelResponse = { status: (code: number) => VercelResponse; json: (body: unknown) => void };
@@ -31,23 +32,35 @@ const requestSchema = z.object({
 });
 
 const outputSchema = z.object({
-  reply: z.string().min(1),
-  correction: z.string().nullable(),
-  explanation: z.string().nullable(),
-  suggestedReply: z.string().nullable(),
+  reply: z.string().min(1).max(2000),
+  correction: z.string().max(1000).nullable(),
+  explanation: z.string().max(1200).nullable(),
+  suggestedReply: z.string().max(600).nullable(),
   detectedMistakes: z.array(z.object({
-    original: z.string(),
-    corrected: z.string(),
-    reason: z.string(),
+    original: z.string().max(300),
+    corrected: z.string().max(300),
+    reason: z.string().max(500),
   })).max(6),
 });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  let uid = '';
   try {
-    await requireFirebaseUser(req.headers);
+    const decoded = await requireFirebaseUser(req.headers);
+    uid = decoded.uid;
   } catch {
     return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  clearExpiredRateLimits();
+  const limit = checkRateLimit(`tutor:${uid}`, 20, 60_000);
+  if (!limit.allowed) {
+    return res.status(429).json({
+      error: 'Too many tutor requests. Please wait a moment before trying again.',
+      retryAfterSeconds: limit.retryAfterSeconds,
+    });
   }
 
   const parsed = requestSchema.safeParse(req.body);
