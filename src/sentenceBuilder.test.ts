@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest';
+import { richLearningLessons } from './curriculumAll';
 import { builderPriority, isBuilderCorrect, rankSentenceItems, sentenceItems } from './sentenceBuilder';
 
 describe('adaptive sentence builder', () => {
-  it('derives practice items from rich lesson sentence-build activities', () => {
-    expect(sentenceItems.length).toBeGreaterThan(8);
-    expect(sentenceItems.every(item => item.sourceLessonId.startsWith('a1-'))).toBe(true);
+  it('derives practice items from all rich lesson sentence-build activities', () => {
+    const expected = richLearningLessons.reduce(
+      (count, lesson) => count + lesson.activities.filter(activity => activity.type === 'sentence_build').length,
+      0,
+    );
+    const validLessonIds = new Set(richLearningLessons.map(lesson => lesson.id));
+    expect(sentenceItems).toHaveLength(expected);
+    expect(sentenceItems.every(item => validLessonIds.has(item.sourceLessonId))).toBe(true);
+    expect(sentenceItems.some(item => item.sourceLessonId.startsWith('a1-'))).toBe(true);
+    expect(sentenceItems.some(item => item.sourceLessonId.startsWith('a2-'))).toBe(true);
     expect(sentenceItems.every(item => item.answerText.length > 0 && item.words.length > 1)).toBe(true);
   });
 
