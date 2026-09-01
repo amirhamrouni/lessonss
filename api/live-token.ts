@@ -1,15 +1,32 @@
 import { GoogleGenAI } from '@google/genai';
 import { requireFirebaseUser } from './_auth.js';
+import { checkPersistentQuota } from './_quota.js';
 
 type VercelRequest = { method?: string; headers?: { authorization?: string | string[] } };
 type VercelResponse = { status: (code: number) => VercelResponse; json: (body: unknown) => void };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  let uid = '';
   try {
-    await requireFirebaseUser(req.headers);
+    const decoded = await requireFirebaseUser(req.headers);
+    uid = decoded.uid;
   } catch {
     return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  try {
+    const quota = await checkPersistentQuota(`live-token:${uid}`, 8, 60 * 60 * 1000);
+    if (!quota.allowed) {
+      return res.status(429).json({
+        error: 'Live speaking session limit reached. Please try again later.',
+        retryAfterSeconds: quota.retryAfterSeconds,
+      });
+    }
+  } catch (error) {
+    console.error('Live quota error', error instanceof Error ? error.message : 'unknown');
+    return res.status(503).json({ error: 'Usage protection is temporarily unavailable' });
   }
 
   const apiKey = process.env.GEMINI_API_KEY;
