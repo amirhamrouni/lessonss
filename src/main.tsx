@@ -5,7 +5,8 @@ import App from './App';
 import SmartHomeV2 from './SmartHomeV2';
 import LearnerSetup from './LearnerSetup';
 import BeginnerFoundation from './BeginnerFoundation';
-import { AssessmentMode, PracticeHub, ReviewMode, SentenceBuilderMode } from './LearningModes';
+import { AssessmentMode, PracticeHub, ReviewMode } from './LearningModes';
+import AdaptiveSentenceBuilder from './AdaptiveSentenceBuilder';
 import { LearnJourney } from './LearningPath';
 import AutoLessonPlayer from './AutoLessonPlayer';
 import TutorMode from './TutorMode';
@@ -28,7 +29,7 @@ function Root() {
       <Route path="/lesson/:lessonId" element={<AutoLessonPlayer />} />
       <Route path="/practice" element={<PracticeHub />} />
       <Route path="/review" element={<ReviewMode />} />
-      <Route path="/sentence-builder" element={<SentenceBuilderMode />} />
+      <Route path="/sentence-builder" element={<AdaptiveSentenceBuilder />} />
       <Route path="/assessment" element={<AssessmentMode />} />
       <Route path="/twin" element={<TutorMode />} />
       <Route path="/speak" element={<VoiceLab />} />
