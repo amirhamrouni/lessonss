@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Rating } from 'ts-fsrs';
-import { richA1 } from './curriculumAll';
+import { richA2, richLearningLessons } from './curriculumAll';
 import {
   buildInitialReviewCard,
   buildReviewSeedsFromRichLessons,
@@ -13,13 +13,13 @@ import {
 } from './review';
 
 describe('smart review engine', () => {
-  it('derives review seeds from rich visual-word activities instead of a hand-maintained list', () => {
-    const expected = richA1.reduce(
+  it('derives review seeds from every rich visual-word activity across A1 and A2', () => {
+    const expected = richLearningLessons.reduce(
       (count, lesson) => count + lesson.activities.filter(activity => activity.type === 'visual_word').length,
       0,
     );
     expect(reviewSeeds).toHaveLength(expected);
-    expect(expected).toBeGreaterThan(15);
+    expect(expected).toBeGreaterThan(20);
   });
 
   it('keeps generated review ids unique while preserving familiar legacy ids', () => {
@@ -32,10 +32,15 @@ describe('smart review engine', () => {
   });
 
   it('includes every visual-word lesson automatically', () => {
-    const generated = buildReviewSeedsFromRichLessons(richA1);
+    const generated = buildReviewSeedsFromRichLessons(richLearningLessons);
     const sourceLessons = new Set(generated.map(seed => seed.sourceLessonId));
-    const lessonsWithWords = richA1.filter(lesson => lesson.activities.some(activity => activity.type === 'visual_word'));
+    const lessonsWithWords = richLearningLessons.filter(lesson => lesson.activities.some(activity => activity.type === 'visual_word'));
     for (const lesson of lessonsWithWords) expect(sourceLessons.has(lesson.id)).toBe(true);
+  });
+
+  it('includes A2 vocabulary in the adaptive review pool', () => {
+    expect(richA2).toHaveLength(12);
+    expect(reviewSeeds.some(seed => seed.sourceLessonId.startsWith('a2-'))).toBe(true);
   });
 
   it('only unlocks cards from completed lessons', () => {
@@ -43,6 +48,14 @@ describe('smart review engine', () => {
     expect(seeds.length).toBeGreaterThan(0);
     expect(seeds.every(seed => seed.sourceLessonId === 'a1-u1-l1')).toBe(true);
     expect(seeds.some(seed => seed.term === 'Hello')).toBe(true);
+  });
+
+  it('unlocks A2 cards after an A2 lesson is completed', () => {
+    const lesson = richA2.find(item => item.activities.some(activity => activity.type === 'visual_word'));
+    expect(lesson).toBeTruthy();
+    const seeds = seedsForCompletedLessons([lesson!.id]);
+    expect(seeds.length).toBeGreaterThan(0);
+    expect(seeds.every(seed => seed.sourceLessonId === lesson!.id)).toBe(true);
   });
 
   it('returns the learner support-language meaning with a safe fallback', () => {
