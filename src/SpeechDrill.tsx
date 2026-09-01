@@ -30,6 +30,8 @@ declare global {
   }
 }
 
+const GUIDED_SPEECH_CONSENT_KEY = 'english-twin-guided-speech-consent-v1';
+
 function Dock() {
   return <nav className="dock">{[
     ['/', Home, 'Home'], ['/learn', BookOpen, 'Learn'], ['/practice', Gauge, 'Practice'], ['/speak', Mic, 'Speak'], ['/profile', UserRound, 'Me'],
@@ -55,6 +57,8 @@ export default function SpeechDrill() {
   const [transcript, setTranscript] = useState('');
   const [score, setScore] = useState<SpeechScore | null>(null);
   const [error, setError] = useState('');
+  const [speechConsent, setSpeechConsent] = useState(() => localStorage.getItem(GUIDED_SPEECH_CONSENT_KEY) === 'accepted');
+  const [showConsent, setShowConsent] = useState(false);
   const recognitionRef = useRef<RecognitionLike | null>(null);
 
   useEffect(() => onAuthStateChanged(auth, async current => {
@@ -97,7 +101,22 @@ export default function SpeechDrill() {
     ]);
   }
 
+  function acceptSpeechConsent() {
+    localStorage.setItem(GUIDED_SPEECH_CONSENT_KEY, 'accepted');
+    setSpeechConsent(true);
+    setShowConsent(false);
+    beginRecognition();
+  }
+
   function startListening() {
+    if (!speechConsent) {
+      setShowConsent(true);
+      return;
+    }
+    beginRecognition();
+  }
+
+  function beginRecognition() {
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Recognition) {
       setError('Guided speech recognition is not supported in this browser. Use Live Conversation instead.');
@@ -143,6 +162,12 @@ export default function SpeechDrill() {
   return <div className="app-shell"><div className="phone"><main className="page voice-live">
     <button className="back" onClick={() => nav('/')}><ArrowLeft /> Home</button>
     <header><span className="eyebrow">GUIDED SPEECH · ADAPTIVE</span><h1>Say it clearly</h1><p>Practice real lesson sentences. Weak lessons are prioritized from your saved mistake history.</p></header>
+
+    {showConsent && <section className="rich-activity-card" role="dialog" aria-modal="true" aria-labelledby="guided-speech-consent-title">
+      <div className="section-heading"><span>MICROPHONE PRIVACY</span><h3 id="guided-speech-consent-title">Before speech recognition starts</h3></div>
+      <p>Your browser's speech-recognition service may process microphone audio to produce text. English Twin does not store raw audio from Guided Speech. It stores the recognized transcript, accuracy score, and learning mistakes in your account when needed for adaptive practice.</p>
+      <div className="lesson-actions"><button className="ghost" onClick={() => setShowConsent(false)}>Not now</button><button className="primary lime" onClick={acceptSpeechConsent}>I understand · Start</button></div>
+    </section>}
 
     <section className="builder-card">
       <span className="mode-kicker">{index + 1} / {prompts.length} · {item.lessonId.toUpperCase()}</span>
