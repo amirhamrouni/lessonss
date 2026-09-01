@@ -1,7 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { z } from 'zod';
 import { requireFirebaseUser } from './_auth.js';
-import { checkRateLimit, clearExpiredRateLimits } from './_rateLimit.js';
+import { checkPersistentQuota } from './_quota.js';
 
 type VercelRequest = { method?: string; body?: unknown; headers?: { authorization?: string | string[] } };
 type VercelResponse = { status: (code: number) => VercelResponse; json: (body: unknown) => void };
@@ -54,13 +54,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
-  clearExpiredRateLimits();
-  const limit = checkRateLimit(`tutor:${uid}`, 20, 60_000);
-  if (!limit.allowed) {
-    return res.status(429).json({
-      error: 'Too many tutor requests. Please wait a moment before trying again.',
-      retryAfterSeconds: limit.retryAfterSeconds,
-    });
+  try {
+    const quota = await checkPersistentQuota(`tutor:${uid}`, 60, 60 * 60 * 1000);
+    if (!quota.allowed) {
+      return res.status(429).json({
+        error: 'Tutor usage limit reached. Please try again later.',
+        retryAfterSeconds: quota.retryAfterSeconds,
+      });
+    }
+  } catch (error) {
+    console.error('Tutor quota error', error instanceof Error ? error.message : 'unknown');
+    return res.status(503).json({ error: 'Usage protection is temporarily unavailable' });
   }
 
   const parsed = requestSchema.safeParse(req.body);
