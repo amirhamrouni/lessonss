@@ -1,7 +1,7 @@
 import { collection, doc, getDocs, increment, serverTimestamp, setDoc } from 'firebase/firestore';
 import { Card, Grade, Rating, State, createEmptyCard, fsrs } from 'ts-fsrs';
 import { db } from './firebase';
-import { richA1 } from './curriculumAll';
+import { richLearningLessons } from './curriculumAll';
 import type { RichVisualWordActivity } from './richLesson';
 
 export type ReviewSeed = {
@@ -50,7 +50,7 @@ const isVisualWord = (activity: unknown): activity is RichVisualWordActivity => 
   return (activity as { type?: string }).type === 'visual_word';
 };
 
-export function buildReviewSeedsFromRichLessons(lessons = richA1): ReviewSeed[] {
+export function buildReviewSeedsFromRichLessons(lessons = richLearningLessons): ReviewSeed[] {
   const seeds: ReviewSeed[] = [];
   const usedIds = new Set<string>();
 
