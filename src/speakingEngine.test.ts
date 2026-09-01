@@ -1,15 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { buildSpeakingPrompts, prioritizeSpeakingPrompts, scoreSpokenAttempt, speakingPrompts } from './speakingEngine';
-import { richA1 } from './curriculumAll';
+import { richA1, richLearningLessons } from './curriculumAll';
 
 describe('speaking accuracy engine', () => {
-  it('derives speaking drills from sentence-build activities', () => {
-    const expected = richA1.reduce(
+  it('derives speaking drills from sentence-build activities across A1 and A2', () => {
+    const expected = richLearningLessons.reduce(
       (count, lesson) => count + lesson.activities.filter(activity => activity.type === 'sentence_build').length,
       0,
     );
     expect(speakingPrompts).toHaveLength(expected);
-    expect(expected).toBeGreaterThan(5);
+    expect(expected).toBeGreaterThan(12);
+    expect(speakingPrompts.some(prompt => prompt.lessonId.startsWith('a1-'))).toBe(true);
+    expect(speakingPrompts.some(prompt => prompt.lessonId.startsWith('a2-'))).toBe(true);
   });
 
   it('scores an exact spoken transcript as excellent', () => {
