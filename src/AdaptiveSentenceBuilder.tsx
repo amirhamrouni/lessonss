@@ -6,6 +6,7 @@ import { ArrowLeft, BookOpen, Gauge, Home, Mic, RotateCcw, Sparkles, UserRound }
 import { auth, db } from './firebase';
 import { builderPriority, isBuilderCorrect, MistakeSignal, rankSentenceItems, sentenceItems } from './sentenceBuilder';
 import { directionFor, normalizeLanguage } from './languageSupport';
+import { prioritizeReviewFromMistake } from './review';
 
 function Dock() {
   return <nav className="dock mode-dock">{[
@@ -65,18 +66,22 @@ export default function AdaptiveSentenceBuilder() {
     setSaving(true);
     try {
       const mistakeId = `sentence-builder-${item.id}`;
-      await setDoc(doc(db, 'users', user.uid, 'mistakes', mistakeId), {
-        lessonId: item.sourceLessonId,
-        skill: 'Sentence Building',
-        original: built.join(' '),
-        corrected: item.answerText,
-        reason: 'English word order needs reinforcement.',
-        latestExample: item.prompt,
-        timesSeen: increment(1),
-        lastSeenAt: serverTimestamp(),
-        source: 'sentence-builder',
-        status: 'active',
-      }, { merge: true });
+      const context = `${built.join(' ')} ${item.answerText} ${item.prompt}`;
+      await Promise.all([
+        setDoc(doc(db, 'users', user.uid, 'mistakes', mistakeId), {
+          lessonId: item.sourceLessonId,
+          skill: 'Sentence Building',
+          original: built.join(' '),
+          corrected: item.answerText,
+          reason: 'English word order needs reinforcement.',
+          latestExample: item.prompt,
+          timesSeen: increment(1),
+          lastSeenAt: serverTimestamp(),
+          source: 'sentence-builder',
+          status: 'active',
+        }, { merge: true }),
+        prioritizeReviewFromMistake(user.uid, item.sourceLessonId, context).catch(() => []),
+      ]);
       setMistakes(current => [...current, { lessonId: item.sourceLessonId, original: built.join(' '), corrected: item.answerText, timesSeen: 1, status: 'active' }]);
     } finally { setSaving(false); }
   }
