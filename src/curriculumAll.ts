@@ -1,14 +1,16 @@
 import { Activity, Lesson, Unit, lessonById as baseLessonById, lessons as a1Lessons, lessonsForUnit as baseLessonsForUnit, units as a1Units } from './curriculum';
 import { a2Lessons, a2Units } from './curriculumA2';
+import { richBeginnerLesson } from './richLesson';
 
 const typedA2Lessons = a2Lessons as Lesson[];
 const typedA2Units = a2Units as Unit[];
+const enrichedA1Lessons = a1Lessons.map(lesson => lesson.id === richBeginnerLesson.id ? richBeginnerLesson as unknown as Lesson : lesson);
 
 export type { Activity, Lesson, Unit } from './curriculum';
 
 export const units: Unit[] = [...a1Units, ...typedA2Units];
-export const lessons: Lesson[] = [...a1Lessons, ...typedA2Lessons];
-export const a1 = a1Lessons;
+export const lessons: Lesson[] = [...enrichedA1Lessons, ...typedA2Lessons];
+export const a1 = enrichedA1Lessons;
 export const a2 = typedA2Lessons;
 
 export const lessonById = (id: string): Lesson => {
