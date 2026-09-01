@@ -3,20 +3,25 @@ import { a2Lessons, a2Units } from './curriculumA2';
 import { richA1Lessons } from './richLesson';
 import { richA1ExtraLessons } from './richLessonExtra';
 import { richA1GrammarLessons } from './richLessonGrammar';
+import { richA2Lessons } from './richLessonA2';
 
 const typedA2Lessons = a2Lessons as Lesson[];
 const typedA2Units = a2Units as Unit[];
-const richLessons = [...richA1Lessons, ...richA1ExtraLessons, ...richA1GrammarLessons];
-const richById = new Map(richLessons.map(lesson => [lesson.id, lesson]));
-const enrichedA1Lessons = a1Lessons.map(lesson => (richById.get(lesson.id) || lesson) as unknown as Lesson);
+const richA1LessonsAll = [...richA1Lessons, ...richA1ExtraLessons, ...richA1GrammarLessons];
+const richA1ById = new Map(richA1LessonsAll.map(lesson => [lesson.id, lesson]));
+const richA2ById = new Map(richA2Lessons.map(lesson => [lesson.id, lesson]));
+const enrichedA1Lessons = a1Lessons.map(lesson => (richA1ById.get(lesson.id) || lesson) as unknown as Lesson);
+const enrichedA2Lessons = typedA2Lessons.map(lesson => (richA2ById.get(lesson.id) || lesson) as unknown as Lesson);
 
 export type { Activity, Lesson, Unit } from './curriculum';
 
 export const units: Unit[] = [...a1Units, ...typedA2Units];
-export const lessons: Lesson[] = [...enrichedA1Lessons, ...typedA2Lessons];
+export const lessons: Lesson[] = [...enrichedA1Lessons, ...enrichedA2Lessons];
 export const a1 = enrichedA1Lessons;
-export const a2 = typedA2Lessons;
-export const richA1 = richLessons;
+export const a2 = enrichedA2Lessons;
+export const richA1 = richA1LessonsAll;
+export const richA2 = richA2Lessons;
+export const richLearningLessons = [...richA1LessonsAll, ...richA2Lessons];
 
 export const lessonById = (id: string): Lesson => {
   const lesson = lessons.find(item => item.id === id);
