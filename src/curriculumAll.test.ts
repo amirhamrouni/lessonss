@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lessons, lessonsForLevel, lessonsForUnit, units } from './curriculumAll';
+import { lessonById, lessons, lessonsForLevel, lessonsForUnit, units } from './curriculumAll';
 
 describe('unified A1-A2 curriculum', () => {
   it('has unique lesson ids', () => {
@@ -26,5 +26,22 @@ describe('unified A1-A2 curriculum', () => {
       expect(lesson.objective.length).toBeGreaterThan(10);
       expect(lesson.minutes).toBeGreaterThanOrEqual(5);
     }
+  });
+
+  it('starts A1 with a visual and listening-first lesson instead of grammar', () => {
+    const first = lessonById('a1-u1-l1') as unknown as { activities: Array<{ type: string }>; skill: string };
+    const types = first.activities.map(activity => activity.type);
+
+    expect(first.skill).toBe('Vocabulary');
+    expect(types[0]).toBe('visual_word');
+    expect(types).toContain('listen_select');
+    expect(types).toContain('image_choice');
+    expect(types).toContain('sentence_build');
+    expect(types).not.toContain('grammar');
+  });
+
+  it('keeps the first rich lesson substantial enough for a real learning session', () => {
+    const first = lessonById('a1-u1-l1');
+    expect(first.activities.length).toBeGreaterThanOrEqual(8);
   });
 });
