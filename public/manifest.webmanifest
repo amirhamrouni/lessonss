@@ -1,0 +1,11 @@
+{
+  "name": "English Twin",
+  "short_name": "English Twin",
+  "description": "Adaptive English learning with structured lessons, intelligent review, speaking practice and an AI Twin coach.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07101f",
+  "theme_color": "#07101f",
+  "lang": "en",
+  "scope": "/"
+}
