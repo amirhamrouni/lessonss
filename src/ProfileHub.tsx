@@ -1,8 +1,8 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Navigate, NavLink, useNavigate } from 'react-router-dom';
-import { onAuthStateChanged, signOut, updateProfile, User } from 'firebase/auth';
-import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc } from 'firebase/firestore';
-import { ArrowLeft, BookOpen, BrainCircuit, ChevronRight, Gauge, Home, Languages, LogOut, Mic, Save, Target, UserRound } from 'lucide-react';
+import { deleteUser, onAuthStateChanged, signOut, updateProfile, User } from 'firebase/auth';
+import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore';
+import { ArrowLeft, BookOpen, BrainCircuit, ChevronRight, Gauge, Home, Languages, LogOut, Mic, Save, Target, Trash2, UserRound } from 'lucide-react';
 import { auth, db } from './firebase';
 import { directionFor, normalizeLanguage } from './languageSupport';
 
@@ -36,6 +36,7 @@ type Mistake = {
 const languages: SupportedLanguage[] = ['Arabic', 'Dutch', 'French', 'German', 'Spanish', 'English'];
 const goals = ['Daily conversation', 'Work', 'Travel', 'Study', 'Moving abroad'];
 const rhythms = [5, 10, 15, 20, 30];
+const userSubcollections = ['lessonProgress', 'reviewCards', 'reviewLogs', 'mistakes', 'twin', 'learningSessions'];
 
 function Dock() {
   return <nav className="dock">{[
@@ -47,6 +48,24 @@ function Shell({ children }: { children: React.ReactNode }) {
   return <div className="app-shell"><div className="phone"><main className="page profile-v2">{children}</main><Dock /></div></div>;
 }
 
+async function deleteCollectionDocuments(uid: string, name: string) {
+  const snapshot = await getDocs(collection(db, 'users', uid, name));
+  const docs = snapshot.docs;
+  for (let offset = 0; offset < docs.length; offset += 400) {
+    const batch = writeBatch(db);
+    docs.slice(offset, offset + 400).forEach(item => batch.delete(item.ref));
+    await batch.commit();
+  }
+}
+
+async function deleteLearnerData(uid: string) {
+  for (const name of userSubcollections) await deleteCollectionDocuments(uid, name);
+  await Promise.allSettled([
+    deleteDoc(doc(db, 'learningProfiles', uid)),
+    deleteDoc(doc(db, 'users', uid)),
+  ]);
+}
+
 export function ProfileHub() {
   const nav = useNavigate();
   const [user, setUser] = useState<User | null>(null);
@@ -54,6 +73,8 @@ export function ProfileHub() {
   const [draft, setDraft] = useState<LearnerProfile>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [notice, setNotice] = useState('');
 
   useEffect(() => onAuthStateChanged(auth, async current => {
@@ -109,6 +130,32 @@ export function ProfileHub() {
     } finally { setSaving(false); }
   }
 
+  async function removeAccount() {
+    if (!user || deleting) return;
+    setNotice('');
+    setDeleting(true);
+    try {
+      const token = await user.getIdTokenResult(true);
+      const authAgeMs = Date.now() - new Date(token.authTime).getTime();
+      if (!Number.isFinite(authAgeMs) || authAgeMs > 5 * 60 * 1000) {
+        setNotice('For security, sign out and sign in again before deleting your account. No data was deleted.');
+        setConfirmDelete(false);
+        return;
+      }
+
+      await deleteLearnerData(user.uid);
+      await deleteUser(user);
+      localStorage.removeItem('english-twin-voice-consent-v1');
+      nav('/welcome', { replace: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '';
+      if (message.includes('requires-recent-login')) setNotice('Sign out and sign in again, then retry account deletion.');
+      else setNotice('Account deletion could not be completed. Please retry.');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   const support = normalizeLanguage(draft.explanationLanguage || draft.nativeLanguage);
 
   return <Shell>
@@ -125,7 +172,14 @@ export function ProfileHub() {
     </form>
 
     <button className="progress-link" onClick={() => nav('/mistakes')}><BrainCircuit /> Open Error Memory <ChevronRight /></button>
+    <button className="progress-link" onClick={() => nav('/privacy')}>Privacy & AI data <ChevronRight /></button>
     <button className="progress-link" onClick={async () => { await signOut(auth); nav('/welcome'); }}><LogOut /> Sign out <ChevronRight /></button>
+
+    <section className="profile-card">
+      <div className="section-heading"><span>DATA CONTROL</span><h3>Delete account</h3></div>
+      <p>This permanently removes your English Twin profile, lesson progress, review history, saved mistakes, Twin memory and saved live-speaking transcripts, then deletes your Firebase account.</p>
+      {!confirmDelete ? <button className="progress-link" type="button" onClick={() => setConfirmDelete(true)}><Trash2 /> Delete account and learning data <ChevronRight /></button> : <div className="lesson-actions"><button className="ghost" type="button" onClick={() => setConfirmDelete(false)} disabled={deleting}>Cancel</button><button className="primary" type="button" onClick={() => void removeAccount()} disabled={deleting}><Trash2 />{deleting ? 'Deleting…' : 'Permanently delete'}</button></div>}
+    </section>
   </Shell>;
 }
 
