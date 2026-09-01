@@ -1,0 +1,55 @@
+import { getFirestore } from 'firebase-admin/firestore';
+
+export type QuotaState = { count: number; resetAtMs: number };
+export type QuotaResult = { allowed: boolean; remaining: number; retryAfterSeconds: number };
+
+export function evaluateQuotaState(
+  current: QuotaState | null,
+  limit: number,
+  windowMs: number,
+  now = Date.now(),
+): { next: QuotaState; result: QuotaResult } {
+  if (!current || now >= current.resetAtMs) {
+    const next = { count: 1, resetAtMs: now + windowMs };
+    return { next, result: { allowed: true, remaining: Math.max(0, limit - 1), retryAfterSeconds: 0 } };
+  }
+
+  if (current.count >= limit) {
+    return {
+      next: current,
+      result: {
+        allowed: false,
+        remaining: 0,
+        retryAfterSeconds: Math.max(1, Math.ceil((current.resetAtMs - now) / 1000)),
+      },
+    };
+  }
+
+  const next = { ...current, count: current.count + 1 };
+  return { next, result: { allowed: true, remaining: Math.max(0, limit - next.count), retryAfterSeconds: 0 } };
+}
+
+function safeQuotaId(key: string) {
+  return key.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 180);
+}
+
+export async function checkPersistentQuota(
+  key: string,
+  limit: number,
+  windowMs: number,
+  now = Date.now(),
+): Promise<QuotaResult> {
+  const db = getFirestore();
+  const ref = db.collection('__serverQuotas').doc(safeQuotaId(key));
+
+  return db.runTransaction(async transaction => {
+    const snapshot = await transaction.get(ref);
+    const raw = snapshot.exists ? snapshot.data() : undefined;
+    const current = raw && typeof raw.count === 'number' && typeof raw.resetAtMs === 'number'
+      ? { count: raw.count, resetAtMs: raw.resetAtMs }
+      : null;
+    const { next, result } = evaluateQuotaState(current, limit, windowMs, now);
+    if (result.allowed) transaction.set(ref, next, { merge: true });
+    return result;
+  });
+}
