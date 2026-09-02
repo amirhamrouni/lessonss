@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrainCircuit } from 'lucide-react';
 import AppErrorBoundary from './AppErrorBoundary';
 import './styles.css';
 import './lesson.css';
@@ -37,7 +38,7 @@ const ProfileHub = React.lazy(() => import('./ProfileHub').then(module => ({ def
 const MistakeMemory = React.lazy(() => import('./ProfileHub').then(module => ({ default: module.MistakeMemory })));
 
 function RouteFallback() {
-  return <div className="app-shell"><div className="phone"><main className="page"><p>Loading English Twin…</p></main></div></div>;
+  return <div className="app-shell"><div className="phone"><main className="page"><section className="mode-empty route-loading" aria-live="polite"><BrainCircuit aria-hidden="true" /><span className="eyebrow">ENGLISH TWIN</span><h2>Loading your learning space…</h2><p>Your saved progress stays in place while this screen opens.</p></section></main></div></div>;
 }
 
 function Root() {
