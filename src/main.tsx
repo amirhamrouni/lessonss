@@ -13,6 +13,7 @@ import './cheerful-theme.css';
 import './final-qa.css';
 import './visual-assets.css';
 import './verified-assets.css';
+import './premium-learning.css';
 
 const AuthGateway = React.lazy(() => import('./AuthGateway'));
 const SmartHomeV2 = React.lazy(() => import('./SmartHomeV2'));
