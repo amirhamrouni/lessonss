@@ -32,15 +32,11 @@ function supportLanguage(profile: Record<string, any> | null) {
   return normalizeLanguage(profile?.explanationLanguage || profile?.nativeLanguage || profile?.interfaceLanguage || 'English');
 }
 
-function interfaceLanguage(profile: Record<string, any> | null) {
-  return normalizeLanguage(profile?.interfaceLanguage || profile?.instructionLanguage || profile?.nativeLanguage || 'English');
-}
-
 function Frame({ children, language }: { children: React.ReactNode; language?: string }) {
   return <div className="app-shell"><div className="phone mode-phone"><main className="page mode-page">{children}</main><AppDock language={language} className="mode-dock" /></div></div>;
 }
 
-function Loading({ language }: { language?: string }) { return <Frame language={language}><div className="mode-loading"><BrainCircuit /><p>Loading your learning engine…</p></div></Frame>; }
+function Loading({ language }: { language?: string }) { return <Frame language={language}><div className="mode-loading"><BrainCircuit /><p>{t(language, 'loadingState')}</p></div></Frame>; }
 
 function speakEnglish(text: string) {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
@@ -155,6 +151,7 @@ export function SentenceBuilderMode() {
   const [built, setBuilt] = useState<string[]>([]);
   const [result, setResult] = useState<'ok' | 'bad' | null>(null);
   const language = supportLanguage(profile);
+  const copy = modeSupportCopy[language];
   if (loading) return <Loading language={language} />;
   if (!user) return <Navigate to="/welcome" replace />;
   const item = builders[index];
@@ -166,7 +163,7 @@ export function SentenceBuilderMode() {
   function check() { setResult(JSON.stringify(built) === JSON.stringify(item.answer) ? 'ok' : 'bad'); }
   function next() { setIndex((index + 1) % builders.length); setBuilt([]); setResult(null); }
   return <Frame language={language}>
-    <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> Practice</button>
+    <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {copy.backPractice}</button>
     <header><div><span className="eyebrow">ACTIVE OUTPUT</span><h1>Sentence Builder</h1><p>Construct the sentence. Don’t just recognize it.</p></div></header>
     <section className="builder-card">
       <span className="mode-kicker">{index + 1} / {builders.length}</span><h2>{item.prompt}</h2>
@@ -186,11 +183,10 @@ export function AssessmentMode() {
   const [finished, setFinished] = useState(false);
   const [saving, setSaving] = useState(false);
   const result = useMemo(() => scorePlacement(answers), [answers]);
-  const language = interfaceLanguage(profile);
-  const support = supportLanguage(profile);
+  const language = supportLanguage(profile);
   const copy = modeSupportCopy[language];
   const dir = directionFor(language);
-  if (loading) return <Loading language={support} />;
+  if (loading) return <Loading language={language} />;
   if (!user) return <Navigate to="/welcome" replace />;
   const uid = user.uid;
   const question = placementQuestions[index];
@@ -205,10 +201,10 @@ export function AssessmentMode() {
       setFinished(true);
     } finally { setSaving(false); }
   }
-  if (finished) return <Frame language={support}><div dir={dir}><button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {copy.backPractice}</button><section className="assessment-result"><span className="mode-kicker">{copy.placementResult}</span><strong>{result.level}</strong><h2>{copy.overall(result.percent)}</h2><p>{copy.correctOf(result.correct,result.total)}</p><div className="skill-result">{Object.entries(result.skillScores).map(([skill, score]) => <div key={skill}><span>{copy.skills[skill] || skill}</span><b>{score}%</b></div>)}</div><button onClick={() => { setAnswers({}); setIndex(0); setFinished(false); }}>{copy.retakeAssessment}</button></section></div></Frame>;
+  if (finished) return <Frame language={language}><div dir={dir}><button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {copy.backPractice}</button><section className="assessment-result"><span className="mode-kicker">{copy.placementResult}</span><strong>{result.level}</strong><h2>{copy.overall(result.percent)}</h2><p>{copy.correctOf(result.correct,result.total)}</p><div className="skill-result">{Object.entries(result.skillScores).map(([skill, score]) => <div key={skill}><span>{copy.skills[skill] || skill}</span><b>{score}%</b></div>)}</div><button onClick={() => { setAnswers({}); setIndex(0); setFinished(false); }}>{copy.retakeAssessment}</button></section></div></Frame>;
   const selected = answers[question.id];
   const skillLabel = copy.skills[question.skill] || question.skill;
-  return <Frame language={support}>
+  return <Frame language={language}>
     <div dir={dir}>
       <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {copy.backPractice}</button>
       <header><div><span className="eyebrow">{copy.cefrDiagnostic}</span><h1>{copy.placement}</h1><p>{copy.placementIntro}</p></div></header>
