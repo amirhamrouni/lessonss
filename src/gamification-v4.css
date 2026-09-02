@@ -1,0 +1,47 @@
+/* Source-backed gamification polish. Inspired by common learning-path patterns and canvas-confetti's reduced-motion guidance. Presentation only. */
+
+/* Progress bars feel alive without becoming noisy. */
+.thin-progress,.progress-track,.continue-progress{position:relative;overflow:hidden!important}
+.thin-progress::after,.progress-track::after,.continue-progress::after{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.62) 48%,transparent 66%);transform:translateX(-120%);pointer-events:none}
+
+/* Learn journey: stronger milestone rhythm and tactile lesson rows. */
+.learn-journey-v3 .journey-unit{isolation:isolate}
+.learn-journey-v3 .journey-unit::after{content:'';position:absolute;inset:12px 8px -8px 8px;border-radius:30px;background:linear-gradient(145deg,rgba(112,69,255,.05),rgba(57,184,255,.035));z-index:-1;filter:blur(1px)}
+.learn-journey-v3 .journey-marker{position:relative;overflow:visible!important}
+.learn-journey-v3 .journey-marker::after{content:'✦';position:absolute;right:-7px;top:-9px;width:22px;height:22px;display:grid;place-items:center;border-radius:999px;background:#fff;color:#ffb51b;font-size:11px;box-shadow:0 5px 14px rgba(86,61,144,.14)}
+.learn-journey-v3 .lesson-rows button{position:relative;overflow:hidden!important;transform:translateZ(0)}
+.learn-journey-v3 .lesson-rows button::before{content:'';position:absolute;inset:0 auto 0 0;width:4px;border-radius:4px;background:linear-gradient(180deg,#7045ff,#39b8ff);opacity:.82}
+[dir=rtl] .learn-journey-v3 .lesson-rows button::before{left:auto;right:0}
+.learn-journey-v3 .lesson-rows button:has(.done)::before{background:linear-gradient(180deg,#38c98d,#78dfb5)}
+.learn-journey-v3 .lesson-rows button:has(.done){background:linear-gradient(135deg,#fff,#effbf5)!important}
+.learn-journey-v3 .lesson-rows button:not(:has(.done)):hover{border-color:rgba(112,69,255,.22)!important;box-shadow:0 14px 28px rgba(75,53,146,.12)!important}
+.learn-journey-v3 .lesson-rows button:not(:has(.done))>span:last-child{box-shadow:0 8px 18px rgba(112,69,255,.16)}
+
+/* Completion reward: CSS-only celebratory burst; no runtime dependency. */
+.lesson-complete{position:relative;isolation:isolate;overflow:hidden!important}
+.lesson-complete::before,.lesson-complete::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:-1;background-repeat:no-repeat}
+.lesson-complete::before{background-image:radial-gradient(circle,#7045ff 0 4px,transparent 5px),radial-gradient(circle,#ffc94f 0 5px,transparent 6px),radial-gradient(circle,#5bd6a2 0 4px,transparent 5px),radial-gradient(circle,#39b8ff 0 4px,transparent 5px),radial-gradient(circle,#ff7b9f 0 4px,transparent 5px);background-position:12% 18%,82% 13%,18% 74%,88% 68%,52% 8%;opacity:.9}
+.lesson-complete::after{background-image:linear-gradient(45deg,transparent 46%,#ffc94f 47% 53%,transparent 54%),linear-gradient(-45deg,transparent 46%,#7045ff 47% 53%,transparent 54%),linear-gradient(45deg,transparent 46%,#5bd6a2 47% 53%,transparent 54%);background-size:20px 20px,18px 18px,16px 16px;background-position:7% 48%,92% 40%,66% 84%;opacity:.55}
+.lesson-complete>svg:first-child{filter:drop-shadow(0 12px 20px rgba(70,194,138,.24))}
+.lesson-complete>strong{display:inline-grid!important;place-items:center!important;min-width:112px;min-height:112px;border-radius:999px;background:conic-gradient(#7045ff 0 82%,#eeeaff 82%);color:#fff!important;border:8px solid #fff;box-shadow:0 16px 36px rgba(92,66,186,.2)!important}
+.lesson-complete .primary{box-shadow:0 12px 26px rgba(112,69,255,.22)!important}
+
+/* Reward states across the app. */
+.home-reward,.profile-signal,.mode-recommended{position:relative;overflow:hidden!important}
+.home-reward::after,.profile-signal::after,.mode-recommended::after{content:'✦';position:absolute;right:16px;top:12px;color:#ffc94f;font-size:18px;opacity:.65}
+[dir=rtl] .home-reward::after,[dir=rtl] .profile-signal::after,[dir=rtl] .mode-recommended::after{right:auto;left:16px}
+
+@media(prefers-reduced-motion:no-preference){
+  .thin-progress::after,.progress-track::after,.continue-progress::after{animation:et-shimmer 3.6s ease-in-out infinite}
+  .learn-journey-v3 .journey-marker::after{animation:et-spark 2.7s ease-in-out infinite}
+  .lesson-complete::before{animation:et-celebrate 900ms cubic-bezier(.2,.8,.2,1) both}
+  .lesson-complete::after{animation:et-celebrate 1100ms .08s cubic-bezier(.2,.8,.2,1) both}
+  .lesson-complete>strong{animation:et-score-pop 520ms cubic-bezier(.2,.9,.25,1.2) both}
+}
+@keyframes et-shimmer{0%,58%{transform:translateX(-120%)}78%,100%{transform:translateX(120%)}}
+@keyframes et-spark{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-4px) rotate(14deg)}}
+@keyframes et-celebrate{0%{opacity:0;transform:scale(.78)}45%{opacity:1}100%{opacity:.8;transform:scale(1.06)}}
+@keyframes et-score-pop{0%{opacity:0;transform:scale(.68)}100%{opacity:1;transform:scale(1)}}
+
+@media(max-width:520px){.lesson-complete>strong{min-width:98px;min-height:98px}.learn-journey-v3 .journey-marker::after{right:-5px;top:-7px}}
+@media(prefers-reduced-motion:reduce){.thin-progress::after,.progress-track::after,.continue-progress::after{display:none}.learn-journey-v3 .journey-marker::after,.lesson-complete::before,.lesson-complete::after,.lesson-complete>strong{animation:none!important}}
