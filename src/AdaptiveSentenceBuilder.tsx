@@ -7,6 +7,7 @@ import AppDock from './AppDock';
 import { auth, db } from './firebase';
 import { builderPriority, isBuilderCorrect, MistakeSignal, rankSentenceItems, sentenceItems } from './sentenceBuilder';
 import { directionFor, normalizeLanguage } from './languageSupport';
+import { modeSupportCopy } from './modeSupportCopy';
 import { prioritizeReviewFromMistake } from './review';
 
 function Frame({ children, language }: { children: React.ReactNode; language?: string }) {
@@ -41,11 +42,11 @@ export default function AdaptiveSentenceBuilder() {
   const item = ranked[index % Math.max(1, ranked.length)];
   const language = normalizeLanguage(profile?.explanationLanguage || profile?.nativeLanguage || profile?.interfaceLanguage);
   const dir = directionFor(language);
-  const ar = language === 'Arabic';
+  const copy = modeSupportCopy[language];
 
-  if (loading) return <Frame language={language}><p>{ar ? 'جارٍ تحميل تدريبك…' : 'Loading your practice…'}</p></Frame>;
+  if (loading) return <Frame language={language}><p>{copy.loadingPractice}</p></Frame>;
   if (!user) return <Navigate to="/welcome" replace />;
-  if (!item) return <Frame language={language}><button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {ar ? 'التدريب' : 'Practice'}</button><h2>{ar ? 'لا يوجد تدريب جمل متاح.' : 'No sentence practice available.'}</h2></Frame>;
+  if (!item) return <Frame language={language}><button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {copy.backPractice}</button><h2>{copy.noSentence}</h2></Frame>;
 
   const remaining = item.words.filter((word, i) => {
     const usedBefore = built.filter(x => x === word).length;
@@ -89,18 +90,18 @@ export default function AdaptiveSentenceBuilder() {
 
   return <Frame language={language}>
     <div dir={dir}>
-      <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {ar ? 'التدريب' : 'Practice'}</button>
-      <header><div><span className="eyebrow">ADAPTIVE OUTPUT</span><h1>{ar ? 'بناء الجملة الذكي' : 'Adaptive Sentence Builder'}</h1><p>{ar ? 'يقدّم الجمل المرتبطة بأخطائك السابقة أولًا.' : 'Sentences tied to your previous mistakes move to the front.'}</p></div></header>
+      <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {copy.backPractice}</button>
+      <header><div><span className="eyebrow">ADAPTIVE OUTPUT</span><h1>{copy.builderTitle}</h1><p>{copy.builderIntro}</p></div></header>
       <section className="builder-card" dir={dir}>
-        <span className="mode-kicker">{priority > 0 ? (ar ? 'أولوية من سجل الأخطاء' : 'MISTAKE-DRIVEN FOCUS') : (ar ? 'تدريب أساسي' : 'FOUNDATION PRACTICE')} · {index + 1}/{ranked.length}</span>
+        <span className="mode-kicker">{priority > 0 ? copy.mistakeFocus : copy.foundationPractice} · {index + 1}/{ranked.length}</span>
         <h2>{item.prompt}</h2>
-        <div className="native-instruction">{ar ? 'رتّب الكلمات لتكوين الجملة الإنجليزية الصحيحة.' : 'Arrange the words into the correct English sentence.'}</div>
-        <div className="built-zone" dir="ltr">{built.length ? built.map((word, i) => <button key={`${word}-${i}`} onClick={() => { setBuilt(built.filter((_, j) => j !== i)); setResult(null); }}>{word}</button>) : <span>{ar ? 'اضغط الكلمات بالأسفل' : 'Tap words below to build the sentence'}</span>}</div>
+        <div className="native-instruction">{copy.arrangeWords}</div>
+        <div className="built-zone" dir="ltr">{built.length ? built.map((word, i) => <button key={`${word}-${i}`} onClick={() => { setBuilt(built.filter((_, j) => j !== i)); setResult(null); }}>{word}</button>) : <span>{copy.tapWords}</span>}</div>
         <div className="word-bank" dir="ltr">{remaining.map((word, i) => <button key={`${word}-${i}`} disabled={Boolean(result)} onClick={() => { setBuilt([...built, word]); setResult(null); }}>{word}</button>)}</div>
-        {result && <div className={`builder-feedback ${result}`}>{result === 'ok' ? (ar ? 'صحيح — ترتيب طبيعي.' : 'Correct — natural word order.') : (ar ? `حاول مجددًا. الجملة الصحيحة: ${item.answerText}` : `Try again. Target: ${item.answerText}.`)}</div>}
+        {result && <div className={`builder-feedback ${result}`}>{result === 'ok' ? copy.correctOrder : copy.tryAgainTarget(item.answerText)}</div>}
         <div className="builder-actions">
-          <button onClick={() => { setBuilt([]); setResult(null); }}><RotateCcw /> {ar ? 'إعادة' : 'Reset'}</button>
-          {result === 'ok' ? <button className="solid" onClick={next}><Sparkles /> {ar ? 'التالي' : 'Next'}</button> : result === 'bad' ? <button className="solid" onClick={() => { setBuilt([]); setResult(null); }}>{ar ? 'حاول مرة أخرى' : 'Try again'}</button> : <button className="solid" disabled={!built.length || saving} onClick={() => void check()}>{saving ? (ar ? 'جارٍ الحفظ…' : 'Saving…') : (ar ? 'تحقق' : 'Check')}</button>}
+          <button onClick={() => { setBuilt([]); setResult(null); }}><RotateCcw /> {copy.reset}</button>
+          {result === 'ok' ? <button className="solid" onClick={next}><Sparkles /> {copy.next}</button> : result === 'bad' ? <button className="solid" onClick={() => { setBuilt([]); setResult(null); }}>{copy.tryAgain}</button> : <button className="solid" disabled={!built.length || saving} onClick={() => void check()}>{saving ? copy.saving : copy.check}</button>}
         </div>
       </section>
     </div>
