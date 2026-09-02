@@ -1,0 +1,80 @@
+/* Premium learning pass: visual-only refinements for Home, Learn Journey and lesson player. */
+.reference-home .page{padding-bottom:104px!important}
+.reference-home .welcome-card{background:linear-gradient(135deg,#fff 0%,#fbf9ff 58%,#eefaff 100%)!important;box-shadow:0 14px 34px rgba(58,48,110,.085)!important}
+.reference-home .welcome-card h1{font-size:clamp(1.6rem,7vw,2rem)!important}
+.reference-home .welcome-card p{font-size:.8rem!important;line-height:1.45!important}
+.reference-home .mini-twin{transform:rotate(2deg);transition:transform .18s ease,box-shadow .18s ease}
+.reference-home .welcome-card:hover .mini-twin{transform:rotate(0deg) translateY(-2px);box-shadow:0 14px 30px rgba(76,69,151,.22)}
+.reference-home .goal-card{background:linear-gradient(135deg,#fff,#fffdf7 62%,#f3efff)!important}
+.reference-home .goal-content{min-height:62px}
+.reference-home .goal-ring{box-shadow:0 8px 22px rgba(112,69,255,.12)}
+.reference-home .continue-card{box-shadow:0 18px 42px rgba(100,69,214,.22)!important;border-color:rgba(255,255,255,.16)!important}
+.reference-home .continue-copy h2{letter-spacing:-.035em!important}
+.reference-home .continue-copy button{min-height:42px;justify-content:center;box-shadow:0 8px 18px rgba(61,33,139,.18)}
+.reference-home .continue-progress{height:6px!important}
+.reference-home .continue-progress i{box-shadow:0 0 12px rgba(255,255,255,.55)}
+.reference-home .today-list>button{min-height:64px!important;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease!important}
+.reference-home .today-list>button:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(58,48,110,.08)!important;border-color:rgba(112,69,255,.13)!important}
+.reference-home .today-list>button:active{transform:scale(.988)}
+.reference-home .home-reward{box-shadow:0 10px 28px rgba(170,121,23,.08)!important}
+.reference-home .home-reward>svg{width:30px;height:30px;padding:6px;border-radius:11px;background:#fff3c4}
+
+.level-section{position:relative}
+.level-section>.learn-overview{margin-bottom:18px!important}
+.learn-overview>div:first-child{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:14px!important}
+.learn-overview>div:first-child span{font-weight:820!important;color:#424965!important;font-size:.78rem!important;letter-spacing:.01em}
+.learn-overview>div:first-child strong{font-size:1.65rem!important;letter-spacing:-.05em!important}
+.learn-overview .thin-progress{height:8px!important;border-radius:999px!important;margin:12px 0 8px!important;overflow:hidden!important}
+.learn-overview .thin-progress i{border-radius:inherit!important;box-shadow:0 0 10px rgba(71,161,255,.22)}
+.journey{position:relative!important}
+.journey-unit{gap:12px!important;margin-bottom:18px!important}
+.journey-marker{font-weight:900!important;font-size:.82rem!important;position:relative!important;z-index:2!important}
+.journey-content{min-width:0!important}
+.unit-label{padding:1px 2px 8px!important}
+.unit-label small{font-size:.64rem!important;letter-spacing:.08em!important;color:#8175bd!important;font-weight:800!important}
+.unit-label h3{font-size:1.08rem!important;line-height:1.18!important;letter-spacing:-.025em!important;margin:4px 0 0!important}
+.lesson-rows button{grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:12px!important;text-align:start!important}
+.lesson-rows button>div{min-width:0!important;display:grid!important;gap:4px!important}
+.lesson-rows button b{font-size:.84rem!important;line-height:1.25!important;overflow-wrap:anywhere}
+.lesson-rows button small{font-size:.67rem!important}
+.lesson-rows button>span{display:inline-flex!important;align-items:center!important;gap:5px!important;font-weight:850!important;min-width:max-content!important}
+.lesson-rows button>span svg{width:14px!important;height:14px!important}
+.lesson-rows button>span.done{background:#eafaf2!important;color:#1fa56a!important;box-shadow:inset 0 0 0 1px rgba(31,165,106,.08)}
+.lesson-rows button:hover{border-color:rgba(112,69,255,.16)!important;box-shadow:0 12px 27px rgba(58,48,110,.085)!important;transform:translateY(-1px)}
+
+.lesson-top{background:linear-gradient(135deg,#fff,#f8f5ff 62%,#eefaff)!important;border:1px solid rgba(84,65,160,.08)!important;border-radius:24px!important;padding:20px!important;box-shadow:0 12px 32px rgba(58,48,110,.075)!important;margin:8px 0 12px!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:14px!important;align-items:start!important}
+.lesson-top h1{font-size:clamp(1.65rem,7vw,2.25rem)!important;line-height:1.02!important;letter-spacing:-.05em!important;margin:.4rem 0 .55rem!important}
+.lesson-top p{line-height:1.5!important;margin:0!important;max-width:46ch!important}
+.lesson-top>span{display:grid!important;place-items:center!important;width:54px!important;height:54px!important;border-radius:18px!important;background:#f0ebff!important;font-weight:900!important;box-shadow:inset 0 0 0 1px rgba(112,69,255,.09)}
+.lesson-language-chip{margin:12px 0 10px!important;font-size:.72rem!important;font-weight:750!important;gap:7px!important}
+.lesson-language-chip svg{width:16px!important;height:16px!important}
+.progress-track{height:8px!important;border-radius:999px!important;overflow:hidden!important;margin-bottom:17px!important}
+.progress-track i{border-radius:inherit!important}
+.activity-card{padding:22px!important;min-height:300px!important;display:flex!important;flex-direction:column!important;justify-content:space-between!important}
+.activity-card>div:first-child{position:relative;z-index:1}
+.activity-card h2{font-size:clamp(1.28rem,5.5vw,1.7rem)!important;line-height:1.2!important;letter-spacing:-.025em!important}
+.native-instruction{margin:8px 0 14px!important;padding:10px 12px!important;background:#f7f5ff!important;border-radius:13px!important;font-size:.76rem!important}
+.examples{display:grid!important;gap:9px!important;margin-top:14px!important}
+.answer-list{display:grid!important;gap:10px!important;margin-top:16px!important}
+.answer-list button{min-height:50px!important;border-radius:15px!important;background:#fff!important;color:#202642!important;border:1px solid rgba(84,65,160,.11)!important;text-align:start!important;padding:12px 14px!important;font-weight:720!important;box-shadow:0 5px 14px rgba(58,48,110,.045)!important}
+.answer-list button.selected{background:#f0ebff!important;border-color:#7045ff!important;color:#5e42d2!important;box-shadow:0 0 0 3px rgba(112,69,255,.08)!important}
+.lesson-input{min-height:54px!important;border-radius:15px!important;padding:0 15px!important;font-size:1rem!important;width:100%!important;margin-top:14px!important}
+.feedback{margin-top:16px!important;border:1px solid transparent!important;box-shadow:none!important}
+.feedback.ok{background:#effbf5!important;border-color:rgba(39,184,117,.13)!important;color:#176e49!important}
+.feedback.bad{background:#fff2f5!important;border-color:rgba(255,95,125,.14)!important;color:#9f3650!important}
+.feedback svg{flex:0 0 auto!important}
+.feedback-label{display:block!important;margin-top:2px!important;text-transform:uppercase!important;letter-spacing:.07em!important;font-size:.58rem!important;opacity:.72}
+.activity-action{width:100%!important;min-height:52px!important;border-radius:16px!important;margin-top:18px!important;font-weight:850!important}
+.lesson-complete{text-align:center!important;padding:30px 24px!important;background:linear-gradient(145deg,#fff,#f3efff 52%,#effcf6)!important}
+.lesson-complete>svg{margin:0 auto 8px!important}
+.lesson-complete h1{font-size:clamp(1.7rem,7vw,2.3rem)!important;letter-spacing:-.045em!important;margin:10px 0!important}
+.lesson-complete>strong{display:inline-grid!important;place-items:center!important;min-width:92px!important;height:58px!important;border-radius:18px!important;background:#f0ebff!important;font-size:1.45rem!important;box-shadow:inset 0 0 0 1px rgba(112,69,255,.08)}
+.lesson-complete .primary{width:100%!important;min-height:50px!important;border-radius:16px!important;margin-top:10px!important}
+
+@media(max-width:520px){
+ .reference-home .welcome-card{grid-template-columns:minmax(0,1fr) 82px!important;padding:17px!important;min-height:118px!important}.reference-home .mini-twin{width:76px;height:76px}.reference-home .mini-twin:before{width:60px;height:42px}.reference-home .mini-twin span,.reference-home .mini-twin i{top:30px}.reference-home .mini-twin span{left:23px}.reference-home .mini-twin i{right:23px}.reference-home .mini-twin b{top:39px}.reference-home .continue-card{grid-template-columns:minmax(0,1fr) 92px!important}.reference-home .continue-copy{padding:17px!important}.reference-home .continue-copy h2{font-size:1.35rem!important}.reference-home .continue-art .umbrella{right:15px;font-size:36px}.reference-home .today-list>button{grid-template-columns:38px minmax(0,1fr) auto!important;padding:10px!important}
+ .learn-overview>div:first-child strong{font-size:1.45rem!important}.journey-unit{grid-template-columns:40px minmax(0,1fr)!important;gap:9px!important}.lesson-rows button{padding:12px 11px 12px 15px!important;gap:8px!important}.lesson-rows button b{font-size:.79rem!important}.lesson-rows button small{font-size:.62rem!important}.lesson-rows button>span{font-size:.64rem!important;padding:6px 7px!important}
+ .lesson-top{padding:17px!important;grid-template-columns:minmax(0,1fr) 48px!important}.lesson-top>span{width:46px!important;height:46px!important;border-radius:15px!important;font-size:.76rem!important}.activity-card{padding:18px!important;min-height:285px!important}.native-instruction{font-size:.72rem!important}.answer-list button{min-height:48px!important}.lesson-complete{padding:25px 18px!important}
+}
+@media(prefers-reduced-motion:reduce){.reference-home .mini-twin,.reference-home .today-list>button,.lesson-rows button{transition:none!important}.reference-home .welcome-card:hover .mini-twin,.reference-home .today-list>button:hover,.lesson-rows button:hover{transform:none!important}}
+[dir=rtl] .lesson-rows button,[dir=rtl] .answer-list button{text-align:right!important}
