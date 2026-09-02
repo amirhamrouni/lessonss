@@ -1,8 +1,9 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { Navigate, NavLink, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { deleteUser, onAuthStateChanged, signOut, updateProfile, User } from 'firebase/auth';
 import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore';
-import { ArrowLeft, BookOpen, BrainCircuit, ChevronRight, Gauge, Home, Languages, LogOut, Mic, Save, Target, Trash2, UserRound } from 'lucide-react';
+import { ArrowLeft, BrainCircuit, ChevronRight, Languages, LogOut, Save, Target, Trash2 } from 'lucide-react';
+import AppDock from './AppDock';
 import { auth, db } from './firebase';
 import { directionFor, normalizeLanguage } from './languageSupport';
 
@@ -38,14 +39,8 @@ const goals = ['Daily conversation', 'Work', 'Travel', 'Study', 'Moving abroad']
 const rhythms = [5, 10, 15, 20, 30];
 const userSubcollections = ['lessonProgress', 'reviewCards', 'reviewLogs', 'mistakes', 'twin', 'learningSessions'];
 
-function Dock() {
-  return <nav className="dock">{[
-    ['/', Home, 'Home'], ['/learn', BookOpen, 'Learn'], ['/practice', Gauge, 'Practice'], ['/speak', Mic, 'Speak'], ['/profile', UserRound, 'Me'],
-  ].map(([to, Icon, label]: any) => <NavLink end={to === '/'} key={to} to={to}><Icon /><small>{label}</small></NavLink>)}</nav>;
-}
-
-function Shell({ children }: { children: React.ReactNode }) {
-  return <div className="app-shell"><div className="phone"><main className="page profile-v2">{children}</main><Dock /></div></div>;
+function Shell({ children, language }: { children: React.ReactNode; language?: string }) {
+  return <div className="app-shell"><div className="phone"><main className="page profile-v2">{children}</main><AppDock language={language} /></div></div>;
 }
 
 async function deleteCollectionDocuments(uid: string, name: string) {
@@ -99,7 +94,9 @@ export function ProfileHub() {
     } finally { setLoading(false); }
   }), []);
 
-  if (loading) return <Shell><BrainCircuit /><p>Loading profile…</p></Shell>;
+  const support = normalizeLanguage(draft.explanationLanguage || draft.nativeLanguage || draft.interfaceLanguage || 'English');
+
+  if (loading) return <Shell language={support}><BrainCircuit /><p>Loading profile…</p></Shell>;
   if (!user) return <Navigate to="/welcome" replace />;
 
   async function save(event: FormEvent) {
@@ -156,9 +153,7 @@ export function ProfileHub() {
     }
   }
 
-  const support = normalizeLanguage(draft.explanationLanguage || draft.nativeLanguage);
-
-  return <Shell>
+  return <Shell language={support}>
     <header className="home-header"><div><span className="eyebrow">LEARNER PROFILE</span><h1>{profile.displayName || 'Learner'}</h1><p>{user.email}</p></div><button className="icon" onClick={() => nav('/')}><ArrowLeft /></button></header>
 
     <form className="profile-form" onSubmit={save}>
@@ -177,7 +172,7 @@ export function ProfileHub() {
 
     <section className="profile-card">
       <div className="section-heading"><span>DATA CONTROL</span><h3>Delete account</h3></div>
-      <p>This permanently removes your English Twin profile, lesson progress, review history, saved mistakes, Twin memory and saved live-speaking transcripts, then deletes your Firebase account.</p>
+      <p>This permanently removes your English Twin profile, lesson progress, review history, saved mistakes, Twin memory and saved live-speaking transcripts, then deletes your sign-in account.</p>
       {!confirmDelete ? <button className="progress-link" type="button" onClick={() => setConfirmDelete(true)}><Trash2 /> Delete account and learning data <ChevronRight /></button> : <div className="lesson-actions"><button className="ghost" type="button" onClick={() => setConfirmDelete(false)} disabled={deleting}>Cancel</button><button className="primary" type="button" onClick={() => void removeAccount()} disabled={deleting}><Trash2 />{deleting ? 'Deleting…' : 'Permanently delete'}</button></div>}
     </section>
   </Shell>;
