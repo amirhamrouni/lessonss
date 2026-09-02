@@ -8,7 +8,7 @@ import { auth, db } from './firebase';
 import { loadLessonProgress, ProgressMap } from './learning';
 import { placementQuestions, scorePlacement } from './assessment';
 import { Rating, StoredReviewCard, dueCards, ensureReviewCards, meaningForLanguage, saveReviewRating } from './review';
-import { directionFor, normalizeLanguage } from './languageSupport';
+import { directionFor, normalizeLanguage, t } from './languageSupport';
 
 function useLearner() {
   const [user, setUser] = useState<User | null>(null);
@@ -56,7 +56,6 @@ export function PracticeHub() {
   const nav = useNavigate();
   const [dueCount, setDueCount] = useState(0);
   const language = supportLanguage(profile);
-  const ar = language === 'Arabic';
   useEffect(() => {
     if (!user) return;
     const completed = Object.values(progress).filter(p => p.completed).map(p => p.lessonId);
@@ -65,18 +64,22 @@ export function PracticeHub() {
   if (loading) return <Loading language={language} />;
   if (!user) return <Navigate to="/welcome" replace />;
   const completed = Object.values(progress).filter(p => p.completed).length;
+  const dueHeadline = dueCount ? `${dueCount} ${t(language, 'reviewDueSuffix')}` : completed ? t(language, 'buildRecall') : t(language, 'completeLessonFirst');
+  const placementBody = profile?.placementLevel
+    ? language === 'Arabic' ? `مستواك المقاس حاليًا: ${profile.placementLevel}. يمكنك إعادة الاختبار في أي وقت.` : `Current placement: ${profile.placementLevel}. Retake any time.`
+    : language === 'Arabic' ? 'اختبار CEFR ثابت يقيس القواعد والمفردات والقراءة بدون تخمين ذاتي.' : 'Deterministic CEFR diagnostic across grammar, vocabulary and reading.';
   return <Frame language={language}>
     <div dir={directionFor(language)}>
-      <header><div><span className="eyebrow">{ar ? 'تدرّب · اختبر · ثبّت' : 'TRAIN, TEST, RETAIN'}</span><h1>{ar ? 'التدريب' : 'Practice'}</h1><p>{ar ? 'كل وضع تدريب له وظيفة مختلفة في تعلّم الإنجليزية.' : 'Different engines for different learning jobs.'}</p></div></header>
+      <header><div><span className="eyebrow">{t(language, 'practiceEyebrow')}</span><h1>{t(language, 'practice')}</h1><p>{t(language, 'practiceIntro')}</p></div></header>
       <section className="practice-command">
-        <div><span className="mode-kicker">{ar ? 'المقترح الآن' : 'RECOMMENDED'}</span><h2>{ar ? (dueCount ? `لديك ${dueCount} مراجعات مستحقة الآن.` : completed ? 'ثبّت ما تعلمته قبل أن يضعف التذكّر.' : 'أكمل درسًا أولًا، ثم ابدأ تدريب الذاكرة.') : (dueCount ? `${dueCount} reviews are due now.` : completed ? 'Build recall before it fades.' : 'Complete a lesson, then train recall.')}</h2><p>{ar ? 'يجدول FSRS كلمات الدروس التي أكملتها فعليًا فقط.' : 'FSRS schedules vocabulary from lessons you actually completed.'}</p></div>
-        <button disabled={!dueCount} onClick={() => nav('/review')}>{ar ? (dueCount ? 'ابدأ المراجعة' : 'لا توجد مراجعة الآن') : (dueCount ? 'Review now' : 'Nothing due')} <ChevronRight /></button>
+        <div><span className="mode-kicker">{t(language, 'recommended')}</span><h2>{dueHeadline}</h2><p>{t(language, 'fsrsCompletedOnly')}</p></div>
+        <button disabled={!dueCount} onClick={() => nav('/review')}>{dueCount ? t(language, 'reviewNow') : t(language, 'nothingDue')} <ChevronRight /></button>
       </section>
       <div className="mode-list">
-        <button onClick={() => nav('/review')}><RotateCcw /><div><span>{ar ? 'الذاكرة' : 'MEMORY'}</span><h3>{ar ? 'مراجعة ذكية' : 'Smart Review'}</h3><p>{ar ? 'مراجعة مفردات بنظام FSRS وفق أداءك الحقيقي.' : 'FSRS vocabulary review with Again / Hard / Good / Easy scheduling.'}</p></div><ChevronRight /></button>
-        <button onClick={() => nav('/sentence-builder')}><Sparkles /><div><span>{ar ? 'الإنتاج' : 'OUTPUT'}</span><h3>{ar ? 'بناء الجملة' : 'Sentence Builder'}</h3><p>{ar ? 'رتّب الكلمات لتبني جملة إنجليزية صحيحة بدل الاكتفاء بالتعرّف على الإجابة.' : 'Build correct English from shuffled words instead of only tapping answers.'}</p></div><ChevronRight /></button>
-        <button onClick={() => nav('/assessment')}><Gauge /><div><span>{ar ? 'تشخيص المستوى' : 'DIAGNOSTIC'}</span><h3>{ar ? 'اختبار تحديد المستوى' : 'Placement Test'}</h3><p>{ar ? (profile?.placementLevel ? `مستواك المقاس حاليًا: ${profile.placementLevel}. يمكنك إعادة الاختبار في أي وقت.` : 'اختبار CEFR ثابت يقيس القواعد والمفردات والقراءة بدون تخمين ذاتي.') : (profile?.placementLevel ? `Current placement: ${profile.placementLevel}. Retake any time.` : 'Deterministic CEFR diagnostic across grammar, vocabulary and reading.')}</p></div><ChevronRight /></button>
-        <button onClick={() => nav('/speak')}><Mic /><div><span>{ar ? 'الصوت' : 'VOICE'}</span><h3>{ar ? 'مختبر المحادثة' : 'Conversation Lab'}</h3><p>{ar ? 'انتقل من التمارين المنظمة إلى الكلام العفوي مع الـTwin.' : 'Move from structured practice into spontaneous speech with your Twin.'}</p></div><ChevronRight /></button>
+        <button onClick={() => nav('/review')}><RotateCcw /><div><span>{t(language, 'memory')}</span><h3>{t(language, 'smartReview')}</h3><p>{t(language, 'smartReviewDescription')}</p></div><ChevronRight /></button>
+        <button onClick={() => nav('/sentence-builder')}><Sparkles /><div><span>{t(language, 'output')}</span><h3>{t(language, 'sentenceBuilder')}</h3><p>{t(language, 'sentenceBuilderDescription')}</p></div><ChevronRight /></button>
+        <button onClick={() => nav('/assessment')}><Gauge /><div><span>{t(language, 'diagnostic')}</span><h3>{t(language, 'placementTest')}</h3><p>{placementBody}</p></div><ChevronRight /></button>
+        <button onClick={() => nav('/speak')}><Mic /><div><span>{t(language, 'voice')}</span><h3>{t(language, 'conversationLab')}</h3><p>{t(language, 'conversationDescription')}</p></div><ChevronRight /></button>
       </div>
     </div>
   </Frame>;
