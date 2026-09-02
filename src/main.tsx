@@ -20,6 +20,7 @@ import './auth-onboarding-polish.css';
 import './route-polish.css';
 import './mobile-release-qa.css';
 import './visual-impact-v2.css';
+import './learn-journey-v3.css';
 
 const AuthGateway = React.lazy(() => import('./AuthGateway'));
 const SmartHomeV2 = React.lazy(() => import('./SmartHomeV2'));
