@@ -9,6 +9,7 @@ import { loadLessonProgress, ProgressMap } from './learning';
 import { placementQuestions, scorePlacement } from './assessment';
 import { Rating, StoredReviewCard, dueCards, ensureReviewCards, meaningForLanguage, saveReviewRating } from './review';
 import { directionFor, normalizeLanguage, t } from './languageSupport';
+import { modeSupportCopy } from './modeSupportCopy';
 
 function useLearner() {
   const [user, setUser] = useState<User | null>(null);
@@ -56,6 +57,7 @@ export function PracticeHub() {
   const nav = useNavigate();
   const [dueCount, setDueCount] = useState(0);
   const language = supportLanguage(profile);
+  const modeCopy = modeSupportCopy[language];
   useEffect(() => {
     if (!user) return;
     const completed = Object.values(progress).filter(p => p.completed).map(p => p.lessonId);
@@ -65,9 +67,7 @@ export function PracticeHub() {
   if (!user) return <Navigate to="/welcome" replace />;
   const completed = Object.values(progress).filter(p => p.completed).length;
   const dueHeadline = dueCount ? `${dueCount} ${t(language, 'reviewDueSuffix')}` : completed ? t(language, 'buildRecall') : t(language, 'completeLessonFirst');
-  const placementBody = profile?.placementLevel
-    ? language === 'Arabic' ? `مستواك المقاس حاليًا: ${profile.placementLevel}. يمكنك إعادة الاختبار في أي وقت.` : `Current placement: ${profile.placementLevel}. Retake any time.`
-    : language === 'Arabic' ? 'اختبار CEFR ثابت يقيس القواعد والمفردات والقراءة بدون تخمين ذاتي.' : 'Deterministic CEFR diagnostic across grammar, vocabulary and reading.';
+  const placementBody = profile?.placementLevel ? modeCopy.placementCurrent(profile.placementLevel) : modeCopy.placementDescription;
   return <Frame language={language}>
     <div dir={directionFor(language)}>
       <header><div><span className="eyebrow">{t(language, 'practiceEyebrow')}</span><h1>{t(language, 'practice')}</h1><p>{t(language, 'practiceIntro')}</p></div></header>
@@ -93,8 +93,8 @@ export function ReviewMode() {
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
   const language = supportLanguage(profile);
+  const copy = modeSupportCopy[language];
   const dir = directionFor(language);
-  const ar = language === 'Arabic';
   useEffect(() => {
     if (!user) return;
     const completed = Object.values(progress).filter(p => p.completed).map(p => p.lessonId);
@@ -116,23 +116,23 @@ export function ReviewMode() {
   }
   return <Frame language={language}>
     <div dir={dir}>
-      <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {ar ? 'التدريب' : 'Practice'}</button>
-      <header><div><span className="eyebrow">FSRS MEMORY</span><h1>{ar ? 'المراجعة الذكية' : 'Smart Review'}</h1><p>{ar ? `${queue.length} بطاقات مستحقة الآن.` : `${queue.length} cards due now.`}</p></div></header>
-      {!card ? <section className="mode-empty"><Check /><h2>{ar ? 'أنت مواكب للمراجعة.' : 'You’re caught up.'}</h2><p>{ar ? 'سيعيد FSRS الكلمات عندما يتوقع أن الذاكرة تحتاج إلى تعزيز.' : 'FSRS will bring items back when memory strength predicts they should be reviewed.'}</p><button onClick={() => nav('/practice')}>{ar ? 'العودة للتدريب' : 'Back to practice'}</button></section> :
+      <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {copy.backPractice}</button>
+      <header><div><span className="eyebrow">FSRS MEMORY</span><h1>{copy.smartReview}</h1><p>{copy.cardsDue(queue.length)}</p></div></header>
+      {!card ? <section className="mode-empty"><Check /><h2>{copy.caughtUp}</h2><p>{copy.caughtUpBody}</p><button onClick={() => nav('/practice')}>{copy.backToPractice}</button></section> :
         <section className="review-card">
-          <span className="mode-kicker">{ar ? `مفردات · ${queue.length} متبقية` : `VOCABULARY · ${queue.length} LEFT`}</span>
+          <span className="mode-kicker">{copy.vocabularyLeft(queue.length)}</span>
           <div dir="ltr" className="review-term-row">
             <div><h2>{card.term}</h2>{card.phonetic && <small className="review-phonetic">{card.phonetic}</small>}</div>
             <button className="review-audio" type="button" aria-label={`Play ${card.term}`} onClick={() => speakEnglish(card.term)}><Volume2 /></button>
           </div>
-          {!showAnswer ? <><p>{ar ? 'تذكّر المعنى أولًا، ثم اكشف الإجابة.' : 'Recall the meaning before revealing it.'}</p><button className="reveal" onClick={() => setShowAnswer(true)}>{ar ? 'اكشف المعنى' : 'Reveal answer'}</button></> : <>
+          {!showAnswer ? <><p>{copy.recallBeforeReveal}</p><button className="reveal" onClick={() => setShowAnswer(true)}>{copy.revealAnswer}</button></> : <>
             <div className="review-answer" dir={dir}><strong>{nativeMeaning}</strong><p dir="ltr">{card.example}</p></div>
-            <button className="review-example-audio" type="button" onClick={() => speakEnglish(card.example)}><Volume2 /> {ar ? 'اسمع المثال' : 'Hear example'}</button>
+            <button className="review-example-audio" type="button" onClick={() => speakEnglish(card.example)}><Volume2 /> {copy.hearExample}</button>
             <div className="rating-row">
-              <button disabled={busy} onClick={() => rate(Rating.Again)}><span>{ar ? 'نسيت' : 'Again'}</span><small>{ar ? 'أعدها قريبًا' : 'Forgot'}</small></button>
-              <button disabled={busy} onClick={() => rate(Rating.Hard)}><span>{ar ? 'صعب' : 'Hard'}</span><small>{ar ? 'تذكّرت بصعوبة' : 'Struggled'}</small></button>
-              <button disabled={busy} onClick={() => rate(Rating.Good)}><span>{ar ? 'جيد' : 'Good'}</span><small>{ar ? 'تذكّرت' : 'Recalled'}</small></button>
-              <button disabled={busy} onClick={() => rate(Rating.Easy)}><span>{ar ? 'سهل' : 'Easy'}</span><small>{ar ? 'فوري' : 'Instant'}</small></button>
+              <button disabled={busy} onClick={() => rate(Rating.Again)}><span>{copy.again}</span><small>{copy.againHint}</small></button>
+              <button disabled={busy} onClick={() => rate(Rating.Hard)}><span>{copy.hard}</span><small>{copy.hardHint}</small></button>
+              <button disabled={busy} onClick={() => rate(Rating.Good)}><span>{copy.good}</span><small>{copy.goodHint}</small></button>
+              <button disabled={busy} onClick={() => rate(Rating.Easy)}><span>{copy.easy}</span><small>{copy.easyHint}</small></button>
             </div>
           </>}
         </section>}
@@ -187,9 +187,10 @@ export function AssessmentMode() {
   const [saving, setSaving] = useState(false);
   const result = useMemo(() => scorePlacement(answers), [answers]);
   const language = interfaceLanguage(profile);
-  const ar = language === 'Arabic';
+  const support = supportLanguage(profile);
+  const copy = modeSupportCopy[language];
   const dir = directionFor(language);
-  if (loading) return <Loading language={supportLanguage(profile)} />;
+  if (loading) return <Loading language={support} />;
   if (!user) return <Navigate to="/welcome" replace />;
   const uid = user.uid;
   const question = placementQuestions[index];
@@ -204,20 +205,20 @@ export function AssessmentMode() {
       setFinished(true);
     } finally { setSaving(false); }
   }
-  if (finished) return <Frame language={supportLanguage(profile)}><div dir={dir}><button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {ar ? 'التدريب' : 'Practice'}</button><section className="assessment-result"><span className="mode-kicker">{ar ? 'نتيجة تحديد المستوى' : 'PLACEMENT RESULT'}</span><strong>{result.level}</strong><h2>{ar ? `${result.percent}% النتيجة الإجمالية` : `${result.percent}% overall`}</h2><p>{ar ? `${result.correct} إجابات صحيحة من أصل ${result.total} سؤالًا ثابتًا.` : `${result.correct} of ${result.total} deterministic questions correct.`}</p><div className="skill-result">{Object.entries(result.skillScores).map(([skill, score]) => <div key={skill}><span>{ar ? ({ Grammar: 'القواعد', Vocabulary: 'المفردات', Reading: 'القراءة' } as Record<string, string>)[skill] || skill : skill}</span><b>{score}%</b></div>)}</div><button onClick={() => { setAnswers({}); setIndex(0); setFinished(false); }}>{ar ? 'إعادة الاختبار' : 'Retake assessment'}</button></section></div></Frame>;
+  if (finished) return <Frame language={support}><div dir={dir}><button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {copy.backPractice}</button><section className="assessment-result"><span className="mode-kicker">{copy.placementResult}</span><strong>{result.level}</strong><h2>{copy.overall(result.percent)}</h2><p>{copy.correctOf(result.correct,result.total)}</p><div className="skill-result">{Object.entries(result.skillScores).map(([skill, score]) => <div key={skill}><span>{copy.skills[skill] || skill}</span><b>{score}%</b></div>)}</div><button onClick={() => { setAnswers({}); setIndex(0); setFinished(false); }}>{copy.retakeAssessment}</button></section></div></Frame>;
   const selected = answers[question.id];
-  const skillLabel = ar ? ({ Grammar: 'القواعد', Vocabulary: 'المفردات', Reading: 'القراءة' } as Record<string, string>)[question.skill] || question.skill : question.skill;
-  return <Frame language={supportLanguage(profile)}>
+  const skillLabel = copy.skills[question.skill] || question.skill;
+  return <Frame language={support}>
     <div dir={dir}>
-      <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {ar ? 'التدريب' : 'Practice'}</button>
-      <header><div><span className="eyebrow">{ar ? 'تشخيص CEFR' : 'CEFR DIAGNOSTIC'}</span><h1>{ar ? 'تحديد المستوى' : 'Placement'}</h1><p>{ar ? 'بدون تقييم ذاتي أو تخمين. أجب فقط عمّا تعرفه فعلًا.' : 'No self-rating shortcuts. Answer what you actually know.'}</p></div></header>
+      <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {copy.backPractice}</button>
+      <header><div><span className="eyebrow">{copy.cefrDiagnostic}</span><h1>{copy.placement}</h1><p>{copy.placementIntro}</p></div></header>
       <div className="assessment-progress"><i style={{ width: `${((index + 1) / placementQuestions.length) * 100}%` }} /></div>
       <section className="assessment-card">
         <span className="mode-kicker">{skillLabel} · {question.level} · {index + 1}/{placementQuestions.length}</span>
-        <div className="native-instruction" dir={dir}>{ar ? 'اختر الإجابة الإنجليزية الصحيحة.' : 'Choose the correct English answer.'}</div>
+        <div className="native-instruction" dir={dir}>{copy.chooseEnglish}</div>
         <h2 dir="ltr">{question.prompt}</h2>
         <div className="assessment-options" dir="ltr">{question.options.map(option => <button className={selected === option ? 'selected' : ''} key={option} onClick={() => setAnswers({ ...answers, [question.id]: option })}>{option}</button>)}</div>
-        <button className="assessment-next" disabled={!selected || saving} onClick={() => index === placementQuestions.length - 1 ? void finish() : setIndex(index + 1)}>{saving ? (ar ? 'جارٍ الحفظ…' : 'Saving…') : index === placementQuestions.length - 1 ? (ar ? 'إنهاء الاختبار' : 'Finish assessment') : (ar ? 'السؤال التالي' : 'Next question')}</button>
+        <button className="assessment-next" disabled={!selected || saving} onClick={() => index === placementQuestions.length - 1 ? void finish() : setIndex(index + 1)}>{saving ? copy.saving : index === placementQuestions.length - 1 ? copy.finishAssessment : copy.nextQuestion}</button>
       </section>
     </div>
   </Frame>;
