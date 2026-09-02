@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Navigate, NavLink, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { BookOpen, ChevronRight, Crown, Gauge, Home, Mic, RotateCcw, Settings, Sparkles, Trophy, UserRound } from 'lucide-react';
+import { BookOpen, ChevronRight, Crown, Gauge, Home, Mic, RotateCcw, Sparkles, Trophy, UserRound } from 'lucide-react';
 import { auth, db } from './firebase';
 import { lessons, lessonsForLevel } from './curriculumAll';
 import { loadLessonProgress, ProgressMap, summarizeProgress } from './learning';
@@ -12,7 +12,7 @@ import { directionFor, normalizeLanguage } from './languageSupport';
 
 type Profile={displayName?:string;learningGoal?:string;dailyTargetMinutes?:number;onboardingCompleted?:boolean;beginnerFoundationCompleted?:boolean;nativeLanguage?:string;explanationLanguage?:string;interfaceLanguage?:string;placementLevel?:string;skillLevels?:Partial<SkillLevels>};
 type Recommendation={kind:'foundation'|'review'|'lesson'|'speak';eyebrow:string;title:string;body:string;action:string;to:string};
-const arCopy={home:'الرئيسية',learn:'تعلّم',practice:'تدريب',speak:'تحدث',me:'أنا',loading:'نقرأ حالة تعلّمك…',morning:'مرحبًا',amazing:'خلّينا نخلي اليوم رائعًا!',goal:'هدف اليوم',progress:'تقدم ممتاز!',continue:'تابع التعلّم',plan:'خطة اليوم',review:'مراجعة المفردات',twin:'تحدث مع Twin',smart:'المراجعة الذكية',start:'ابدأ الكلمات الأولى',ask:'اسأل Twin',due:'مستحق للمراجعة'};
+const arCopy={home:'الرئيسية',learn:'تعلّم',practice:'تدريب',speak:'تحدث',me:'أنا',loading:'نقرأ حالة تعلّمك…',morning:'مرحبًا',amazing:'خلّينا نخلي اليوم رائعًا!',goal:'هدف اليوم',progress:'تقدم ممتاز!',continue:'تابع التعلّم',plan:'خطة اليوم',review:'مراجعة المفردات',twin:'تحدث مع Twin',smart:'المراجعة الذكية',start:'ابدأ الكلمات الأولى',due:'مستحق للمراجعة'};
 function Dock({ar}:{ar:boolean}){const labels=ar?[arCopy.home,arCopy.learn,arCopy.practice,arCopy.speak,arCopy.me]:['Home','Learn','Practice','Speak','Me'];return <nav className="dock">{[['/',Home],['/learn',BookOpen],['/practice',Gauge],['/speak',Mic],['/profile',UserRound]].map(([to,Icon]:any,i)=><NavLink end={to==='/'} key={to} to={to}><Icon/><small>{labels[i]}</small></NavLink>)}</nav>}
 export default function SmartHomeV2(){
  const nav=useNavigate();const[user,setUser]=useState<User|null>(null);const[profile,setProfile]=useState<Profile|null>(null);const[progress,setProgress]=useState<ProgressMap>({});const[dueCount,setDueCount]=useState(0);const[loading,setLoading]=useState(true);
