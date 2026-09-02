@@ -1,21 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Navigate, NavLink, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { collection, doc, getDoc, getDocs, increment, serverTimestamp, setDoc } from 'firebase/firestore';
-import { ArrowLeft, BookOpen, Gauge, Home, Mic, RotateCcw, Sparkles, UserRound } from 'lucide-react';
+import { ArrowLeft, RotateCcw, Sparkles } from 'lucide-react';
+import AppDock from './AppDock';
 import { auth, db } from './firebase';
 import { builderPriority, isBuilderCorrect, MistakeSignal, rankSentenceItems, sentenceItems } from './sentenceBuilder';
 import { directionFor, normalizeLanguage } from './languageSupport';
 import { prioritizeReviewFromMistake } from './review';
 
-function Dock() {
-  return <nav className="dock mode-dock">{[
-    ['/', Home, 'Home'], ['/learn', BookOpen, 'Learn'], ['/practice', Gauge, 'Practice'], ['/speak', Mic, 'Speak'], ['/profile', UserRound, 'Me'],
-  ].map(([to, Icon, label]: any) => <NavLink end={to === '/'} key={to} to={to}><Icon /><small>{label}</small></NavLink>)}</nav>;
-}
-
-function Frame({ children }: { children: React.ReactNode }) {
-  return <div className="app-shell"><div className="phone mode-phone"><main className="page mode-page">{children}</main><Dock /></div></div>;
+function Frame({ children, language }: { children: React.ReactNode; language?: string }) {
+  return <div className="app-shell"><div className="phone mode-phone"><main className="page mode-page">{children}</main><AppDock language={language} className="mode-dock" /></div></div>;
 }
 
 export default function AdaptiveSentenceBuilder() {
@@ -44,13 +39,13 @@ export default function AdaptiveSentenceBuilder() {
 
   const ranked = useMemo(() => rankSentenceItems(sentenceItems, mistakes), [mistakes]);
   const item = ranked[index % Math.max(1, ranked.length)];
-  const language = normalizeLanguage(profile?.nativeLanguage || profile?.explanationLanguage || profile?.interfaceLanguage);
+  const language = normalizeLanguage(profile?.explanationLanguage || profile?.nativeLanguage || profile?.interfaceLanguage);
   const dir = directionFor(language);
   const ar = language === 'Arabic';
 
-  if (loading) return <Frame><p>{ar ? 'جارٍ تحميل تدريبك…' : 'Loading your practice…'}</p></Frame>;
-  if (!user) return <Navigate to="/" replace />;
-  if (!item) return <Frame><button className="back" onClick={() => nav('/practice')}><ArrowLeft /> Practice</button><h2>No sentence practice available.</h2></Frame>;
+  if (loading) return <Frame language={language}><p>{ar ? 'جارٍ تحميل تدريبك…' : 'Loading your practice…'}</p></Frame>;
+  if (!user) return <Navigate to="/welcome" replace />;
+  if (!item) return <Frame language={language}><button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {ar ? 'التدريب' : 'Practice'}</button><h2>{ar ? 'لا يوجد تدريب جمل متاح.' : 'No sentence practice available.'}</h2></Frame>;
 
   const remaining = item.words.filter((word, i) => {
     const usedBefore = built.filter(x => x === word).length;
@@ -92,7 +87,7 @@ export default function AdaptiveSentenceBuilder() {
     setResult(null);
   }
 
-  return <Frame>
+  return <Frame language={language}>
     <div dir={dir}>
       <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {ar ? 'التدريب' : 'Practice'}</button>
       <header><div><span className="eyebrow">ADAPTIVE OUTPUT</span><h1>{ar ? 'بناء الجملة الذكي' : 'Adaptive Sentence Builder'}</h1><p>{ar ? 'يقدّم الجمل المرتبطة بأخطائك السابقة أولًا.' : 'Sentences tied to your previous mistakes move to the front.'}</p></div></header>
