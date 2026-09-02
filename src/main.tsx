@@ -17,6 +17,7 @@ import './premium-learning.css';
 import './profile-twin-polish.css';
 import './auth-onboarding-polish.css';
 import './route-polish.css';
+import './mobile-release-qa.css';
 
 const AuthGateway = React.lazy(() => import('./AuthGateway'));
 const SmartHomeV2 = React.lazy(() => import('./SmartHomeV2'));
