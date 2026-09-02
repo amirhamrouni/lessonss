@@ -11,6 +11,7 @@ import './beginner.css';
 import './release-polish.css';
 import './cheerful-theme.css';
 import './final-qa.css';
+import './visual-assets.css';
 
 const AuthGateway = React.lazy(() => import('./AuthGateway'));
 const SmartHomeV2 = React.lazy(() => import('./SmartHomeV2'));
