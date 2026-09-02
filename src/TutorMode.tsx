@@ -1,11 +1,13 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Navigate, NavLink, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { collection, doc, getDoc, getDocs, increment, serverTimestamp, setDoc } from 'firebase/firestore';
-import { ArrowLeft, BookOpen, BrainCircuit, Gauge, Home, Mic, Send, Sparkles, UserRound } from 'lucide-react';
+import { ArrowLeft, BrainCircuit, Send, Sparkles } from 'lucide-react';
+import AppDock from './AppDock';
 import { auth, db } from './firebase';
 import { loadLessonProgress } from './learning';
 import { loadReviewCards } from './review';
+import { normalizeLanguage } from './languageSupport';
 import { buildTwinSnapshot, trimTwinConversation, TwinLearnerSnapshot, TwinMemoryMessage } from './twinMemory';
 
 type TutorResponse = {
@@ -20,6 +22,7 @@ type Profile = {
   placementLevel?: string;
   cefrLevel?: string;
   learningGoal?: string;
+  interfaceLanguage?: 'English' | 'Arabic' | 'Dutch' | 'French' | 'German' | 'Spanish';
   nativeLanguage?: 'English' | 'Arabic' | 'Dutch' | 'French' | 'German' | 'Spanish';
   explanationLanguage?: 'English' | 'Arabic' | 'Dutch' | 'French' | 'German' | 'Spanish';
 };
@@ -33,12 +36,6 @@ const EMPTY_SNAPSHOT: TwinLearnerSnapshot = {
   dueReviewTerms: [],
   recentConversation: [],
 };
-
-function Dock() {
-  return <nav className="dock">{[
-    ['/', Home, 'Home'], ['/learn', BookOpen, 'Learn'], ['/practice', Gauge, 'Practice'], ['/speak', Mic, 'Speak'], ['/profile', UserRound, 'Me'],
-  ].map(([to, Icon, label]: any) => <NavLink end={to === '/'} key={to} to={to}><Icon /><small>{label}</small></NavLink>)}</nav>;
-}
 
 function mistakeKey(original: string, corrected: string, index: number) {
   const safe = `${original}-${corrected}`.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 100);
@@ -87,7 +84,9 @@ export default function TutorMode() {
     } finally { setLoading(false); }
   }), []);
 
-  if (loading) return <div className="app-shell"><div className="phone"><main className="page"><BrainCircuit /><p>Loading your Twin memory…</p></main><Dock /></div></div>;
+  const supportLanguage = normalizeLanguage(profile.explanationLanguage || profile.nativeLanguage || profile.interfaceLanguage || 'English');
+
+  if (loading) return <div className="app-shell"><div className="phone"><main className="page"><BrainCircuit /><p>Loading your Twin memory…</p></main><AppDock language={supportLanguage} /></div></div>;
   if (!user) return <Navigate to="/welcome" replace />;
 
   async function rememberMistakes(detail: TutorResponse, learnerMessage: string) {
@@ -180,5 +179,5 @@ export default function TutorMode() {
       <input value={input} onChange={event => setInput(event.target.value)} maxLength={1200} placeholder="Say something in English…" aria-label="Message your English Twin" />
       <button type="submit" disabled={busy || !input.trim()} aria-label="Send"><Send /></button>
     </form>
-  </main><Dock /></div></div>;
+  </main><AppDock language={supportLanguage} /></div></div>;
 }
