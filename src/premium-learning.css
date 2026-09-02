@@ -71,10 +71,50 @@
 .lesson-complete>strong{display:inline-grid!important;place-items:center!important;min-width:92px!important;height:58px!important;border-radius:18px!important;background:#f0ebff!important;font-size:1.45rem!important;box-shadow:inset 0 0 0 1px rgba(112,69,255,.08)}
 .lesson-complete .primary{width:100%!important;min-height:50px!important;border-radius:16px!important;margin-top:10px!important}
 
+/* Practice, review and guided speaking — same light visual language, no behavior changes. */
+.mode-page>div>header,.voice-live>header{margin-bottom:18px!important}
+.practice-command{min-height:166px!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:end!important;gap:16px!important}
+.practice-command h2{font-size:clamp(1.35rem,5.8vw,1.8rem)!important;line-height:1.12!important;letter-spacing:-.035em!important;margin:.45rem 0 .55rem!important}
+.practice-command p{line-height:1.45!important;max-width:46ch!important}
+.practice-command button{min-height:44px!important;border-radius:14px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;white-space:nowrap!important}
+.mode-list>button{grid-template-columns:44px minmax(0,1fr) auto!important;gap:13px!important;align-items:center!important}
+.mode-list>button>div{min-width:0!important}
+.mode-list>button h3{font-size:.98rem!important;letter-spacing:-.02em!important}
+.mode-list>button p{max-width:44ch!important;line-height:1.4!important}
+.mode-list>button>svg:last-child{width:17px!important}
+.review-card{position:relative!important;overflow:hidden!important}
+.review-card:before{content:"";position:absolute;width:130px;height:130px;border-radius:50%;right:-54px;top:-58px;background:linear-gradient(135deg,rgba(112,69,255,.08),rgba(56,189,248,.08));pointer-events:none}
+.review-term-row{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;margin:16px 0!important}
+.review-term-row h2{font-size:clamp(1.8rem,8vw,2.6rem)!important;line-height:1!important;letter-spacing:-.045em!important;margin:0!important}
+.review-audio,.review-example-audio{min-height:42px!important;border-radius:14px!important}
+.review-audio{width:44px!important;height:44px!important;display:grid!important;place-items:center!important;background:#f0ebff!important;color:#6549d9!important;border:1px solid rgba(112,69,255,.1)!important}
+.review-answer{padding:16px!important;border-radius:17px!important;background:linear-gradient(135deg,#f8f6ff,#f2fbff)!important;margin:14px 0 10px!important}
+.review-answer strong{font-size:1.08rem!important}
+.rating-row{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important;margin-top:16px!important}
+.rating-row button{min-width:0!important;min-height:62px!important;border-radius:14px!important;padding:8px 5px!important;background:#fff!important;border:1px solid rgba(84,65,160,.09)!important;display:grid!important;place-items:center!important;gap:2px!important}
+.rating-row button:nth-child(1){background:#fff2f5!important;color:#b3415b!important}.rating-row button:nth-child(2){background:#fff8e7!important;color:#9a7114!important}.rating-row button:nth-child(3){background:#eef8ff!important;color:#257cbb!important}.rating-row button:nth-child(4){background:#eefbf4!important;color:#258558!important}
+.rating-row button span{font-weight:850!important;font-size:.74rem!important}.rating-row button small{font-size:.56rem!important;line-height:1.15!important}
+.mode-empty{text-align:center!important;padding:30px 22px!important}.mode-empty>svg{width:58px!important;height:58px!important;padding:14px!important;border-radius:20px!important;margin:0 auto 8px!important}.mode-empty button{min-height:46px!important;border-radius:14px!important;margin-top:8px!important}
+.voice-live>header{min-height:132px!important;padding-block:20px!important}
+.voice-live>header .eyebrow{max-width:100%!important;white-space:normal!important}
+.voice-live>header h1{letter-spacing:-.05em!important;margin:.45rem 0 .6rem!important}
+.voice-live .builder-card{padding:22px!important}
+.voice-live .builder-card h2{font-size:1.08rem!important;line-height:1.3!important;margin:12px 0 8px!important}
+.speech-target{display:block!important;width:100%!important;padding:17px!important;border-radius:18px!important;font-size:clamp(1.18rem,5vw,1.48rem)!important;line-height:1.25!important;font-weight:850!important;letter-spacing:-.015em!important;background:linear-gradient(135deg,#fff,#f5f7ff)!important;color:#1c2342!important}
+.review-example-audio{display:inline-flex!important;align-items:center!important;gap:7px!important;background:#f0edff!important;color:#5f43d7!important;font-weight:750!important}
+.builder-actions{display:grid!important;grid-template-columns:1fr 1.35fr!important;gap:10px!important;margin-top:18px!important}
+.builder-actions button{min-height:50px!important;border-radius:15px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;font-weight:800!important}
+.builder-actions button:not(.solid){background:#f6f7fb!important;color:#4a516d!important;border:1px solid rgba(84,65,160,.08)!important}
+.builder-actions .solid{background:linear-gradient(135deg,#7045ff,#914cff)!important;color:#fff!important}
+.voice-live .practice-command{margin-top:18px!important}
+.voice-live .practice-command button{align-self:end!important}
+
 @media(max-width:520px){
  .reference-home .welcome-card{grid-template-columns:minmax(0,1fr) 82px!important;padding:17px!important;min-height:118px!important}.reference-home .mini-twin{width:76px;height:76px}.reference-home .mini-twin:before{width:60px;height:42px}.reference-home .mini-twin span,.reference-home .mini-twin i{top:30px}.reference-home .mini-twin span{left:23px}.reference-home .mini-twin i{right:23px}.reference-home .mini-twin b{top:39px}.reference-home .continue-card{grid-template-columns:minmax(0,1fr) 92px!important}.reference-home .continue-copy{padding:17px!important}.reference-home .continue-copy h2{font-size:1.35rem!important}.reference-home .continue-art .umbrella{right:15px;font-size:36px}.reference-home .today-list>button{grid-template-columns:38px minmax(0,1fr) auto!important;padding:10px!important}
  .learn-overview>div:first-child strong{font-size:1.45rem!important}.journey-unit{grid-template-columns:40px minmax(0,1fr)!important;gap:9px!important}.lesson-rows button{padding:12px 11px 12px 15px!important;gap:8px!important}.lesson-rows button b{font-size:.79rem!important}.lesson-rows button small{font-size:.62rem!important}.lesson-rows button>span{font-size:.64rem!important;padding:6px 7px!important}
  .lesson-top{padding:17px!important;grid-template-columns:minmax(0,1fr) 48px!important}.lesson-top>span{width:46px!important;height:46px!important;border-radius:15px!important;font-size:.76rem!important}.activity-card{padding:18px!important;min-height:285px!important}.native-instruction{font-size:.72rem!important}.answer-list button{min-height:48px!important}.lesson-complete{padding:25px 18px!important}
+ .practice-command{grid-template-columns:1fr!important;min-height:0!important;align-items:start!important}.practice-command button{width:100%!important}.mode-list>button{grid-template-columns:40px minmax(0,1fr) 16px!important;padding:14px 12px!important}.mode-list>button p{font-size:.74rem!important}.rating-row{gap:6px!important}.rating-row button{min-height:58px!important;padding:7px 3px!important}.voice-live>header{min-height:118px!important}.voice-live .builder-card{padding:18px!important}.builder-actions{grid-template-columns:1fr 1.25fr!important}.voice-live .practice-command button{width:100%!important}
 }
 @media(prefers-reduced-motion:reduce){.reference-home .mini-twin,.reference-home .today-list>button,.lesson-rows button{transition:none!important}.reference-home .welcome-card:hover .mini-twin,.reference-home .today-list>button:hover,.lesson-rows button:hover{transform:none!important}}
 [dir=rtl] .lesson-rows button,[dir=rtl] .answer-list button{text-align:right!important}
+[dir=rtl] .review-card:before{right:auto;left:-54px}
