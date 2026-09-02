@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Navigate, NavLink, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc, increment, serverTimestamp, setDoc } from 'firebase/firestore';
-import { ArrowLeft, BookOpen, CheckCircle2, Gauge, Home, Languages, Mic, RotateCcw, UserRound, Volume2, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Languages, RotateCcw, Volume2, XCircle } from 'lucide-react';
+import AppDock from './AppDock';
 import { auth, db } from './firebase';
 import { Activity, Lesson, lessonById } from './curriculumAll';
 import type { RichActivity } from './richLesson';
@@ -10,18 +11,12 @@ import { loadLessonProgress, ProgressMap, saveLessonCompletion } from './learnin
 import { directionFor, normalizeLanguage, t } from './languageSupport';
 import { prioritizeReviewFromMistake } from './review';
 
-type LearnerProfile = { nativeLanguage?: string; explanationLanguage?: string };
+type LearnerProfile = { nativeLanguage?: string; explanationLanguage?: string; interfaceLanguage?: string };
 type Feedback = { ok: boolean; text: string };
 type AnyActivity = Activity | RichActivity;
 
-function Dock() {
-  return <nav className="dock">{[
-    ['/', Home, 'Home'], ['/learn', BookOpen, 'Learn'], ['/practice', Gauge, 'Practice'], ['/speak', Mic, 'Speak'], ['/profile', UserRound, 'Me'],
-  ].map(([to, Icon, label]: any) => <NavLink end={to === '/'} key={to} to={to}><Icon /><small>{label}</small></NavLink>)}</nav>;
-}
-
-function Frame({ children, dir = 'ltr' }: { children: React.ReactNode; dir?: 'ltr' | 'rtl' }) {
-  return <div className="app-shell" dir={dir}><div className="phone"><main className="page">{children}</main><Dock /></div></div>;
+function Frame({ children, dir = 'ltr', language }: { children: React.ReactNode; dir?: 'ltr' | 'rtl'; language?: string }) {
+  return <div className="app-shell" dir={dir}><div className="phone"><main className="page">{children}</main><AppDock language={language} /></div></div>;
 }
 
 function speakEnglish(text: string, rate = 0.82) {
@@ -145,16 +140,17 @@ export default function AutoLessonPlayer() {
     return unsubscribe;
   }, []);
 
-  if (loading) return <Frame><p>Loading lesson…</p></Frame>;
+  const supportLanguage = normalizeLanguage(profile.explanationLanguage || profile.nativeLanguage || profile.interfaceLanguage || 'English');
+  const dir = directionFor(supportLanguage);
+  const ar = supportLanguage === 'Arabic';
+
+  if (loading) return <Frame dir={dir} language={supportLanguage}><p>Loading lesson…</p></Frame>;
   if (!user) return <Navigate to="/welcome" replace />;
   if (!profile.nativeLanguage) return <Navigate to="/setup" replace />;
-  if (!lesson) return <Frame><button className="back" onClick={() => nav('/learn')}><ArrowLeft /> Learn</button><h2>Lesson not found</h2></Frame>;
+  if (!lesson) return <Frame dir={dir} language={supportLanguage}><button className="back" onClick={() => nav('/learn')}><ArrowLeft /> {ar ? 'التعلّم' : 'Learn'}</button><h2>{ar ? 'الدرس غير موجود' : 'Lesson not found'}</h2></Frame>;
 
   const uid = user.uid;
   const currentLesson = lesson;
-  const supportLanguage = normalizeLanguage(profile.explanationLanguage || profile.nativeLanguage);
-  const dir = directionFor(supportLanguage);
-  const ar = supportLanguage === 'Arabic';
   const activity = currentLesson.activities[index] as AnyActivity;
   const progressPercent = Math.round(((index + (finished ? 1 : 0)) / currentLesson.activities.length) * 100);
 
@@ -238,7 +234,7 @@ export default function AutoLessonPlayer() {
 
   if (finished) {
     const score = total ? Math.round((correct / total) * 100) : 100;
-    return <Frame dir={dir}><button className="back" onClick={() => nav('/learn')}><ArrowLeft /> {ar ? 'التعلّم' : 'Learn'}</button><section className="lesson-complete"><CheckCircle2 /><span className="eyebrow">{ar ? 'اكتمل الدرس' : 'LESSON COMPLETE'}</span><h1>{currentLesson.title}</h1><strong>{score}%</strong><p>{ar ? `${correct} إجابات صحيحة من أصل ${total}.` : `${correct} correct out of ${total} scored activities.`}</p><button className="primary" onClick={() => nav('/learn')}>{ar ? 'متابعة المسار' : 'Continue roadmap'}</button></section></Frame>;
+    return <Frame dir={dir} language={supportLanguage}><button className="back" onClick={() => nav('/learn')}><ArrowLeft /> {ar ? 'التعلّم' : 'Learn'}</button><section className="lesson-complete"><CheckCircle2 /><span className="eyebrow">{ar ? 'اكتمل الدرس' : 'LESSON COMPLETE'}</span><h1>{currentLesson.title}</h1><strong>{score}%</strong><p>{ar ? `${correct} إجابات صحيحة من أصل ${total}.` : `${correct} correct out of ${total} scored activities.`}</p><button className="primary" onClick={() => nav('/learn')}>{ar ? 'متابعة المسار' : 'Continue roadmap'}</button></section></Frame>;
   }
 
   const hasAnswer = isPassive(activity) || Boolean(selected || fill.trim());
@@ -248,7 +244,7 @@ export default function AutoLessonPlayer() {
       ? feedback.ok ? (ar ? 'متابعة' : 'Continue') : (ar ? 'حاول مرة أخرى' : 'Try again')
       : isPassive(activity) ? t(supportLanguage, 'continue') : t(supportLanguage, 'check');
 
-  return <Frame dir={dir}>
+  return <Frame dir={dir} language={supportLanguage}>
     <button className="back" onClick={() => nav('/learn')}><ArrowLeft /> {ar ? 'الخروج من الدرس' : 'Exit lesson'}</button>
     <div className="lesson-top"><div><span className="eyebrow">{currentLesson.id.startsWith('a2-') ? 'A2' : 'A1'} · {currentLesson.skill.toUpperCase()} · {currentLesson.minutes} {ar ? 'د' : 'MIN'}</span><h1>{currentLesson.title}</h1><p>{currentLesson.objective}</p></div><span>{index + 1}/{currentLesson.activities.length}</span></div>
     <div className="lesson-language-chip" dir={dir}><Languages /> {ar ? 'الشرح بالعربية · الإنجليزية هي الهدف' : `${supportLanguage} support · English target`}</div>
