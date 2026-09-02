@@ -14,6 +14,7 @@ import './final-qa.css';
 import './visual-assets.css';
 import './verified-assets.css';
 import './premium-learning.css';
+import './profile-twin-polish.css';
 
 const AuthGateway = React.lazy(() => import('./AuthGateway'));
 const SmartHomeV2 = React.lazy(() => import('./SmartHomeV2'));
