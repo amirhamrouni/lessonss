@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Navigate, NavLink, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { ArrowLeft, BookOpen, BrainCircuit, Check, ChevronRight, Gauge, Home, Mic, RotateCcw, Sparkles, UserRound, Volume2 } from 'lucide-react';
+import { ArrowLeft, BrainCircuit, Check, ChevronRight, Gauge, Mic, RotateCcw, Sparkles, Volume2 } from 'lucide-react';
+import AppDock from './AppDock';
 import { auth, db } from './firebase';
 import { loadLessonProgress, ProgressMap } from './learning';
 import { placementQuestions, scorePlacement } from './assessment';
@@ -26,29 +27,19 @@ function useLearner() {
   return { user, progress, profile, loading };
 }
 
-function Dock() {
-  return <nav className="dock mode-dock">{[
-    ['/', Home, 'Home'], ['/learn', BookOpen, 'Learn'], ['/practice', Gauge, 'Practice'], ['/speak', Mic, 'Speak'], ['/profile', UserRound, 'Me'],
-  ].map(([to, Icon, label]: any) => <NavLink end={to === '/'} key={to} to={to}><Icon /><small>{label}</small></NavLink>)}</nav>;
+function supportLanguage(profile: Record<string, any> | null) {
+  return normalizeLanguage(profile?.explanationLanguage || profile?.nativeLanguage || profile?.interfaceLanguage || 'English');
 }
 
-function Frame({ children }: { children: React.ReactNode }) {
-  return <div className="app-shell"><div className="phone mode-phone"><main className="page mode-page">{children}</main><Dock /></div></div>;
+function interfaceLanguage(profile: Record<string, any> | null) {
+  return normalizeLanguage(profile?.interfaceLanguage || profile?.instructionLanguage || profile?.nativeLanguage || 'English');
 }
 
-function Loading() { return <Frame><div className="mode-loading"><BrainCircuit /><p>Loading your learning engine…</p></div></Frame>; }
-
-function learnerLanguage(profile: Record<string, any> | null) {
-  return normalizeLanguage(profile?.interfaceLanguage || profile?.instructionLanguage || profile?.nativeLanguage);
+function Frame({ children, language }: { children: React.ReactNode; language?: string }) {
+  return <div className="app-shell"><div className="phone mode-phone"><main className="page mode-page">{children}</main><AppDock language={language} className="mode-dock" /></div></div>;
 }
 
-function reviewLanguage(profile: Record<string, any> | null) {
-  return normalizeLanguage(profile?.nativeLanguage || profile?.explanationLanguage || profile?.instructionLanguage || profile?.interfaceLanguage);
-}
-
-function isArabic(profile: Record<string, any> | null) {
-  return learnerLanguage(profile) === 'Arabic';
-}
+function Loading({ language }: { language?: string }) { return <Frame language={language}><div className="mode-loading"><BrainCircuit /><p>Loading your learning engine…</p></div></Frame>; }
 
 function speakEnglish(text: string) {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
@@ -64,17 +55,18 @@ export function PracticeHub() {
   const { user, progress, profile, loading } = useLearner();
   const nav = useNavigate();
   const [dueCount, setDueCount] = useState(0);
+  const language = supportLanguage(profile);
+  const ar = language === 'Arabic';
   useEffect(() => {
     if (!user) return;
     const completed = Object.values(progress).filter(p => p.completed).map(p => p.lessonId);
     ensureReviewCards(user.uid, completed).then(cards => setDueCount(dueCards(cards).length)).catch(() => setDueCount(0));
   }, [user, progress]);
-  if (loading) return <Loading />;
-  if (!user) return <Navigate to="/" replace />;
+  if (loading) return <Loading language={language} />;
+  if (!user) return <Navigate to="/welcome" replace />;
   const completed = Object.values(progress).filter(p => p.completed).length;
-  const ar = isArabic(profile);
-  return <Frame>
-    <div dir={ar ? 'rtl' : 'ltr'}>
+  return <Frame language={language}>
+    <div dir={directionFor(language)}>
       <header><div><span className="eyebrow">{ar ? 'تدرّب · اختبر · ثبّت' : 'TRAIN, TEST, RETAIN'}</span><h1>{ar ? 'التدريب' : 'Practice'}</h1><p>{ar ? 'كل وضع تدريب له وظيفة مختلفة في تعلّم الإنجليزية.' : 'Different engines for different learning jobs.'}</p></div></header>
       <section className="practice-command">
         <div><span className="mode-kicker">{ar ? 'المقترح الآن' : 'RECOMMENDED'}</span><h2>{ar ? (dueCount ? `لديك ${dueCount} مراجعات مستحقة الآن.` : completed ? 'ثبّت ما تعلمته قبل أن يضعف التذكّر.' : 'أكمل درسًا أولًا، ثم ابدأ تدريب الذاكرة.') : (dueCount ? `${dueCount} reviews are due now.` : completed ? 'Build recall before it fades.' : 'Complete a lesson, then train recall.')}</h2><p>{ar ? 'يجدول FSRS كلمات الدروس التي أكملتها فعليًا فقط.' : 'FSRS schedules vocabulary from lessons you actually completed.'}</p></div>
@@ -97,19 +89,19 @@ export function ReviewMode() {
   const [showAnswer, setShowAnswer] = useState(false);
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
+  const language = supportLanguage(profile);
+  const dir = directionFor(language);
+  const ar = language === 'Arabic';
   useEffect(() => {
     if (!user) return;
     const completed = Object.values(progress).filter(p => p.completed).map(p => p.lessonId);
     ensureReviewCards(user.uid, completed).then(value => { setCards(value); setReady(true); }).catch(() => setReady(true));
   }, [user, progress]);
-  if (loading || !ready) return <Loading />;
-  if (!user) return <Navigate to="/" replace />;
+  if (loading || !ready) return <Loading language={language} />;
+  if (!user) return <Navigate to="/welcome" replace />;
   const queue = dueCards(cards);
   const card = queue[0];
-  const nativeLanguage = reviewLanguage(profile);
-  const dir = directionFor(nativeLanguage);
-  const ar = nativeLanguage === 'Arabic';
-  const nativeMeaning = card ? meaningForLanguage(card, nativeLanguage) : '';
+  const nativeMeaning = card ? meaningForLanguage(card, language) : '';
   async function rate(rating: Rating) {
     if (!card || !user) return;
     setBusy(true);
@@ -119,7 +111,7 @@ export function ReviewMode() {
       setShowAnswer(false);
     } finally { setBusy(false); }
   }
-  return <Frame>
+  return <Frame language={language}>
     <div dir={dir}>
       <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {ar ? 'التدريب' : 'Practice'}</button>
       <header><div><span className="eyebrow">FSRS MEMORY</span><h1>{ar ? 'المراجعة الذكية' : 'Smart Review'}</h1><p>{ar ? `${queue.length} بطاقات مستحقة الآن.` : `${queue.length} cards due now.`}</p></div></header>
@@ -127,10 +119,7 @@ export function ReviewMode() {
         <section className="review-card">
           <span className="mode-kicker">{ar ? `مفردات · ${queue.length} متبقية` : `VOCABULARY · ${queue.length} LEFT`}</span>
           <div dir="ltr" className="review-term-row">
-            <div>
-              <h2>{card.term}</h2>
-              {card.phonetic && <small className="review-phonetic">{card.phonetic}</small>}
-            </div>
+            <div><h2>{card.term}</h2>{card.phonetic && <small className="review-phonetic">{card.phonetic}</small>}</div>
             <button className="review-audio" type="button" aria-label={`Play ${card.term}`} onClick={() => speakEnglish(card.term)}><Volume2 /></button>
           </div>
           {!showAnswer ? <><p>{ar ? 'تذكّر المعنى أولًا، ثم اكشف الإجابة.' : 'Recall the meaning before revealing it.'}</p><button className="reveal" onClick={() => setShowAnswer(true)}>{ar ? 'اكشف المعنى' : 'Reveal answer'}</button></> : <>
@@ -157,13 +146,14 @@ const builders: Builder[] = [
 ];
 
 export function SentenceBuilderMode() {
-  const { user, loading } = useLearner();
+  const { user, profile, loading } = useLearner();
   const nav = useNavigate();
   const [index, setIndex] = useState(0);
   const [built, setBuilt] = useState<string[]>([]);
   const [result, setResult] = useState<'ok' | 'bad' | null>(null);
-  if (loading) return <Loading />;
-  if (!user) return <Navigate to="/" replace />;
+  const language = supportLanguage(profile);
+  if (loading) return <Loading language={language} />;
+  if (!user) return <Navigate to="/welcome" replace />;
   const item = builders[index];
   const remaining = item.words.filter((word, i) => {
     const usedBefore = built.filter(x => x === word).length;
@@ -172,7 +162,7 @@ export function SentenceBuilderMode() {
   });
   function check() { setResult(JSON.stringify(built) === JSON.stringify(item.answer) ? 'ok' : 'bad'); }
   function next() { setIndex((index + 1) % builders.length); setBuilt([]); setResult(null); }
-  return <Frame>
+  return <Frame language={language}>
     <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> Practice</button>
     <header><div><span className="eyebrow">ACTIVE OUTPUT</span><h1>Sentence Builder</h1><p>Construct the sentence. Don’t just recognize it.</p></div></header>
     <section className="builder-card">
@@ -193,10 +183,11 @@ export function AssessmentMode() {
   const [finished, setFinished] = useState(false);
   const [saving, setSaving] = useState(false);
   const result = useMemo(() => scorePlacement(answers), [answers]);
-  if (loading) return <Loading />;
-  if (!user) return <Navigate to="/" replace />;
-  const ar = isArabic(profile);
-  const dir = directionFor(learnerLanguage(profile));
+  const language = interfaceLanguage(profile);
+  const ar = language === 'Arabic';
+  const dir = directionFor(language);
+  if (loading) return <Loading language={supportLanguage(profile)} />;
+  if (!user) return <Navigate to="/welcome" replace />;
   const uid = user.uid;
   const question = placementQuestions[index];
   async function finish() {
@@ -210,10 +201,10 @@ export function AssessmentMode() {
       setFinished(true);
     } finally { setSaving(false); }
   }
-  if (finished) return <Frame><div dir={dir}><button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {ar ? 'التدريب' : 'Practice'}</button><section className="assessment-result"><span className="mode-kicker">{ar ? 'نتيجة تحديد المستوى' : 'PLACEMENT RESULT'}</span><strong>{result.level}</strong><h2>{ar ? `${result.percent}% النتيجة الإجمالية` : `${result.percent}% overall`}</h2><p>{ar ? `${result.correct} إجابات صحيحة من أصل ${result.total} سؤالًا ثابتًا.` : `${result.correct} of ${result.total} deterministic questions correct.`}</p><div className="skill-result">{Object.entries(result.skillScores).map(([skill, score]) => <div key={skill}><span>{ar ? ({ Grammar: 'القواعد', Vocabulary: 'المفردات', Reading: 'القراءة' } as Record<string, string>)[skill] || skill : skill}</span><b>{score}%</b></div>)}</div><button onClick={() => { setAnswers({}); setIndex(0); setFinished(false); }}>{ar ? 'إعادة الاختبار' : 'Retake assessment'}</button></section></div></Frame>;
+  if (finished) return <Frame language={supportLanguage(profile)}><div dir={dir}><button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {ar ? 'التدريب' : 'Practice'}</button><section className="assessment-result"><span className="mode-kicker">{ar ? 'نتيجة تحديد المستوى' : 'PLACEMENT RESULT'}</span><strong>{result.level}</strong><h2>{ar ? `${result.percent}% النتيجة الإجمالية` : `${result.percent}% overall`}</h2><p>{ar ? `${result.correct} إجابات صحيحة من أصل ${result.total} سؤالًا ثابتًا.` : `${result.correct} of ${result.total} deterministic questions correct.`}</p><div className="skill-result">{Object.entries(result.skillScores).map(([skill, score]) => <div key={skill}><span>{ar ? ({ Grammar: 'القواعد', Vocabulary: 'المفردات', Reading: 'القراءة' } as Record<string, string>)[skill] || skill : skill}</span><b>{score}%</b></div>)}</div><button onClick={() => { setAnswers({}); setIndex(0); setFinished(false); }}>{ar ? 'إعادة الاختبار' : 'Retake assessment'}</button></section></div></Frame>;
   const selected = answers[question.id];
   const skillLabel = ar ? ({ Grammar: 'القواعد', Vocabulary: 'المفردات', Reading: 'القراءة' } as Record<string, string>)[question.skill] || question.skill : question.skill;
-  return <Frame>
+  return <Frame language={supportLanguage(profile)}>
     <div dir={dir}>
       <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {ar ? 'التدريب' : 'Practice'}</button>
       <header><div><span className="eyebrow">{ar ? 'تشخيص CEFR' : 'CEFR DIAGNOSTIC'}</span><h1>{ar ? 'تحديد المستوى' : 'Placement'}</h1><p>{ar ? 'بدون تقييم ذاتي أو تخمين. أجب فقط عمّا تعرفه فعلًا.' : 'No self-rating shortcuts. Answer what you actually know.'}</p></div></header>
