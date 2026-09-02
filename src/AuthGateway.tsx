@@ -11,6 +11,7 @@ import {
 } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db, googleProvider, isFirebaseConfigured } from './firebase';
+import { authErrorMessage } from './authErrors';
 
 const defaultProfile = {
   displayName: 'Learner',
@@ -67,14 +68,14 @@ export default function AuthGateway() {
         navigate('/', { replace: true });
       }
     } catch (error) {
-      setNotice(error instanceof Error ? error.message.replace('Firebase: ', '') : 'Authentication failed');
+      setNotice(authErrorMessage(error));
     } finally {
       setBusy(false);
     }
   }
 
   if (!isFirebaseConfigured) {
-    return <main className="center"><section className="auth-card setup-card"><TwinMark /><span className="eyebrow">SETUP REQUIRED</span><h1>English Twin</h1><p>Firebase configuration is missing. Accounts and learner data cannot start until it is configured.</p></section></main>;
+    return <main className="center"><section className="auth-card setup-card"><TwinMark /><span className="eyebrow">SETUP REQUIRED</span><h1>English Twin</h1><p>Account services are not configured yet. Sign-in and learner data cannot start until setup is complete.</p></section></main>;
   }
 
   return <main className="center auth-stage"><section className="auth-card">
@@ -94,13 +95,13 @@ export default function AuthGateway() {
         await signInWithPopup(auth, googleProvider);
         navigate('/', { replace: true });
       } catch (error) {
-        setNotice(error instanceof Error ? error.message : 'Google sign-in failed');
+        setNotice(authErrorMessage(error));
       } finally { setBusy(false); }
     }}>Continue with Google</button>
     {mode === 'login' && <button className="text" type="button" onClick={async () => {
       if (!email) { setNotice('Enter your email first'); return; }
       try { await sendPasswordResetEmail(auth, email); setNotice('Password reset email sent.'); }
-      catch (error) { setNotice(error instanceof Error ? error.message : 'Could not send reset email'); }
+      catch (error) { setNotice(authErrorMessage(error)); }
     }}>Forgot password?</button>}
     <button className="text" type="button" onClick={() => navigate('/privacy')}>Privacy & AI data</button>
   </section></main>;
