@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate, NavLink, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { collection, doc, getDocs, increment, serverTimestamp, setDoc } from 'firebase/firestore';
-import { ArrowLeft, BookOpen, Gauge, Headphones, Home, Mic, RotateCcw, Sparkles, UserRound, Volume2 } from 'lucide-react';
+import { ArrowLeft, Headphones, Mic, RotateCcw, Sparkles, Volume2 } from 'lucide-react';
+import AppDock from './AppDock';
 import { auth, db } from './firebase';
 import { prioritizeSpeakingPrompts, scoreSpokenAttempt, speakingPrompts, SpeakingMistakeSignal, SpeechScore } from './speakingEngine';
 import { prioritizeReviewFromMistake } from './review';
@@ -31,12 +32,6 @@ declare global {
 }
 
 const GUIDED_SPEECH_CONSENT_KEY = 'english-twin-guided-speech-consent-v1';
-
-function Dock() {
-  return <nav className="dock">{[
-    ['/', Home, 'Home'], ['/learn', BookOpen, 'Learn'], ['/practice', Gauge, 'Practice'], ['/speak', Mic, 'Speak'], ['/profile', UserRound, 'Me'],
-  ].map(([to, Icon, label]: any) => <NavLink end={to === '/'} key={to} to={to}><Icon /><small>{label}</small></NavLink>)}</nav>;
-}
 
 function speakTarget(text: string) {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
@@ -75,9 +70,9 @@ export default function SpeechDrill() {
   const prompts = useMemo(() => prioritizeSpeakingPrompts(speakingPrompts, mistakes), [mistakes]);
   const item = prompts[index % Math.max(prompts.length, 1)];
 
-  if (loading) return <div className="app-shell"><div className="phone"><main className="page"><Mic /><p>Preparing speech practice…</p></main><Dock /></div></div>;
+  if (loading) return <div className="app-shell"><div className="phone"><main className="page"><Mic /><p>Preparing speech practice…</p></main><AppDock /></div></div>;
   if (!user) return <Navigate to="/welcome" replace />;
-  if (!item) return <div className="app-shell"><div className="phone"><main className="page"><button className="back" onClick={() => nav('/')}><ArrowLeft /> Home</button><p>No speaking drills are available yet.</p></main><Dock /></div></div>;
+  if (!item) return <div className="app-shell"><div className="phone"><main className="page"><button className="back" onClick={() => nav('/')}><ArrowLeft /> Home</button><p>No speaking drills are available yet.</p></main><AppDock /></div></div>;
 
   async function saveWeakAttempt(result: SpeechScore, heard: string) {
     if (!user || result.verdict !== 'retry') return;
@@ -192,6 +187,6 @@ export default function SpeechDrill() {
 
     {error && <p className="error">{error}</p>}
 
-    <section className="practice-command"><div><span className="mode-kicker">FREE CONVERSATION</span><h2>Ready to speak naturally?</h2><p>Live Conversation uses the authenticated Gemini Live microphone session for open-ended dialogue.</p></div><button onClick={() => nav('/speak/live')}><Headphones /> Open Live</button></section>
-  </main><Dock /></div></div>;
+    <section className="practice-command"><div><span className="mode-kicker">FREE CONVERSATION</span><h2>Ready to speak naturally?</h2><p>Live Conversation uses your authenticated English Twin voice session for open-ended dialogue.</p></div><button onClick={() => nav('/speak/live')}><Headphones /> Open Live</button></section>
+  </main><AppDock /></div></div>;
 }
