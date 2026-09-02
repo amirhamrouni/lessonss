@@ -9,7 +9,7 @@ import {
   updateProfile,
   User,
 } from 'firebase/auth';
-import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db, googleProvider, isFirebaseConfigured } from './firebase';
 import { authErrorMessage } from './authErrors';
 
@@ -30,9 +30,25 @@ function TwinMark() {
   return <div className="twin compact idle" aria-label="English Twin"><div className="twin-aura" /><div className="twin-core"><span className="twin-eye left" /><span className="twin-eye right" /><i className="twin-mouth" /></div></div>;
 }
 
+async function ensureLearnerProfile(user: User) {
+  const ref = doc(db, 'users', user.uid);
+  const snap = await getDoc(ref);
+  if (snap.exists()) return Boolean(snap.data().onboardingCompleted);
+
+  await setDoc(ref, {
+    ...defaultProfile,
+    displayName: user.displayName || user.email?.split('@')[0] || 'Learner',
+    email: user.email,
+    uid: user.uid,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+  return false;
+}
+
 export default function AuthGateway() {
   const navigate = useNavigate();
-  const [session, setSession] = useState<User | null>(null);
+  const [sessionTarget, setSessionTarget] = useState<'/' | '/setup' | null>(null);
   const [checking, setChecking] = useState(true);
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
@@ -41,10 +57,24 @@ export default function AuthGateway() {
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => onAuthStateChanged(auth, current => { setSession(current); setChecking(false); }), []);
+  useEffect(() => onAuthStateChanged(auth, async current => {
+    if (!current) {
+      setSessionTarget(null);
+      setChecking(false);
+      return;
+    }
+    try {
+      const completed = await ensureLearnerProfile(current);
+      setSessionTarget(completed ? '/' : '/setup');
+    } catch {
+      setSessionTarget('/');
+    } finally {
+      setChecking(false);
+    }
+  }), []);
 
   if (checking) return <main className="center wake"><p>Checking your session…</p></main>;
-  if (session) return <Navigate to="/" replace />;
+  if (sessionTarget) return <Navigate to={sessionTarget} replace />;
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -64,8 +94,9 @@ export default function AuthGateway() {
         }, { merge: true });
         navigate('/setup', { replace: true });
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
-        navigate('/', { replace: true });
+        const credential = await signInWithEmailAndPassword(auth, email, password);
+        const completed = await ensureLearnerProfile(credential.user);
+        navigate(completed ? '/' : '/setup', { replace: true });
       }
     } catch (error) {
       setNotice(authErrorMessage(error));
@@ -92,8 +123,9 @@ export default function AuthGateway() {
       setNotice('');
       setBusy(true);
       try {
-        await signInWithPopup(auth, googleProvider);
-        navigate('/', { replace: true });
+        const credential = await signInWithPopup(auth, googleProvider);
+        const completed = await ensureLearnerProfile(credential.user);
+        navigate(completed ? '/' : '/setup', { replace: true });
       } catch (error) {
         setNotice(authErrorMessage(error));
       } finally { setBusy(false); }
