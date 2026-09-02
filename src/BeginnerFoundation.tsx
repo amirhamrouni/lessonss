@@ -8,12 +8,12 @@ import { directionFor, normalizeLanguage, SupportedLanguage } from './languageSu
 import { foundationCategories, foundationVocabulary as words } from './foundationVocabulary';
 
 const ui: Record<SupportedLanguage, Record<string, string>> = {
-  English: { title: 'Your first English words', subtitle: 'Six useful words at a time. Your progress is saved automatically.', listen: 'Listen', say: 'Say it aloud', meaning: 'Meaning', choose: 'Which picture matches this word?', next: 'Next', check: 'Check', correct: 'Correct', tryAgain: 'Try again', example: 'Tiny sentence', finish: 'Start my learning path', progress: 'First words', loading: 'Preparing your first lesson…', pack: 'Pack', saved: 'Progress saved', packDone: 'Pack complete', continuePack: 'Continue to next pack' },
-  Arabic: { title: 'أول كلماتك بالإنجليزية', subtitle: 'ست كلمات مفيدة في كل مرة، وتقدمك يُحفظ تلقائيًا.', listen: 'اسمع النطق', say: 'قلها بصوت عالٍ', meaning: 'المعنى', choose: 'أي صورة تطابق هذه الكلمة؟', next: 'التالي', check: 'تحقق', correct: 'صحيح', tryAgain: 'حاول مرة أخرى', example: 'جملة صغيرة', finish: 'ابدأ مسار التعلم', progress: 'الكلمات الأولى', loading: 'نجهّز أول درس لك…', pack: 'المجموعة', saved: 'تم حفظ التقدم', packDone: 'اكتملت المجموعة', continuePack: 'انتقل للمجموعة التالية' },
-  Dutch: { title: 'Je eerste Engelse woorden', subtitle: 'Zes nuttige woorden per keer. Je voortgang wordt automatisch opgeslagen.', listen: 'Luister', say: 'Zeg het hardop', meaning: 'Betekenis', choose: 'Welke afbeelding hoort bij dit woord?', next: 'Volgende', check: 'Controleer', correct: 'Goed', tryAgain: 'Probeer opnieuw', example: 'Korte zin', finish: 'Start mijn leerpad', progress: 'Eerste woorden', loading: 'Je eerste les wordt klaargezet…', pack: 'Pakket', saved: 'Voortgang opgeslagen', packDone: 'Pakket voltooid', continuePack: 'Volgend pakket' },
-  French: { title: 'Tes premiers mots anglais', subtitle: 'Six mots utiles à la fois. Ta progression est enregistrée automatiquement.', listen: 'Écouter', say: 'Dis-le à voix haute', meaning: 'Sens', choose: 'Quelle image correspond à ce mot ?', next: 'Suivant', check: 'Vérifier', correct: 'Correct', tryAgain: 'Réessaie', example: 'Petite phrase', finish: 'Commencer mon parcours', progress: 'Premiers mots', loading: 'Préparation de ta première leçon…', pack: 'Pack', saved: 'Progression enregistrée', packDone: 'Pack terminé', continuePack: 'Pack suivant' },
-  German: { title: 'Deine ersten englischen Wörter', subtitle: 'Sechs nützliche Wörter auf einmal. Dein Fortschritt wird automatisch gespeichert.', listen: 'Anhören', say: 'Sag es laut', meaning: 'Bedeutung', choose: 'Welches Bild passt zu diesem Wort?', next: 'Weiter', check: 'Prüfen', correct: 'Richtig', tryAgain: 'Nochmal versuchen', example: 'Kurzer Satz', finish: 'Lernpfad starten', progress: 'Erste Wörter', loading: 'Deine erste Lektion wird vorbereitet…', pack: 'Paket', saved: 'Fortschritt gespeichert', packDone: 'Paket abgeschlossen', continuePack: 'Nächstes Paket' },
-  Spanish: { title: 'Tus primeras palabras en inglés', subtitle: 'Seis palabras útiles cada vez. Tu progreso se guarda automáticamente.', listen: 'Escuchar', say: 'Dilo en voz alta', meaning: 'Significado', choose: '¿Qué imagen corresponde a esta palabra?', next: 'Siguiente', check: 'Comprobar', correct: 'Correcto', tryAgain: 'Inténtalo otra vez', example: 'Frase corta', finish: 'Empezar mi ruta', progress: 'Primeras palabras', loading: 'Preparando tu primera lección…', pack: 'Paquete', saved: 'Progreso guardado', packDone: 'Paquete completado', continuePack: 'Siguiente paquete' },
+  English: { home:'Home', title: 'Your first English words', subtitle: 'Six useful words at a time. Your progress is saved automatically.', listen: 'Listen', say: 'Say it aloud', meaning: 'Meaning', choose: 'Which picture matches this word?', next: 'Next', check: 'Check', correct: 'Correct', tryAgain: 'Try again', example: 'Tiny sentence', finish: 'Start my learning path', progress: 'First words', loading: 'Preparing your first lesson…', pack: 'Pack', saved: 'Progress saved', packDone: 'Pack complete', continuePack: 'Continue to next pack' },
+  Arabic: { home:'الرئيسية', title: 'أول كلماتك بالإنجليزية', subtitle: 'ست كلمات مفيدة في كل مرة، وتقدمك يُحفظ تلقائيًا.', listen: 'اسمع النطق', say: 'قلها بصوت عالٍ', meaning: 'المعنى', choose: 'أي صورة تطابق هذه الكلمة؟', next: 'التالي', check: 'تحقق', correct: 'صحيح', tryAgain: 'حاول مرة أخرى', example: 'جملة صغيرة', finish: 'ابدأ مسار التعلم', progress: 'الكلمات الأولى', loading: 'نجهّز أول درس لك…', pack: 'المجموعة', saved: 'تم حفظ التقدم', packDone: 'اكتملت المجموعة', continuePack: 'انتقل للمجموعة التالية' },
+  Dutch: { home:'Start', title: 'Je eerste Engelse woorden', subtitle: 'Zes nuttige woorden per keer. Je voortgang wordt automatisch opgeslagen.', listen: 'Luister', say: 'Zeg het hardop', meaning: 'Betekenis', choose: 'Welke afbeelding hoort bij dit woord?', next: 'Volgende', check: 'Controleer', correct: 'Goed', tryAgain: 'Probeer opnieuw', example: 'Korte zin', finish: 'Start mijn leerpad', progress: 'Eerste woorden', loading: 'Je eerste les wordt klaargezet…', pack: 'Pakket', saved: 'Voortgang opgeslagen', packDone: 'Pakket voltooid', continuePack: 'Volgend pakket' },
+  French: { home:'Accueil', title: 'Tes premiers mots anglais', subtitle: 'Six mots utiles à la fois. Ta progression est enregistrée automatiquement.', listen: 'Écouter', say: 'Dis-le à voix haute', meaning: 'Sens', choose: 'Quelle image correspond à ce mot ?', next: 'Suivant', check: 'Vérifier', correct: 'Correct', tryAgain: 'Réessaie', example: 'Petite phrase', finish: 'Commencer mon parcours', progress: 'Premiers mots', loading: 'Préparation de ta première leçon…', pack: 'Pack', saved: 'Progression enregistrée', packDone: 'Pack terminé', continuePack: 'Pack suivant' },
+  German: { home:'Start', title: 'Deine ersten englischen Wörter', subtitle: 'Sechs nützliche Wörter auf einmal. Dein Fortschritt wird automatisch gespeichert.', listen: 'Anhören', say: 'Sag es laut', meaning: 'Bedeutung', choose: 'Welches Bild passt zu diesem Wort?', next: 'Weiter', check: 'Prüfen', correct: 'Richtig', tryAgain: 'Nochmal versuchen', example: 'Kurzer Satz', finish: 'Lernpfad starten', progress: 'Erste Wörter', loading: 'Deine erste Lektion wird vorbereitet…', pack: 'Paket', saved: 'Fortschritt gespeichert', packDone: 'Paket abgeschlossen', continuePack: 'Nächstes Paket' },
+  Spanish: { home:'Inicio', title: 'Tus primeras palabras en inglés', subtitle: 'Seis palabras útiles cada vez. Tu progreso se guarda automáticamente.', listen: 'Escuchar', say: 'Dilo en voz alta', meaning: 'Significado', choose: '¿Qué imagen corresponde a esta palabra?', next: 'Siguiente', check: 'Comprobar', correct: 'Correcto', tryAgain: 'Inténtalo otra vez', example: 'Frase corta', finish: 'Empezar mi ruta', progress: 'Primeras palabras', loading: 'Preparando tu primera lección…', pack: 'Paquete', saved: 'Progreso guardado', packDone: 'Paquete completado', continuePack: 'Siguiente paquete' },
 };
 
 const packs = foundationCategories.map(category => ({ category, words: words.filter(item => item.category === category) }));
@@ -38,7 +38,7 @@ export default function BeginnerFoundation() {
     try {
       const snap = await getDoc(doc(db, 'users', current.uid));
       const data = snap.exists() ? snap.data() : {};
-      setLanguage(normalizeLanguage(data.explanationLanguage || data.nativeLanguage));
+      setLanguage(normalizeLanguage(data.explanationLanguage || data.nativeLanguage || data.interfaceLanguage || 'English'));
       const savedIds = Array.isArray(data.beginnerFoundationCompletedWordIds) ? data.beginnerFoundationCompletedWordIds.filter((id: unknown): id is string => typeof id === 'string') : [];
       setCompletedWordIds(savedIds);
       const savedPack = Number.isInteger(data.beginnerFoundationCurrentPack) ? Math.max(0, Math.min(packs.length - 1, data.beginnerFoundationCurrentPack)) : 0;
@@ -114,7 +114,7 @@ export default function BeginnerFoundation() {
     resetWord(firstIncomplete >= 0 ? firstIncomplete : 0);
   }
 
-  if (loading) return <main className="center"><p>{ui.Arabic.loading}</p></main>;
+  if (loading) return <main className="center" dir={directionFor(language)}><p>{copy.loading}</p></main>;
   if (!user) return <Navigate to="/welcome" replace />;
 
   const dir = directionFor(language);
@@ -122,7 +122,7 @@ export default function BeginnerFoundation() {
 
   return <div className="beginner-shell" dir={dir}>
     <header className="beginner-topbar">
-      <button className="back" onClick={() => nav('/')}><ArrowLeft /> {language === 'Arabic' ? 'الرئيسية' : 'Home'}</button>
+      <button className="back" onClick={() => nav('/')}><ArrowLeft /> {copy.home}</button>
       <span>{copy.progress} · {totalCompleted}/{words.length}</span>
     </header>
 
