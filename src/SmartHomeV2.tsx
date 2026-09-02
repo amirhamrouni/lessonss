@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Navigate, NavLink, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { BookOpen, ChevronRight, Crown, Gauge, Home, Mic, RotateCcw, Sparkles, Trophy, UserRound } from 'lucide-react';
+import { BookOpen, ChevronRight, Crown, Mic, RotateCcw, Sparkles, Trophy } from 'lucide-react';
+import AppDock from './AppDock';
 import { auth, db } from './firebase';
 import { lessons, lessonsForLevel } from './curriculumAll';
 import { loadLessonProgress, ProgressMap, summarizeProgress } from './learning';
@@ -12,8 +13,8 @@ import { directionFor, normalizeLanguage } from './languageSupport';
 
 type Profile={displayName?:string;learningGoal?:string;dailyTargetMinutes?:number;onboardingCompleted?:boolean;beginnerFoundationCompleted?:boolean;nativeLanguage?:string;explanationLanguage?:string;interfaceLanguage?:string;placementLevel?:string;skillLevels?:Partial<SkillLevels>};
 type Recommendation={kind:'foundation'|'review'|'lesson'|'speak';eyebrow:string;title:string;body:string;action:string;to:string};
-const arCopy={home:'الرئيسية',learn:'تعلّم',practice:'تدريب',speak:'تحدث',me:'أنا',loading:'نقرأ حالة تعلّمك…',morning:'مرحبًا',amazing:'خلّينا نخلي اليوم رائعًا!',goal:'هدف اليوم',progress:'تقدم ممتاز!',continue:'تابع التعلّم',plan:'خطة اليوم',review:'مراجعة المفردات',twin:'تحدث مع Twin',smart:'المراجعة الذكية',start:'ابدأ الكلمات الأولى',due:'مستحق للمراجعة'};
-function Dock({ar}:{ar:boolean}){const labels=ar?[arCopy.home,arCopy.learn,arCopy.practice,arCopy.speak,arCopy.me]:['Home','Learn','Practice','Speak','Me'];return <nav className="dock">{[['/',Home],['/learn',BookOpen],['/practice',Gauge],['/speak',Mic],['/profile',UserRound]].map(([to,Icon]:any,i)=><NavLink end={to==='/'} key={to} to={to}><Icon/><small>{labels[i]}</small></NavLink>)}</nav>}
+const arCopy={loading:'نقرأ حالة تعلّمك…',morning:'مرحبًا',amazing:'خلّينا نخلي اليوم رائعًا!',goal:'هدف اليوم',progress:'تقدم ممتاز!',continue:'تابع التعلّم',plan:'خطة اليوم',review:'مراجعة المفردات',twin:'تحدث مع Twin',smart:'المراجعة الذكية',start:'ابدأ الكلمات الأولى',due:'مستحق للمراجعة'};
+
 export default function SmartHomeV2(){
  const nav=useNavigate();const[user,setUser]=useState<User|null>(null);const[profile,setProfile]=useState<Profile|null>(null);const[progress,setProgress]=useState<ProgressMap>({});const[dueCount,setDueCount]=useState(0);const[loading,setLoading]=useState(true);
  useEffect(()=>onAuthStateChanged(auth,async current=>{setLoading(true);setUser(current);if(!current){setProfile(null);setProgress({});setDueCount(0);setLoading(false);return}try{const[snap,p]=await Promise.all([getDoc(doc(db,'users',current.uid)),loadLessonProgress(current.uid)]);const next=snap.exists()?snap.data() as Profile:{};setProfile(next);setProgress(p);const completed=Object.values(p).filter(x=>x.completed).map(x=>x.lessonId);const cards=await ensureReviewCards(current.uid,completed);setDueCount(dueCards(cards).length)}catch{setDueCount(0)}finally{setLoading(false)}}),[]);
@@ -28,5 +29,5 @@ export default function SmartHomeV2(){
  <section className="continue-card"><div className="continue-copy"><span>{ar?arCopy.continue:'Continue learning'}</span><small>{recommendation.eyebrow}</small><h2>{recommendation.title}</h2><p>{recommendation.body}</p><div className="continue-progress"><i style={{width:`${Math.max(8,a1.percent)}%`}}/></div><button onClick={()=>nav(recommendation.to)}>{recommendation.kind==='review'?<RotateCcw/>:recommendation.kind==='speak'?<Mic/>:<BookOpen/>}{recommendation.action}<ChevronRight/></button></div><div className="continue-art"><div className="sun"/><div className="umbrella">☂</div><div className="table">▰</div><span>✦</span></div></section>
  <section><div className="section-heading reference-section"><h3>{ar?arCopy.plan:"Today's plan"}</h3><button onClick={()=>nav('/learn')}>{ar?'عرض الكل':'See all'}</button></div><div className="today-list">{(!profile.beginnerFoundationCompleted?[{id:'foundation',minutes:target,reason:'',lessonId:undefined}]:dailyPlan.slice(0,3)).map((item:any,index)=><button key={`${item.id}-${index}`} onClick={()=>nav(item.id==='foundation'?'/start':planRoute(item.id,item.lessonId))}><span className={`plan-icon plan-${index}`}>{index===0?<BookOpen/>:index===1?<Mic/>:<RotateCcw/>}</span><div><b>{item.id==='foundation'?(ar?arCopy.start:'First words'):item.id==='review'?(ar?arCopy.review:'Vocabulary Review'):item.id==='speaking'?(ar?arCopy.twin:'Speak with Twin'):item.id==='lesson'?(ar?'الدرس التالي':'Next lesson'):(ar?arCopy.smart:'Smart Review')}</b><small>{item.minutes||target} min</small></div><ChevronRight/></button>)}</div></section>
  <section className="home-reward"><Trophy/><div><b>{ar?'استمر!':'Keep it going!'}</b><small>{ar?'كل خطوة صغيرة تبني إنجليزية أقوى.':'Every small step builds stronger English.'}</small></div><button onClick={()=>nav('/practice')}>{ar?'تدرّب':'Practice'}</button></section>
- </main><Dock ar={ar}/></div></div>;
+ </main><AppDock language={support}/></div></div>;
 }
