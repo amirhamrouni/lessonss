@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Navigate, NavLink, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { ArrowLeft, BookOpen, CheckCircle2, ChevronRight, Gauge, Home, Languages, Mic, UserRound, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ChevronRight, Languages, XCircle } from 'lucide-react';
+import AppDock from './AppDock';
 import { auth, db } from './firebase';
 import { Activity, Lesson, lessonById, lessonsForLevel, lessonsForUnit, units } from './curriculumAll';
 import { loadLessonProgress, ProgressMap, saveLessonCompletion, summarizeProgress } from './learning';
@@ -11,18 +12,13 @@ import { directionFor, immersionSupportPercent, normalizeLanguage, t } from './l
 type LearnerProfile = {
   nativeLanguage?: string;
   explanationLanguage?: string;
+  interfaceLanguage?: string;
   cefrLevel?: string;
   learningGoal?: string;
 };
 
-function Dock() {
-  return <nav className="dock">{[
-    ['/', Home, 'Home'], ['/learn', BookOpen, 'Learn'], ['/practice', Gauge, 'Practice'], ['/speak', Mic, 'Speak'], ['/profile', UserRound, 'Me'],
-  ].map(([to, Icon, label]: any) => <NavLink end={to === '/'} key={to} to={to}><Icon /><small>{label}</small></NavLink>)}</nav>;
-}
-
-function Frame({ children }: { children: React.ReactNode }) {
-  return <div className="app-shell"><div className="phone"><main className="page">{children}</main><Dock /></div></div>;
+function Frame({ children, language }: { children: React.ReactNode; language?: string }) {
+  return <div className="app-shell"><div className="phone"><main className="page">{children}</main><AppDock language={language} /></div></div>;
 }
 
 function usePathLearner() {
@@ -45,15 +41,19 @@ function usePathLearner() {
   return { user, profile, progress, setProgress, loading };
 }
 
+function supportLanguageFor(profile: LearnerProfile) {
+  return normalizeLanguage(profile.explanationLanguage || profile.nativeLanguage || profile.interfaceLanguage || 'English');
+}
+
 export function LearnJourney() {
   const { user, profile, progress, loading } = usePathLearner();
   const nav = useNavigate();
-  if (loading) return <Frame><p>Loading your learning path…</p></Frame>;
+  const supportLanguage = supportLanguageFor(profile);
+  if (loading) return <Frame language={supportLanguage}><p>Loading your learning path…</p></Frame>;
   if (!user) return <Navigate to="/welcome" replace />;
 
-  const supportLanguage = normalizeLanguage(profile.explanationLanguage || profile.nativeLanguage);
   const levels: Array<'A1' | 'A2'> = ['A1', 'A2'];
-  return <Frame>
+  return <Frame language={supportLanguage}>
     <header><div><span className="eyebrow">CEFR ROADMAP</span><h1>Learn</h1><p>Structured English, supported in {supportLanguage} when you need it.</p></div></header>
     <div className="language-support-banner" dir={directionFor(supportLanguage)}><Languages /><div><b>{t(supportLanguage, 'support')}: {supportLanguage}</b><small>{immersionSupportPercent(profile.cefrLevel)}% native-language support at your current level · answers stay in English</small></div></div>
     {levels.map(level => {
@@ -110,13 +110,13 @@ export function UnifiedLessonPlayer() {
   let lesson: Lesson | null = null;
   try { lesson = lessonById(lessonId); } catch { lesson = null; }
 
-  if (loading) return <Frame><p>Loading lesson…</p></Frame>;
+  const supportLanguage = supportLanguageFor(profile);
+  if (loading) return <Frame language={supportLanguage}><p>Loading lesson…</p></Frame>;
   if (!user) return <Navigate to="/welcome" replace />;
-  if (!lesson) return <Frame><button className="back" onClick={() => nav('/learn')}><ArrowLeft /> Learn</button><h2>Lesson not found</h2></Frame>;
+  if (!lesson) return <Frame language={supportLanguage}><button className="back" onClick={() => nav('/learn')}><ArrowLeft /> Learn</button><h2>Lesson not found</h2></Frame>;
 
   const uid = user.uid;
   const currentLesson = lesson;
-  const supportLanguage = normalizeLanguage(profile.explanationLanguage || profile.nativeLanguage);
   const activity = currentLesson.activities[index];
   const progressPercent = Math.round(((index + (finished ? 1 : 0)) / currentLesson.activities.length) * 100);
 
@@ -148,10 +148,10 @@ export function UnifiedLessonPlayer() {
 
   if (finished) {
     const score = total ? Math.round((correct / total) * 100) : 100;
-    return <Frame><button className="back" onClick={() => nav('/learn')}><ArrowLeft /> Learn</button><section className="lesson-complete"><CheckCircle2 /><span className="eyebrow">LESSON COMPLETE</span><h1>{currentLesson.title}</h1><strong>{score}%</strong><p>{correct} correct out of {total} scored activities.</p><button className="primary" onClick={() => nav('/learn')}>Continue roadmap</button></section></Frame>;
+    return <Frame language={supportLanguage}><button className="back" onClick={() => nav('/learn')}><ArrowLeft /> Learn</button><section className="lesson-complete"><CheckCircle2 /><span className="eyebrow">LESSON COMPLETE</span><h1>{currentLesson.title}</h1><strong>{score}%</strong><p>{correct} correct out of {total} scored activities.</p><button className="primary" onClick={() => nav('/learn')}>Continue roadmap</button></section></Frame>;
   }
 
-  return <Frame>
+  return <Frame language={supportLanguage}>
     <button className="back" onClick={() => nav('/learn')}><ArrowLeft /> Exit lesson</button>
     <div className="lesson-top"><div><span className="eyebrow">{currentLesson.id.startsWith('a2-') ? 'A2' : 'A1'} · {currentLesson.skill.toUpperCase()} · {currentLesson.minutes} MIN</span><h1>{currentLesson.title}</h1><p>{currentLesson.objective}</p></div><span>{index + 1}/{currentLesson.activities.length}</span></div>
     <div className="lesson-language-chip" dir={directionFor(supportLanguage)}><Languages /> {supportLanguage} support · English target</div>
