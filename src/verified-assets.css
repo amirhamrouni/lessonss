@@ -1,0 +1,2 @@
+/* Verified open-source asset overrides. Keep this file last so invalid or renamed remote assets never leak into production UI. */
+.page>header:not(.reference-header)::before{background-image:url('https://raw.githubusercontent.com/balazser/undraw-svg-collection/main/svgs/absorbed-in.svg')!important}
