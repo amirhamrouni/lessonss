@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { collection, doc, getDocs, increment, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, increment, serverTimestamp, setDoc } from 'firebase/firestore';
 import { ArrowLeft, Headphones, Mic, RotateCcw, Sparkles, Volume2 } from 'lucide-react';
 import AppDock from './AppDock';
 import { auth, db } from './firebase';
+import { directionFor, normalizeLanguage } from './languageSupport';
 import { prioritizeSpeakingPrompts, scoreSpokenAttempt, speakingPrompts, SpeakingMistakeSignal, SpeechScore } from './speakingEngine';
+import { speechSupportCopy } from './speechSupportCopy';
 import { prioritizeReviewFromMistake } from './review';
 
 type RecognitionAlternative = { transcript: string };
@@ -45,6 +47,7 @@ function speakTarget(text: string) {
 export default function SpeechDrill() {
   const nav = useNavigate();
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [mistakes, setMistakes] = useState<SpeakingMistakeSignal[]>([]);
   const [index, setIndex] = useState(0);
@@ -60,8 +63,12 @@ export default function SpeechDrill() {
     setUser(current);
     if (!current) { setLoading(false); return; }
     try {
-      const snap = await getDocs(collection(db, 'users', current.uid, 'mistakes'));
-      setMistakes(snap.docs.map(item => item.data() as SpeakingMistakeSignal));
+      const [profileSnap, mistakesSnap] = await Promise.all([
+        getDoc(doc(db, 'users', current.uid)),
+        getDocs(collection(db, 'users', current.uid, 'mistakes')),
+      ]);
+      setProfile(profileSnap.exists() ? profileSnap.data() : {});
+      setMistakes(mistakesSnap.docs.map(item => item.data() as SpeakingMistakeSignal));
     } finally { setLoading(false); }
   }), []);
 
@@ -69,10 +76,13 @@ export default function SpeechDrill() {
 
   const prompts = useMemo(() => prioritizeSpeakingPrompts(speakingPrompts, mistakes), [mistakes]);
   const item = prompts[index % Math.max(prompts.length, 1)];
+  const language = normalizeLanguage(profile.explanationLanguage || profile.nativeLanguage || profile.interfaceLanguage || 'English');
+  const copy = speechSupportCopy[language];
+  const dir = directionFor(language);
 
-  if (loading) return <div className="app-shell"><div className="phone"><main className="page"><Mic /><p>Preparing speech practice…</p></main><AppDock /></div></div>;
+  if (loading) return <div className="app-shell" dir={dir}><div className="phone"><main className="page"><Mic /><p>{copy.loading}</p></main><AppDock language={language} /></div></div>;
   if (!user) return <Navigate to="/welcome" replace />;
-  if (!item) return <div className="app-shell"><div className="phone"><main className="page"><button className="back" onClick={() => nav('/')}><ArrowLeft /> Home</button><p>No speaking drills are available yet.</p></main><AppDock /></div></div>;
+  if (!item) return <div className="app-shell" dir={dir}><div className="phone"><main className="page"><button className="back" onClick={() => nav('/')}><ArrowLeft /> {copy.home}</button><p>{copy.noDrills}</p></main><AppDock language={language} /></div></div>;
 
   async function saveWeakAttempt(result: SpeechScore, heard: string) {
     if (!user || result.verdict !== 'retry') return;
@@ -114,7 +124,7 @@ export default function SpeechDrill() {
   function beginRecognition() {
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Recognition) {
-      setError('Guided speech recognition is not supported in this browser. Use Live Conversation instead.');
+      setError(copy.recognitionUnsupported);
       return;
     }
     setError('');
@@ -140,7 +150,7 @@ export default function SpeechDrill() {
         void saveWeakAttempt(nextScore, finalText.trim());
       }
     };
-    recognition.onerror = event => { setError(`Microphone recognition error: ${event.error}`); setListening(false); };
+    recognition.onerror = event => { setError(copy.micError(event.error)); setListening(false); };
     recognition.onend = () => setListening(false);
     recognitionRef.current = recognition;
     setListening(true);
@@ -154,39 +164,39 @@ export default function SpeechDrill() {
     setError('');
   }
 
-  return <div className="app-shell"><div className="phone"><main className="page voice-live">
-    <button className="back" onClick={() => nav('/')}><ArrowLeft /> Home</button>
-    <header><span className="eyebrow">GUIDED SPEECH · ADAPTIVE</span><h1>Say it clearly</h1><p>Practice real lesson sentences. Weak lessons are prioritized from your saved mistake history.</p></header>
+  return <div className="app-shell" dir={dir}><div className="phone"><main className="page voice-live">
+    <button className="back" onClick={() => nav('/')}><ArrowLeft /> {copy.home}</button>
+    <header><span className="eyebrow">{copy.eyebrow}</span><h1>{copy.title}</h1><p>{copy.intro}</p></header>
 
     {showConsent && <section className="rich-activity-card" role="dialog" aria-modal="true" aria-labelledby="guided-speech-consent-title">
-      <div className="section-heading"><span>MICROPHONE PRIVACY</span><h3 id="guided-speech-consent-title">Before speech recognition starts</h3></div>
-      <p>Your browser's speech-recognition service may process microphone audio to produce text. English Twin does not store raw audio from Guided Speech. It stores the recognized transcript, accuracy score, and learning mistakes in your account when needed for adaptive practice.</p>
-      <div className="lesson-actions"><button className="ghost" onClick={() => setShowConsent(false)}>Not now</button><button className="primary lime" onClick={acceptSpeechConsent}>I understand · Start</button></div>
+      <div className="section-heading"><span>{copy.privacyEyebrow}</span><h3 id="guided-speech-consent-title">{copy.consentTitle}</h3></div>
+      <p>{copy.consentBody}</p>
+      <div className="lesson-actions"><button className="ghost" onClick={() => setShowConsent(false)}>{copy.notNow}</button><button className="primary lime" onClick={acceptSpeechConsent}>{copy.acceptStart}</button></div>
     </section>}
 
     <section className="builder-card">
       <span className="mode-kicker">{index + 1} / {prompts.length} · {item.lessonId.toUpperCase()}</span>
       <h2>{item.prompt}</h2>
       <div className="speech-target" dir="ltr">{item.target}</div>
-      <button className="review-example-audio" type="button" onClick={() => speakTarget(item.target)}><Volume2 /> Hear target</button>
+      <button className="review-example-audio" type="button" onClick={() => speakTarget(item.target)}><Volume2 /> {copy.hearTarget}</button>
       <div className="builder-actions">
-        <button onClick={() => { setTranscript(''); setScore(null); }}><RotateCcw /> Reset</button>
-        <button className="solid" disabled={listening} onClick={startListening}><Mic /> {listening ? 'Listening…' : 'Speak now'}</button>
+        <button onClick={() => { setTranscript(''); setScore(null); }}><RotateCcw /> {copy.reset}</button>
+        <button className="solid" disabled={listening} onClick={startListening}><Mic /> {listening ? copy.listening : copy.speakNow}</button>
       </div>
     </section>
 
-    {transcript && <section className="review-card"><span className="mode-kicker">WHAT WE HEARD</span><p dir="ltr">{transcript}</p></section>}
+    {transcript && <section className="review-card"><span className="mode-kicker">{copy.heard}</span><p dir="ltr">{transcript}</p></section>}
 
     {score && <section className="review-card">
-      <span className="mode-kicker">SPEECH ACCURACY</span>
-      <div className="assessment-result"><strong>{score.accuracy}%</strong><h2>{score.verdict === 'excellent' ? 'Excellent match' : score.verdict === 'good' ? 'Good — one more clean repetition' : 'Try again'}</h2></div>
-      {!!score.missingWords.length && <p>Missing / unclear: <b>{score.missingWords.join(', ')}</b></p>}
-      {!!score.extraWords.length && <p>Extra words heard: <b>{score.extraWords.join(', ')}</b></p>}
-      <div className="builder-actions">{score.verdict === 'retry' ? <button className="solid" onClick={startListening}><Mic /> Try again</button> : <button className="solid" onClick={nextPrompt}><Sparkles /> Next drill</button>}</div>
+      <span className="mode-kicker">{copy.accuracy}</span>
+      <div className="assessment-result"><strong>{score.accuracy}%</strong><h2>{score.verdict === 'excellent' ? copy.excellent : score.verdict === 'good' ? copy.good : copy.retry}</h2></div>
+      {!!score.missingWords.length && <p>{copy.missing}: <b>{score.missingWords.join(', ')}</b></p>}
+      {!!score.extraWords.length && <p>{copy.extra}: <b>{score.extraWords.join(', ')}</b></p>}
+      <div className="builder-actions">{score.verdict === 'retry' ? <button className="solid" onClick={startListening}><Mic /> {copy.retry}</button> : <button className="solid" onClick={nextPrompt}><Sparkles /> {copy.nextDrill}</button>}</div>
     </section>}
 
     {error && <p className="error">{error}</p>}
 
-    <section className="practice-command"><div><span className="mode-kicker">FREE CONVERSATION</span><h2>Ready to speak naturally?</h2><p>Live Conversation uses your authenticated English Twin voice session for open-ended dialogue.</p></div><button onClick={() => nav('/speak/live')}><Headphones /> Open Live</button></section>
-  </main><AppDock /></div></div>;
+    <section className="practice-command"><div><span className="mode-kicker">{copy.freeConversation}</span><h2>{copy.readyNatural}</h2><p>{copy.liveBody}</p></div><button onClick={() => nav('/speak/live')}><Headphones /> {copy.openLive}</button></section>
+  </main><AppDock language={language} /></div></div>;
 }
