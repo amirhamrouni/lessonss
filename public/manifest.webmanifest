@@ -4,8 +4,8 @@
   "description": "Adaptive English learning with structured lessons, intelligent review, speaking practice and an AI Twin coach.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#07101f",
-  "theme_color": "#07101f",
+  "background_color": "#f7f9ff",
+  "theme_color": "#f7f9ff",
   "lang": "en",
   "scope": "/",
   "icons": [
