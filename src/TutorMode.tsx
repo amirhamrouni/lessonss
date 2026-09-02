@@ -7,7 +7,8 @@ import AppDock from './AppDock';
 import { auth, db } from './firebase';
 import { loadLessonProgress } from './learning';
 import { loadReviewCards } from './review';
-import { normalizeLanguage } from './languageSupport';
+import { directionFor, normalizeLanguage } from './languageSupport';
+import { twinSupportCopy } from './twinSupportCopy';
 import { buildTwinSnapshot, trimTwinConversation, TwinLearnerSnapshot, TwinMemoryMessage } from './twinMemory';
 
 type TutorResponse = {
@@ -85,8 +86,10 @@ export default function TutorMode() {
   }), []);
 
   const supportLanguage = normalizeLanguage(profile.explanationLanguage || profile.nativeLanguage || profile.interfaceLanguage || 'English');
+  const copy = twinSupportCopy[supportLanguage];
+  const dir = directionFor(supportLanguage);
 
-  if (loading) return <div className="app-shell"><div className="phone"><main className="page"><BrainCircuit /><p>Loading your Twin memory…</p></main><AppDock language={supportLanguage} /></div></div>;
+  if (loading) return <div className="app-shell" dir={dir}><div className="phone"><main className="page"><BrainCircuit /><p>{copy.loading}</p></main><AppDock language={supportLanguage} /></div></div>;
   if (!user) return <Navigate to="/welcome" replace />;
 
   async function rememberMistakes(detail: TutorResponse, learnerMessage: string) {
@@ -145,38 +148,39 @@ export default function TutorMode() {
           learnerSnapshot: { ...snapshot, recentConversation },
         }),
       });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload?.error || 'Tutor unavailable');
-      const detail = payload as TutorResponse;
+      if (!response.ok) throw new Error('Tutor unavailable');
+      const detail = await response.json() as TutorResponse;
       const twinTurn: Message = { role: 'twin', text: detail.reply, detail };
       const nextMessages = [...conversationBeforeReply, twinTurn];
       await Promise.all([rememberMistakes(detail, text), persistConversation(nextMessages)]);
       setMessages(nextMessages);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Tutor unavailable');
+    } catch {
+      setError(copy.unavailable);
     } finally { setBusy(false); }
   }
 
-  return <div className="app-shell"><div className="phone"><main className="page">
-    <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> Practice</button>
-    <header><div><span className="eyebrow">AI LANGUAGE COACH · LEARNER MEMORY</span><h1>English Twin</h1><p>The Twin uses your level, completed lessons, repeated mistakes, due vocabulary and recent conversation — not a blank chat.</p></div></header>
+  const memoryLine = `${snapshot.weakSkills.slice(0, 3).map(item => item.skill).join(' · ') || copy.progressFallback}${snapshot.dueReviewTerms.length ? ` · ${copy.reviewPrefix}: ${snapshot.dueReviewTerms.slice(0, 4).join(', ')}` : ''}`;
+
+  return <div className="app-shell" dir={dir}><div className="phone"><main className="page twin-page-v6">
+    <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {copy.backPractice}</button>
+    <header className="twin-hero-v6"><div><span className="eyebrow">{copy.eyebrow}</span><h1>{copy.title}</h1><p>{copy.intro}</p></div><div className="twin compact idle twin-hero-mark" aria-hidden="true"><div className="twin-aura" /><div className="twin-core"><span className="twin-eye left" /><span className="twin-eye right" /><i className="twin-mouth" /></div></div></header>
     {(snapshot.weakSkills.length > 0 || snapshot.dueReviewTerms.length > 0) && <section className="twin-memory-strip">
       <BrainCircuit />
-      <div><b>What your Twin is watching</b><p>{snapshot.weakSkills.slice(0, 3).map(item => item.skill).join(' · ') || 'learning progress'}{snapshot.dueReviewTerms.length ? ` · review: ${snapshot.dueReviewTerms.slice(0, 4).join(', ')}` : ''}</p></div>
+      <div><b>{copy.memoryTitle}</b><p>{memoryLine}</p></div>
     </section>}
-    <section className="tutor-thread">
+    <section className="tutor-thread" aria-live="polite">
       {messages.map((message, index) => <article className={`tutor-message ${message.role}`} key={`${message.role}-${index}`}>
-        <span>{message.role === 'twin' ? 'TWIN' : 'YOU'}</span>
+        <span>{message.role === 'twin' ? copy.twin : copy.you}</span>
         <p>{message.text}</p>
-        {message.detail?.correction && <div className="tutor-correction"><Sparkles /><div><b>More natural</b><p>{message.detail.correction}</p>{message.detail.explanation && <small>{message.detail.explanation}</small>}</div></div>}
+        {message.detail?.correction && <div className="tutor-correction"><Sparkles /><div><b>{copy.natural}</b><p>{message.detail.correction}</p>{message.detail.explanation && <small>{message.detail.explanation}</small>}</div></div>}
         {message.detail?.detectedMistakes?.length ? <div className="tutor-mistakes">{message.detail.detectedMistakes.map((mistake, i) => <div key={i}><del>{mistake.original}</del><b>{mistake.corrected}</b><small>{mistake.reason}</small></div>)}</div> : null}
-        {message.detail?.suggestedReply && <button className="ghost tutor-suggestion" onClick={() => setInput(message.detail!.suggestedReply!)}>Try: “{message.detail.suggestedReply}”</button>}
+        {message.detail?.suggestedReply && <button className="ghost tutor-suggestion" onClick={() => setInput(message.detail!.suggestedReply!)}>{copy.tryPrefix}: “{message.detail.suggestedReply}”</button>}
       </article>)}
-      {busy && <article className="tutor-message twin"><span>TWIN</span><p>Reading your learning context and preparing the next useful step…</p></article>}
+      {busy && <article className="tutor-message twin tutor-thinking"><span>{copy.twin}</span><p>{copy.thinking}</p></article>}
     </section>
-    {error && <p className="error">{error}</p>}
+    {error && <p className="error" role="alert">{error}</p>}
     <form className="tutor-composer" onSubmit={send}>
-      <input value={input} onChange={event => setInput(event.target.value)} maxLength={1200} placeholder="Say something in English…" aria-label="Message your English Twin" />
+      <input dir="ltr" value={input} onChange={event => setInput(event.target.value)} maxLength={1200} placeholder={copy.placeholder} aria-label={copy.placeholder} />
       <button type="submit" disabled={busy || !input.trim()} aria-label="Send"><Send /></button>
     </form>
   </main><AppDock language={supportLanguage} /></div></div>;
