@@ -8,6 +8,7 @@ import { auth, db } from './firebase';
 import { directionFor, normalizeLanguage } from './languageSupport';
 import { pronunciationItems, pronunciationPriority, prioritizePronunciationItems, PronunciationMistakeSignal } from './pronunciationData';
 import { pronunciationSupportCopy } from './pronunciationSupportCopy';
+import { pronunciationMeasurementNote, pronunciationTip } from './pronunciationTips';
 import { scoreSpokenAttempt, SpeechScore } from './speakingEngine';
 
 type RecognitionAlternative = { transcript: string };
@@ -214,9 +215,9 @@ export default function PronunciationLab() {
     </section>
 
     <section className="pronunciation-coach-grid">
-      <article><span>{copy.focus}</span><b>{item.focus}</b><p>{item.mouthTip}</p></article>
+      <article><span>{copy.focus}</span><b>{item.focus}</b><p>{pronunciationTip(language, item.id)}</p></article>
       <article><span>{copy.stress}</span><b dir="ltr" className="stress-preview">{stressWord}</b><p>{copy.mouth}</p></article>
-      {item.contrast && <article className="contrast-card"><span>{copy.contrast}</span><div dir="ltr"><b>{item.word}</b><i>↔</i><b>{item.contrast.word}</b></div><p>{item.contrast.cue}</p></article>}
+      {item.contrast && <article className="contrast-card"><span>{copy.contrast}</span><div dir="ltr"><b>{item.word}</b><i>↔</i><b>{item.contrast.word}</b></div></article>}
     </section>
 
     {error && <p className="error">{error}</p>}
@@ -226,6 +227,6 @@ export default function PronunciationLab() {
       <button className="primary" onClick={moveForward}>{stage === 'word' ? copy.nextSentence : copy.nextWord} <ChevronRight /></button>
     </div>
 
-    <section className="pronunciation-note"><Sparkles /><p>English Twin compares what the browser recognized with the target. The sound-focus and mouth tips guide pronunciation; this is not a phoneme-level acoustic exam.</p></section>
+    <section className="pronunciation-note"><Sparkles /><p>{pronunciationMeasurementNote[language]}</p></section>
   </main><AppDock language={language} /></div></div>;
 }
