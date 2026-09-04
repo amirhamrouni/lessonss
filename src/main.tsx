@@ -24,6 +24,7 @@ import './learn-journey-v3.css';
 import './gamification-v4.css';
 import './practice-profile-v5.css';
 import './final-product-v6.css';
+import './pronunciation-lab.css';
 
 const AuthGateway = React.lazy(() => import('./AuthGateway'));
 const SmartHomeV2 = React.lazy(() => import('./SmartHomeV2'));
@@ -33,6 +34,7 @@ const AdaptiveSentenceBuilder = React.lazy(() => import('./AdaptiveSentenceBuild
 const AutoLessonPlayer = React.lazy(() => import('./AutoLessonPlayer'));
 const TutorMode = React.lazy(() => import('./TutorMode'));
 const SpeechDrill = React.lazy(() => import('./SpeechDrill'));
+const PronunciationLab = React.lazy(() => import('./PronunciationLab'));
 const VoiceLab = React.lazy(() => import('./VoiceLab'));
 const PrivacyPolicy = React.lazy(() => import('./PrivacyPolicy'));
 const LearnJourney = React.lazy(() => import('./LearningPath').then(module => ({ default: module.LearnJourney })));
@@ -63,6 +65,7 @@ function Root() {
           <Route path="/assessment" element={<AssessmentMode />} />
           <Route path="/twin" element={<TutorMode />} />
           <Route path="/speak" element={<SpeechDrill />} />
+          <Route path="/pronunciation" element={<PronunciationLab />} />
           <Route path="/speak/live" element={<VoiceLab />} />
           <Route path="/profile" element={<ProfileHub />} />
           <Route path="/mistakes" element={<MistakeMemory />} />
