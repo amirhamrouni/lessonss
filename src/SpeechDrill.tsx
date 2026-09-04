@@ -8,6 +8,7 @@ import { auth, db } from './firebase';
 import { directionFor, normalizeLanguage } from './languageSupport';
 import { prioritizeSpeakingPrompts, scoreSpokenAttempt, speakingPrompts, SpeakingMistakeSignal, SpeechScore } from './speakingEngine';
 import { speechSupportCopy } from './speechSupportCopy';
+import { pronunciationSupportCopy } from './pronunciationSupportCopy';
 import { prioritizeReviewFromMistake } from './review';
 
 type RecognitionAlternative = { transcript: string };
@@ -78,6 +79,7 @@ export default function SpeechDrill() {
   const item = prompts[index % Math.max(prompts.length, 1)];
   const language = normalizeLanguage(profile.explanationLanguage || profile.nativeLanguage || profile.interfaceLanguage || 'English');
   const copy = speechSupportCopy[language];
+  const pronunciationCopy = pronunciationSupportCopy[language];
   const dir = directionFor(language);
 
   if (loading) return <div className="app-shell" dir={dir}><div className="phone"><main className="page"><Mic /><p>{copy.loading}</p></main><AppDock language={language} /></div></div>;
@@ -167,6 +169,8 @@ export default function SpeechDrill() {
   return <div className="app-shell" dir={dir}><div className="phone"><main className="page voice-live">
     <button className="back" onClick={() => nav('/')}><ArrowLeft /> {copy.home}</button>
     <header><span className="eyebrow">{copy.eyebrow}</span><h1>{copy.title}</h1><p>{copy.intro}</p></header>
+
+    <section className="practice-command pronunciation-entry-card"><div><span className="mode-kicker">{pronunciationCopy.eyebrow}</span><h2>{pronunciationCopy.title}</h2><p>{pronunciationCopy.intro}</p></div><button onClick={() => nav('/pronunciation')}><Volume2 /> {pronunciationCopy.wordStep} → {pronunciationCopy.sentenceStep}</button></section>
 
     {showConsent && <section className="rich-activity-card" role="dialog" aria-modal="true" aria-labelledby="guided-speech-consent-title">
       <div className="section-heading"><span>{copy.privacyEyebrow}</span><h3 id="guided-speech-consent-title">{copy.consentTitle}</h3></div>
