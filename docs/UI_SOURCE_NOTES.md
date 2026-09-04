@@ -15,11 +15,24 @@ This file records external design/pattern references used while polishing Englis
 - We use the product pattern, not source-code copying.
 - Repository: https://github.com/rihaans/Duolingo
 
+### learnercraft/ispeakerreact
+- Apache-2.0 open-source speaking/listening product used as a learning-loop reference for pronunciation practice.
+- Useful patterns reviewed: word playback, recording/repetition, syllable and primary-stress emphasis, sound contrasts, and moving from isolated words into real speaking contexts.
+- English Twin does not copy Oxford content, bundled audio/video, or project assets. We implement our own curated word/sentence set and UI.
+- Repository: https://github.com/learnercraft/ispeakerreact
+
 ### canvas-confetti pattern
 - Reference pattern: short completion celebrations that do not interfere with learning flow.
 - English Twin uses an internal CSS celebration instead of adding a runtime dependency.
 - Reduced-motion preferences are respected.
 - Repository: https://github.com/catdad/canvas-confetti
+
+## Web platform pronunciation reference
+
+### MDN Web Speech API
+- Used to validate the browser architecture for `SpeechSynthesis` playback and `SpeechRecognition` repetition/transcript capture.
+- English Twin keeps this capability behind explicit microphone consent and stores only weak practice signals needed for learner adaptation.
+- Reference: https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API/Using_the_Web_Speech_API
 
 ## Existing illustration source
 
