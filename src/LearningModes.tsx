@@ -10,6 +10,7 @@ import { placementQuestions, scorePlacement } from './assessment';
 import { Rating, StoredReviewCard, dueCards, ensureReviewCards, meaningForLanguage, saveReviewRating } from './review';
 import { directionFor, normalizeLanguage, t } from './languageSupport';
 import { modeSupportCopy } from './modeSupportCopy';
+import { pronunciationSupportCopy } from './pronunciationSupportCopy';
 
 function useLearner() {
   const [user, setUser] = useState<User | null>(null);
@@ -54,6 +55,7 @@ export function PracticeHub() {
   const [dueCount, setDueCount] = useState(0);
   const language = supportLanguage(profile);
   const modeCopy = modeSupportCopy[language];
+  const pronunciationCopy = pronunciationSupportCopy[language];
   useEffect(() => {
     if (!user) return;
     const completed = Object.values(progress).filter(p => p.completed).map(p => p.lessonId);
@@ -74,6 +76,7 @@ export function PracticeHub() {
       <div className="mode-list">
         <button onClick={() => nav('/review')}><RotateCcw /><div><span>{t(language, 'memory')}</span><h3>{t(language, 'smartReview')}</h3><p>{t(language, 'smartReviewDescription')}</p></div><ChevronRight /></button>
         <button onClick={() => nav('/sentence-builder')}><Sparkles /><div><span>{t(language, 'output')}</span><h3>{t(language, 'sentenceBuilder')}</h3><p>{t(language, 'sentenceBuilderDescription')}</p></div><ChevronRight /></button>
+        <button className="pronunciation-mode-entry" onClick={() => nav('/pronunciation')}><Volume2 /><div><span>{pronunciationCopy.eyebrow}</span><h3>{pronunciationCopy.title}</h3><p>{pronunciationCopy.intro}</p></div><ChevronRight /></button>
         <button onClick={() => nav('/assessment')}><Gauge /><div><span>{t(language, 'diagnostic')}</span><h3>{t(language, 'placementTest')}</h3><p>{placementBody}</p></div><ChevronRight /></button>
         <button onClick={() => nav('/speak')}><Mic /><div><span>{t(language, 'voice')}</span><h3>{t(language, 'conversationLab')}</h3><p>{t(language, 'conversationDescription')}</p></div><ChevronRight /></button>
       </div>
