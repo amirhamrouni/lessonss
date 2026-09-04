@@ -1,0 +1,38 @@
+import { SupportedLanguage } from './languageSupport';
+
+type TipKey = 'th-unvoiced'|'th-voiced'|'short-i'|'short-oo'|'v'|'r'|'stress-first'|'stress-final'|'stress-middle'|'tion';
+
+function keyFor(id: string): TipKey {
+  if (id === 'three-th') return 'th-unvoiced';
+  if (id === 'this-th') return 'th-voiced';
+  if (id === 'ship-short-i' || id === 'live-short-i') return 'short-i';
+  if (id === 'full-short-u') return 'short-oo';
+  if (id === 'very-v' || id === 'van-v') return 'v';
+  if (id === 'right-r') return 'r';
+  if (id === 'coffee-stress') return 'stress-first';
+  if (id === 'today-stress' || id === 'hotel-stress') return 'stress-final';
+  if (id === 'station-cluster') return 'tion';
+  return 'stress-middle';
+}
+
+const tips: Record<SupportedLanguage, Record<TipKey, string>> = {
+  English:{'th-unvoiced':'Place the tongue tip lightly between the teeth and let air pass. Keep it unvoiced.','th-voiced':'Use the same tongue position as TH, but add your voice so you feel a light vibration.','short-i':'Keep the vowel short and relaxed. Do not stretch it into a long EE sound.','short-oo':'Use a short rounded vowel and keep it relaxed instead of holding the sound.','v':'Touch the lower lip lightly with the upper teeth and keep the sound voiced.','r':'Keep the tongue away from the roof of the mouth and round the lips slightly into the R.','stress-first':'Make the first syllable stronger and clearer; keep the following syllable lighter.','stress-final':'Keep the first syllable light and place the main beat on the final stressed syllable.','stress-middle':'Build toward the highlighted middle syllable and keep the surrounding syllables lighter.','tion':'Make the -tion ending smooth and light, close to a “shun” sound rather than four separate letters.'},
+  Arabic:{'th-unvoiced':'حطّ طرف اللسان بخفة بين الأسنان وخلي الهواء يمر من غير صوت بالحبال الصوتية.','th-voiced':'نفس وضع اللسان متاع TH، لكن زيد الصوت؛ لازم تحسّ باهتزاز خفيف.','short-i':'خلّي الحركة قصيرة ومرتاحة وما تمدّهاش لصوت EE طويل.','short-oo':'استعمل صوت مدوّر قصير ومرتاح وما تطوّلوش.','v':'المس الشفة السفلى بخفة بالأسنان العليا وخلي الصوت مهزوز/مجهور.','r':'ما تلصّقش لسانك بسقف الفم؛ دوّر الشفايف شوية وانت تدخل في صوت R.','stress-first':'قوّي المقطع الأول وخلي المقطع اللي بعده أخف.','stress-final':'خلّي البداية خفيفة وحطّ النبرة الرئيسية على المقطع الأخير الملوّن.','stress-middle':'اصعد تدريجيًا للمقطع الأوسط الملوّن وخلي المقاطع اللي حوله أخف.','tion':'نهاية -tion تتقال بسلاسة وخفة، قريبة من “shun”، موش أربعة حروف منفصلين.'},
+  Dutch:{'th-unvoiced':'Plaats het puntje van je tong licht tussen je tanden en laat lucht ontsnappen zonder stem.','th-voiced':'Gebruik dezelfde TH-positie, maar voeg stem toe zodat je een lichte trilling voelt.','short-i':'Houd de klinker kort en ontspannen; rek hem niet uit tot een lange EE-klank.','short-oo':'Gebruik een korte ronde klinker en houd hem ontspannen in plaats van lang aan te houden.','v':'Raak je onderlip licht met je boventanden en houd de klank stemhebbend.','r':'Houd je tong weg van het gehemelte en rond je lippen licht voor de R.','stress-first':'Maak de eerste lettergreep sterker en duidelijker; houd de volgende lichter.','stress-final':'Houd het begin licht en leg de hoofdklemtoon op de laatste gemarkeerde lettergreep.','stress-middle':'Werk naar de gemarkeerde middelste lettergreep toe en houd de omliggende lettergrepen lichter.','tion':'Spreek -tion vloeiend en licht uit, ongeveer als “shun”, niet als vier losse letters.'},
+  French:{'th-unvoiced':'Place légèrement le bout de la langue entre les dents et laisse passer l’air sans faire vibrer la voix.','th-voiced':'Garde la même position pour TH, mais ajoute la voix afin de sentir une légère vibration.','short-i':'Garde la voyelle courte et détendue; ne l’allonge pas en un son EE.','short-oo':'Utilise une voyelle arrondie courte et détendue au lieu de la prolonger.','v':'Pose légèrement la lèvre inférieure contre les dents supérieures et garde le son voisé.','r':'Évite de toucher le palais avec la langue et arrondis légèrement les lèvres pour le R.','stress-first':'Rends la première syllabe plus forte et plus nette; allège la suivante.','stress-final':'Garde le début léger et place l’accent principal sur la dernière syllabe mise en évidence.','stress-middle':'Monte vers la syllabe centrale mise en évidence et allège les syllabes autour.','tion':'Prononce la terminaison -tion de façon fluide et légère, proche de “shun”, pas comme quatre lettres séparées.'},
+  German:{'th-unvoiced':'Lege die Zungenspitze leicht zwischen die Zähne und lass Luft ohne Stimme hindurchströmen.','th-voiced':'Nutze dieselbe TH-Zungenposition, aber füge Stimme hinzu, sodass du eine leichte Vibration spürst.','short-i':'Halte den Vokal kurz und locker; zieh ihn nicht zu einem langen EE-Laut.','short-oo':'Nutze einen kurzen gerundeten Vokal und halte ihn locker statt lang.','v':'Berühre die Unterlippe leicht mit den oberen Zähnen und sprich den Laut stimmhaft.','r':'Halte die Zunge vom Gaumen weg und runde die Lippen leicht für das R.','stress-first':'Sprich die erste Silbe stärker und klarer; die folgende bleibt leichter.','stress-final':'Halte den Anfang leicht und setze die Hauptbetonung auf die letzte markierte Silbe.','stress-middle':'Arbeite auf die markierte mittlere Silbe hin und halte die umliegenden Silben leichter.','tion':'Sprich -tion flüssig und leicht, ungefähr wie “shun”, nicht als vier einzelne Buchstaben.'},
+  Spanish:{'th-unvoiced':'Coloca suavemente la punta de la lengua entre los dientes y deja salir aire sin usar la voz.','th-voiced':'Mantén la misma posición de TH, pero añade voz para sentir una ligera vibración.','short-i':'Mantén la vocal corta y relajada; no la alargues hasta convertirla en un sonido EE.','short-oo':'Usa una vocal redondeada corta y relajada en lugar de sostenerla.','v':'Toca suavemente el labio inferior con los dientes superiores y mantén el sonido sonoro.','r':'Mantén la lengua separada del paladar y redondea ligeramente los labios al entrar en la R.','stress-first':'Haz la primera sílaba más fuerte y clara; deja la siguiente más ligera.','stress-final':'Mantén el inicio ligero y coloca el acento principal en la última sílaba marcada.','stress-middle':'Avanza hacia la sílaba central marcada y deja más ligeras las sílabas que la rodean.','tion':'Pronuncia -tion de forma fluida y ligera, parecida a “shun”, no como cuatro letras separadas.'},
+};
+
+export const pronunciationMeasurementNote: Record<SupportedLanguage, string> = {
+  English:'The score compares the browser’s recognized words with the target. Mouth and stress tips coach pronunciation; this is not a phoneme-level acoustic exam.',
+  Arabic:'النتيجة تقارن الكلام اللي تعرّف عليه المتصفح بالنص المطلوب. نصائح الفم والنبرة تساعدك في النطق، لكنها موش اختبار صوتي دقيق لكل فونيم.',
+  Dutch:'De score vergelijkt de door de browser herkende woorden met het doel. Mond- en klemtoontips begeleiden de uitspraak; dit is geen fonetische akoestische test per foneem.',
+  French:'Le score compare les mots reconnus par le navigateur avec la cible. Les conseils de bouche et d’accent guident la prononciation; ce n’est pas une analyse acoustique phonème par phonème.',
+  German:'Die Bewertung vergleicht die vom Browser erkannten Wörter mit dem Ziel. Mund- und Betonungstipps helfen bei der Aussprache; es ist keine akustische Phonemprüfung.',
+  Spanish:'La puntuación compara las palabras reconocidas por el navegador con el objetivo. Los consejos de boca y acento guían la pronunciación; no es un examen acústico fonema por fonema.',
+};
+
+export function pronunciationTip(language: SupportedLanguage, itemId: string) {
+  return tips[language][keyFor(itemId)];
+}
