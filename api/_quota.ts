@@ -1,4 +1,5 @@
 import { getFirestore } from 'firebase-admin/firestore';
+import { shouldRequirePersistentQuota } from './_config.js';
 
 export type QuotaState = { count: number; resetAtMs: number };
 export type QuotaResult = { allowed: boolean; remaining: number; retryAfterSeconds: number };
@@ -64,7 +65,12 @@ export async function checkPersistentQuota(
       return result;
     });
   } catch (error) {
-    console.warn('Persistent quota unavailable; using instance-local fallback', error instanceof Error ? error.message : 'unknown');
+    const reason = error instanceof Error ? error.message : 'unknown';
+    if (shouldRequirePersistentQuota()) {
+      console.error('Persistent quota required but unavailable', reason);
+      throw new Error('PERSISTENT_QUOTA_UNAVAILABLE');
+    }
+    console.warn('Persistent quota unavailable; using instance-local fallback', reason);
     return checkMemoryQuota(key, limit, windowMs, now);
   }
 }
