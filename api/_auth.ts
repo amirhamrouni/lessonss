@@ -1,13 +1,12 @@
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+import { getFirebaseProjectId } from './_config.js';
 
 type HeaderBag = { authorization?: string | string[] };
 
-const PRODUCTION_PROJECT_ID = 'gen-lang-client-0217548336';
-
 function ensureAdmin() {
   if (getApps().length) return;
-  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || PRODUCTION_PROJECT_ID;
+  const projectId = getFirebaseProjectId();
   const rawServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 
   if (rawServiceAccount) {
