@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: 22
       - name: Install dependencies
-        run: npm install
+        run: npm install --no-audit --no-fund
       - name: Typecheck
         run: npm run typecheck
       - name: Unit tests
@@ -44,7 +44,6 @@ jobs:
             src/
             index.html
             package.json
-            package-lock.json
             tsconfig.json
             vite.config.ts
             vercel.json

@@ -53,6 +53,7 @@ export default function TutorMode() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [error, setError] = useState('');
+  const [starterPending, setStarterPending] = useState(false);
 
   useEffect(() => onAuthStateChanged(auth, async current => {
     setUser(current);
@@ -79,15 +80,17 @@ export default function TutorMode() {
 
       setProfile(nextProfile);
       setSnapshot(learnerSnapshot);
-      setMessages(savedConversation.length
-        ? savedConversation.map(message => ({ ...message }))
-        : [{ role: 'twin', text: 'Tell me something you would actually say in real life. I’ll adapt to what you are learning and what you keep finding difficult.' }]);
+      setMessages(savedConversation.length ? savedConversation.map(message => ({ ...message })) : []);
+      setStarterPending(savedConversation.length === 0);
+    } catch {
+      setError('LOAD_FAILED');
     } finally { setLoading(false); }
   }), []);
 
   const supportLanguage = normalizeLanguage(profile.explanationLanguage || profile.nativeLanguage || profile.interfaceLanguage || 'English');
   const copy = twinSupportCopy[supportLanguage];
   const dir = directionFor(supportLanguage);
+  const visibleMessages = starterPending && messages.length === 0 ? [{ role: 'twin' as const, text: copy.starter }] : messages;
 
   if (loading) return <div className="app-shell" dir={dir}><div className="phone"><main className="page"><BrainCircuit /><p>{copy.loading}</p></main><AppDock language={supportLanguage} /></div></div>;
   if (!user) return <Navigate to="/welcome" replace />;
@@ -128,6 +131,7 @@ export default function TutorMode() {
     if (!text || busy || !user) return;
     setError('');
     setInput('');
+    setStarterPending(false);
     const learnerTurn: Message = { role: 'learner', text };
     const conversationBeforeReply = [...messages, learnerTurn];
     setMessages(conversationBeforeReply);
@@ -155,11 +159,13 @@ export default function TutorMode() {
       await Promise.all([rememberMistakes(detail, text), persistConversation(nextMessages)]);
       setMessages(nextMessages);
     } catch {
+      setInput(text);
       setError(copy.unavailable);
     } finally { setBusy(false); }
   }
 
   const memoryLine = `${snapshot.weakSkills.slice(0, 3).map(item => item.skill).join(' · ') || copy.progressFallback}${snapshot.dueReviewTerms.length ? ` · ${copy.reviewPrefix}: ${snapshot.dueReviewTerms.slice(0, 4).join(', ')}` : ''}`;
+  const displayError = error === 'LOAD_FAILED' ? copy.unavailable : error;
 
   return <div className="app-shell" dir={dir}><div className="phone"><main className="page twin-page-v6">
     <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {copy.backPractice}</button>
@@ -169,16 +175,16 @@ export default function TutorMode() {
       <div><b>{copy.memoryTitle}</b><p>{memoryLine}</p></div>
     </section>}
     <section className="tutor-thread" aria-live="polite">
-      {messages.map((message, index) => <article className={`tutor-message ${message.role}`} key={`${message.role}-${index}`}>
+      {visibleMessages.map((message, index) => <article className={`tutor-message ${message.role}`} key={`${message.role}-${index}`}>
         <span>{message.role === 'twin' ? copy.twin : copy.you}</span>
         <p>{message.text}</p>
-        {message.detail?.correction && <div className="tutor-correction"><Sparkles /><div><b>{copy.natural}</b><p>{message.detail.correction}</p>{message.detail.explanation && <small>{message.detail.explanation}</small>}</div></div>}
-        {message.detail?.detectedMistakes?.length ? <div className="tutor-mistakes">{message.detail.detectedMistakes.map((mistake, i) => <div key={i}><del>{mistake.original}</del><b>{mistake.corrected}</b><small>{mistake.reason}</small></div>)}</div> : null}
-        {message.detail?.suggestedReply && <button className="ghost tutor-suggestion" onClick={() => setInput(message.detail!.suggestedReply!)}>{copy.tryPrefix}: “{message.detail.suggestedReply}”</button>}
+        {'detail' in message && message.detail?.correction && <div className="tutor-correction"><Sparkles /><div><b>{copy.natural}</b><p>{message.detail.correction}</p>{message.detail.explanation && <small>{message.detail.explanation}</small>}</div></div>}
+        {'detail' in message && message.detail?.detectedMistakes?.length ? <div className="tutor-mistakes">{message.detail.detectedMistakes.map((mistake, i) => <div key={i}><del>{mistake.original}</del><b>{mistake.corrected}</b><small>{mistake.reason}</small></div>)}</div> : null}
+        {'detail' in message && message.detail?.suggestedReply && <button className="ghost tutor-suggestion" onClick={() => setInput(message.detail!.suggestedReply!)}>{copy.tryPrefix}: “{message.detail.suggestedReply}”</button>}
       </article>)}
       {busy && <article className="tutor-message twin tutor-thinking"><span>{copy.twin}</span><p>{copy.thinking}</p></article>}
     </section>
-    {error && <p className="error" role="alert">{error}</p>}
+    {displayError && <p className="error" role="alert">{displayError}</p>}
     <form className="tutor-composer" onSubmit={send}>
       <input dir="ltr" value={input} onChange={event => setInput(event.target.value)} maxLength={1200} placeholder={copy.placeholder} aria-label={copy.placeholder} />
       <button type="submit" disabled={busy || !input.trim()} aria-label="Send"><Send /></button>
