@@ -16,6 +16,8 @@ type TwinCopy = {
   thinking: string;
   placeholder: string;
   unavailable: string;
+  starter: string;
+  retry: string;
 };
 
 export const twinSupportCopy: Record<SupportedLanguage, TwinCopy> = {
@@ -25,6 +27,7 @@ export const twinSupportCopy: Record<SupportedLanguage, TwinCopy> = {
     memoryTitle: 'What your Twin is watching', progressFallback: 'learning progress', reviewPrefix: 'review', twin: 'TWIN', you: 'YOU',
     natural: 'More natural', tryPrefix: 'Try', thinking: 'Reading your learning context and preparing the next useful step…',
     placeholder: 'Say something in English…', unavailable: 'Your Twin is temporarily unavailable. Please try again.',
+    starter: 'Tell me something you would actually say in real life. I’ll adapt to what you are learning and what you keep finding difficult.', retry: 'Try again',
   },
   Arabic: {
     loading: 'نحمّل ذاكرة English Twin…', backPractice: 'التمارين', eyebrow: 'مدرب AI · ذاكرة المتعلم', title: 'English Twin',
@@ -32,6 +35,7 @@ export const twinSupportCopy: Record<SupportedLanguage, TwinCopy> = {
     memoryTitle: 'ما الذي يراقبه Twin الآن', progressFallback: 'تقدمك في التعلم', reviewPrefix: 'مراجعة', twin: 'TWIN', you: 'أنت',
     natural: 'صياغة أكثر طبيعية', tryPrefix: 'جرّب', thinking: 'نراجع سياق تعلمك ونحضّر الخطوة الأنسب…',
     placeholder: 'اكتب شيئًا بالإنجليزية…', unavailable: 'Twin غير متاح مؤقتًا. حاول مرة أخرى.',
+    starter: 'اكتب جملة حقيقية يمكن أن تقولها في حياتك اليومية بالإنجليزية، وسأكيّف التدريب حسب مستواك وأخطائك المتكررة.', retry: 'حاول مرة أخرى',
   },
   Dutch: {
     loading: 'Je Twin-geheugen wordt geladen…', backPractice: 'Oefenen', eyebrow: 'AI-TAALCOACH · LEERLINGGEHEUGEN', title: 'English Twin',
@@ -39,6 +43,7 @@ export const twinSupportCopy: Record<SupportedLanguage, TwinCopy> = {
     memoryTitle: 'Waar je Twin nu op let', progressFallback: 'leerprogressie', reviewPrefix: 'herhalen', twin: 'TWIN', you: 'JIJ',
     natural: 'Natuurlijker', tryPrefix: 'Probeer', thinking: 'Je leercontext wordt bekeken en de nuttigste volgende stap wordt voorbereid…',
     placeholder: 'Zeg iets in het Engels…', unavailable: 'Je Twin is tijdelijk niet beschikbaar. Probeer opnieuw.',
+    starter: 'Schrijf iets dat je in het echte leven in het Engels zou zeggen. Ik pas me aan je niveau en terugkerende fouten aan.', retry: 'Opnieuw proberen',
   },
   French: {
     loading: 'Chargement de la mémoire de ton Twin…', backPractice: 'Pratique', eyebrow: 'COACH IA · MÉMOIRE APPRENANT', title: 'English Twin',
@@ -46,6 +51,7 @@ export const twinSupportCopy: Record<SupportedLanguage, TwinCopy> = {
     memoryTitle: 'Ce que ton Twin surveille', progressFallback: 'progression', reviewPrefix: 'révision', twin: 'TWIN', you: 'TOI',
     natural: 'Plus naturel', tryPrefix: 'Essaie', thinking: 'Analyse de ton contexte d’apprentissage et préparation de la prochaine étape utile…',
     placeholder: 'Écris quelque chose en anglais…', unavailable: 'Ton Twin est temporairement indisponible. Réessaie.',
+    starter: 'Écris quelque chose que tu dirais vraiment en anglais dans la vie quotidienne. Je m’adapterai à ton niveau et à tes erreurs récurrentes.', retry: 'Réessayer',
   },
   German: {
     loading: 'Dein Twin-Gedächtnis wird geladen…', backPractice: 'Üben', eyebrow: 'KI-SPRACHCOACH · LERNERGEDÄCHTNIS', title: 'English Twin',
@@ -53,6 +59,7 @@ export const twinSupportCopy: Record<SupportedLanguage, TwinCopy> = {
     memoryTitle: 'Worauf dein Twin gerade achtet', progressFallback: 'Lernfortschritt', reviewPrefix: 'Wiederholung', twin: 'TWIN', you: 'DU',
     natural: 'Natürlicher', tryPrefix: 'Versuche', thinking: 'Dein Lernkontext wird ausgewertet und der nächste sinnvolle Schritt vorbereitet…',
     placeholder: 'Schreibe etwas auf Englisch…', unavailable: 'Dein Twin ist vorübergehend nicht verfügbar. Versuche es erneut.',
+    starter: 'Schreibe etwas, das du im echten Leben auf Englisch sagen würdest. Ich passe mich deinem Niveau und deinen wiederkehrenden Fehlern an.', retry: 'Erneut versuchen',
   },
   Spanish: {
     loading: 'Cargando la memoria de tu Twin…', backPractice: 'Práctica', eyebrow: 'COACH IA · MEMORIA DEL ALUMNO', title: 'English Twin',
@@ -60,5 +67,6 @@ export const twinSupportCopy: Record<SupportedLanguage, TwinCopy> = {
     memoryTitle: 'En qué se fija tu Twin', progressFallback: 'progreso de aprendizaje', reviewPrefix: 'repaso', twin: 'TWIN', you: 'TÚ',
     natural: 'Más natural', tryPrefix: 'Prueba', thinking: 'Revisando tu contexto de aprendizaje y preparando el siguiente paso útil…',
     placeholder: 'Escribe algo en inglés…', unavailable: 'Tu Twin no está disponible temporalmente. Inténtalo de nuevo.',
+    starter: 'Escribe algo que realmente dirías en inglés en la vida diaria. Me adaptaré a tu nivel y a tus errores recurrentes.', retry: 'Intentar de nuevo',
   },
 };
