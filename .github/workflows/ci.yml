@@ -2,7 +2,7 @@ name: English Twin CI
 
 on:
   push:
-    branches: [main, english-twin-pro, ecc-release-hardening]
+    branches: [main, english-twin-pro]
   pull_request:
     branches: [main]
 
