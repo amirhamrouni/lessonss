@@ -4,6 +4,7 @@ export type ServerReadiness = {
   firebaseProjectId: string;
   firebaseAdminConfigured: boolean;
   persistentQuotaConfigured: boolean;
+  persistentQuotaRequired: boolean;
   geminiConfigured: boolean;
   liveModelConfigured: boolean;
   tutorModelConfigured: boolean;
@@ -15,6 +16,11 @@ function hasValue(value: string | undefined) {
   return Boolean(value?.trim());
 }
 
+export function shouldRequirePersistentQuota(env: NodeJS.ProcessEnv = process.env) {
+  const value = env.REQUIRE_PERSISTENT_QUOTA?.trim().toLowerCase();
+  return value === '1' || value === 'true' || value === 'yes';
+}
+
 export function getFirebaseProjectId(env: NodeJS.ProcessEnv = process.env) {
   return env.FIREBASE_PROJECT_ID || env.VITE_FIREBASE_PROJECT_ID || PRODUCTION_PROJECT_ID;
 }
@@ -22,6 +28,7 @@ export function getFirebaseProjectId(env: NodeJS.ProcessEnv = process.env) {
 export function getServerReadiness(env: NodeJS.ProcessEnv = process.env): ServerReadiness {
   const firebaseProjectId = getFirebaseProjectId(env);
   const firebaseAdminConfigured = hasValue(env.FIREBASE_SERVICE_ACCOUNT_JSON);
+  const persistentQuotaRequired = shouldRequirePersistentQuota(env);
   const geminiConfigured = hasValue(env.GEMINI_API_KEY);
   const liveModelConfigured = hasValue(env.GEMINI_LIVE_MODEL);
   const tutorModelConfigured = hasValue(env.GEMINI_MODEL);
@@ -29,8 +36,8 @@ export function getServerReadiness(env: NodeJS.ProcessEnv = process.env): Server
 
   const missing: string[] = [];
   if (!firebaseProjectId) missing.push('FIREBASE_PROJECT_ID');
-  if (!firebaseAdminConfigured) missing.push('FIREBASE_SERVICE_ACCOUNT_JSON');
   if (!geminiConfigured) missing.push('GEMINI_API_KEY');
+  if (persistentQuotaRequired && !firebaseAdminConfigured) missing.push('FIREBASE_SERVICE_ACCOUNT_JSON');
 
   return {
     ready: missing.length === 0,
@@ -38,13 +45,9 @@ export function getServerReadiness(env: NodeJS.ProcessEnv = process.env): Server
     firebaseProjectId,
     firebaseAdminConfigured,
     persistentQuotaConfigured,
+    persistentQuotaRequired,
     geminiConfigured,
     liveModelConfigured,
     tutorModelConfigured,
   };
-}
-
-export function shouldRequirePersistentQuota(env: NodeJS.ProcessEnv = process.env) {
-  const value = env.REQUIRE_PERSISTENT_QUOTA?.trim().toLowerCase();
-  return value === '1' || value === 'true' || value === 'yes';
 }
