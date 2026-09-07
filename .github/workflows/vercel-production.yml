@@ -7,11 +7,13 @@ on:
 
 permissions:
   contents: read
+  checks: read
 
 jobs:
   deploy:
     if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       VERCEL_ORG_ID: team_UKAtfO6HzAtWy9WQ5YuXlPLC
       VERCEL_PROJECT_ID: prj_K9rnIux35nOOObmtJ0MdhschrwFs
@@ -24,6 +26,36 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Require matching CodeQL success
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 36); do
+            CHECKS=$(gh api \
+              -H 'Accept: application/vnd.github+json' \
+              "repos/${GITHUB_REPOSITORY}/commits/${VERIFIED_SHA}/check-runs?per_page=100")
+            STATUS=$(jq -r '[.check_runs[] | select(.name == "codeql")] | sort_by(.started_at) | last | .status // "missing"' <<<"$CHECKS")
+            CONCLUSION=$(jq -r '[.check_runs[] | select(.name == "codeql")] | sort_by(.started_at) | last | .conclusion // "pending"' <<<"$CHECKS")
+            echo "CodeQL for ${VERIFIED_SHA}: status=${STATUS} conclusion=${CONCLUSION} (attempt ${attempt}/36)"
+
+            if [ "$STATUS" = "completed" ] && [ "$CONCLUSION" = "success" ]; then
+              exit 0
+            fi
+
+            if [ "$STATUS" = "completed" ] && [ "$CONCLUSION" != "success" ]; then
+              echo "Security Scan did not pass for the exact deployment SHA." >&2
+              exit 1
+            fi
+
+            sleep 5
+          done
+
+          echo "Timed out waiting for CodeQL on exact deployment SHA ${VERIFIED_SHA}." >&2
+          exit 1
 
       - name: Require Vercel token
         run: |
