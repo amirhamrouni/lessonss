@@ -26,6 +26,7 @@ import './practice-profile-v5.css';
 import './final-product-v6.css';
 import './pronunciation-lab.css';
 import './editorial-foundation.css';
+import './swiss-editorial-v8.css';
 
 const AuthGateway = React.lazy(() => import('./AuthGateway'));
 const SmartHomeV2 = React.lazy(() => import('./SmartHomeV2'));
