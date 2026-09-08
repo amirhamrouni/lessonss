@@ -1,38 +1,48 @@
 :root {
   color-scheme: light;
 
-  /* Core palette: warm paper, ink, editorial red, restrained blue/green. */
-  --et-paper: #f4efe6;
-  --et-paper-strong: #ebe3d5;
-  --et-surface: #fffdf8;
-  --et-surface-muted: #eee8de;
-  --et-ink: #171717;
-  --et-ink-soft: #4c4944;
-  --et-line: #bdb5a8;
-  --et-line-strong: #171717;
-  --et-accent: #d93b32;
-  --et-accent-strong: #a8231d;
-  --et-info: #245f73;
-  --et-success: #2f6a4b;
-  --et-warning: #9a6518;
-  --et-danger: #a8231d;
-  --et-focus: #245f73;
+  /* English Twin Language Lab — runtime token source (DESIGN.md mirrors these values). */
+  --et-canvas: #f4f7f8;
+  --et-surface: #ffffff;
+  --et-surface-muted: #e8eef1;
+  --et-ink: #132a36;
+  --et-ink-soft: #5b6c74;
+  --et-line: #b8c5cb;
+  --et-line-strong: #132a36;
+  --et-primary: #2f5bff;
+  --et-primary-strong: #1739c7;
+  --et-voice: #00a9a5;
+  --et-memory: #f2b43a;
+  --et-success: #2e7d5b;
+  --et-danger: #d9574a;
+  --et-focus: #2f5bff;
 
-  /* Typography: neutral grotesk stack, compact editorial rhythm. */
-  --et-font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --et-font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  /* Backward-compatible semantic aliases while legacy consumers are migrated. */
+  --et-paper: var(--et-canvas);
+  --et-paper-strong: var(--et-surface-muted);
+  --et-accent: var(--et-primary);
+  --et-accent-strong: var(--et-primary-strong);
+  --et-info: var(--et-voice);
+  --et-warning: var(--et-memory);
+
+  /* Mixed-script typography. Arabic receives its own stack and line-height in the app layer. */
+  --et-font-sans: "IBM Plex Sans", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --et-font-display: "IBM Plex Sans", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --et-font-arabic: "Noto Sans Arabic", "Noto Kufi Arabic", Tahoma, Arial, sans-serif;
+  --et-font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   --et-text-xs: 0.75rem;
   --et-text-sm: 0.875rem;
   --et-text-md: 1rem;
   --et-text-lg: 1.25rem;
-  --et-text-xl: clamp(1.75rem, 4vw, 3rem);
-  --et-text-display: clamp(2.5rem, 8vw, 6.5rem);
-  --et-leading-tight: 1.05;
-  --et-leading-copy: 1.55;
-  --et-tracking-tight: -0.035em;
-  --et-tracking-label: 0.08em;
+  --et-text-xl: clamp(1.65rem, 4vw, 2.5rem);
+  --et-text-display: clamp(2.2rem, 8vw, 4.75rem);
+  --et-leading-tight: 1.08;
+  --et-leading-copy: 1.58;
+  --et-leading-arabic: 1.76;
+  --et-tracking-tight: -0.025em;
+  --et-tracking-label: 0.055em;
 
-  /* 4px spatial system. */
+  /* Product spacing. */
   --et-space-1: 0.25rem;
   --et-space-2: 0.5rem;
   --et-space-3: 0.75rem;
@@ -46,23 +56,40 @@
   --et-space-20: 5rem;
   --et-space-24: 6rem;
 
-  /* Deliberately restrained geometry. */
+  /* Controlled geometry: status pills may be round; product surfaces are not bubble-shaped. */
   --et-radius-none: 0;
+  --et-radius-xs: 0.125rem;
   --et-radius-sm: 0.25rem;
   --et-radius-md: 0.5rem;
+  --et-radius-lg: 0.75rem;
+  --et-radius-pill: 999px;
   --et-border: 1px solid var(--et-line);
   --et-border-strong: 1px solid var(--et-line-strong);
   --et-shadow-none: none;
+  --et-shadow-overlay: 0 18px 52px rgb(19 42 54 / 0.14);
 
-  --et-content-max: 76rem;
-  --et-copy-max: 44rem;
+  --et-content-max: 47.5rem;
+  --et-copy-max: 42rem;
   --et-control-height: 3rem;
-  --et-transition-fast: 120ms ease;
+  --et-dock-height: 4.25rem;
+  --et-transition-fast: 140ms cubic-bezier(.2,.7,.2,1);
+}
+
+[dir="rtl"] {
+  --et-leading-copy: var(--et-leading-arabic);
 }
 
 @media (prefers-contrast: more) {
   :root {
-    --et-line: #6e685f;
-    --et-ink-soft: #302e2b;
+    --et-line: #63757d;
+    --et-ink-soft: #344750;
+  }
+}
+
+@media (forced-colors: active) {
+  :root {
+    --et-primary: LinkText;
+    --et-primary-strong: LinkText;
+    --et-focus: Highlight;
   }
 }
