@@ -1,8 +1,8 @@
 import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { BrainCircuit } from 'lucide-react';
 import AppErrorBoundary from './AppErrorBoundary';
+import './design-tokens.css';
 import './styles.css';
 import './lesson.css';
 import './twin.css';
@@ -25,6 +25,7 @@ import './gamification-v4.css';
 import './practice-profile-v5.css';
 import './final-product-v6.css';
 import './pronunciation-lab.css';
+import './editorial-foundation.css';
 
 const AuthGateway = React.lazy(() => import('./AuthGateway'));
 const SmartHomeV2 = React.lazy(() => import('./SmartHomeV2'));
@@ -45,7 +46,7 @@ const ProfileHub = React.lazy(() => import('./ProfileHub').then(module => ({ def
 const MistakeMemory = React.lazy(() => import('./ProfileHub').then(module => ({ default: module.MistakeMemory })));
 
 function RouteFallback() {
-  return <div className="app-shell"><div className="phone"><main className="page"><section className="mode-empty route-loading" aria-live="polite"><BrainCircuit aria-hidden="true" /><span className="eyebrow">ENGLISH TWIN</span><h2>Loading your learning space…</h2><p>Your saved progress stays in place while this screen opens.</p></section></main></div></div>;
+  return <div className="app-shell"><div className="phone"><main className="page"><section className="mode-empty route-loading" aria-live="polite"><span className="eyebrow">ENGLISH TWIN</span><h2>Loading your learning space…</h2><p>Your saved progress stays in place while this screen opens.</p></section></main></div></div>;
 }
 
 function Root() {

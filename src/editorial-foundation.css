@@ -1,0 +1,144 @@
+html {
+  background: var(--et-paper);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--et-paper);
+  color: var(--et-ink);
+  font-family: var(--et-font-sans);
+  font-size: var(--et-text-md);
+  line-height: var(--et-leading-copy);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+[role="button"],
+a {
+  transition:
+    color var(--et-transition-fast),
+    background-color var(--et-transition-fast),
+    border-color var(--et-transition-fast),
+    opacity var(--et-transition-fast);
+}
+
+:focus-visible {
+  outline: 2px solid var(--et-focus);
+  outline-offset: 3px;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin-block-start: 0;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: var(--et-ink);
+  font-weight: 760;
+  letter-spacing: var(--et-tracking-tight);
+  line-height: var(--et-leading-tight);
+}
+
+.eyebrow,
+.kicker,
+.section-label {
+  color: var(--et-ink-soft) !important;
+  font-size: var(--et-text-xs) !important;
+  font-weight: 700 !important;
+  letter-spacing: var(--et-tracking-label) !important;
+  text-transform: uppercase;
+}
+
+.app-shell,
+.page,
+.phone {
+  background: var(--et-paper) !important;
+  color: var(--et-ink) !important;
+}
+
+.page {
+  max-width: var(--et-content-max);
+  margin-inline: auto;
+}
+
+/* Phase-one cleanup: flatten artificial depth while preserving layout semantics. */
+.card,
+.mode-card,
+.lesson-card,
+.home-card,
+.feature-card,
+.profile-card,
+.pronunciation-card,
+.route-loading,
+[class*="panel"],
+[class*="surface"] {
+  box-shadow: var(--et-shadow-none) !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.card,
+.mode-card,
+.lesson-card,
+.home-card,
+.feature-card,
+.profile-card,
+.pronunciation-card,
+.route-loading {
+  background: var(--et-surface) !important;
+  border: var(--et-border) !important;
+  border-radius: var(--et-radius-md) !important;
+}
+
+button,
+.button,
+.primary-button,
+.secondary-button,
+.cta,
+[class*="btn"] {
+  box-shadow: none !important;
+  border-radius: var(--et-radius-sm) !important;
+}
+
+/* Decorative-only motion is removed. Functional state transitions remain. */
+.confetti,
+.sparkles,
+.glow,
+.orb,
+.blob,
+.ambient-shape,
+.floating-shape,
+.decorative-icon,
+[class*="confetti"],
+[class*="sparkle"],
+[class*="glow"],
+[class*="orb"],
+[class*="blob"] {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
