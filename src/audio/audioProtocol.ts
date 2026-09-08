@@ -11,6 +11,11 @@ export type AudioWorkerProcessMessage = {
   samples: Float32Array;
 };
 
+export type AudioWorkerAttachPortMessage = {
+  type: 'attach_port';
+  port: MessagePort;
+};
+
 export type AudioWorkerFlushMessage = {
   type: 'flush';
 };
@@ -22,6 +27,7 @@ export type AudioWorkerResetMessage = {
 export type AudioWorkerInboundMessage =
   | AudioWorkerInitMessage
   | AudioWorkerProcessMessage
+  | AudioWorkerAttachPortMessage
   | AudioWorkerFlushMessage
   | AudioWorkerResetMessage;
 
