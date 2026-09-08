@@ -1,0 +1,907 @@
+/* English Twin — Swiss/editorial mobile system v8
+   Final visual authority. This layer intentionally neutralizes legacy card/gradient layouts
+   without changing application behavior or data flows. */
+
+.app-shell,
+.app-shell * {
+  box-sizing: border-box;
+}
+
+.app-shell {
+  min-height: 100dvh;
+  background: var(--et-paper) !important;
+  color: var(--et-ink) !important;
+}
+
+.app-shell * {
+  box-shadow: none !important;
+  text-shadow: none !important;
+  backdrop-filter: none !important;
+  filter: none !important;
+}
+
+.app-shell .phone {
+  width: min(100%, 760px) !important;
+  min-height: 100dvh !important;
+  margin: 0 auto !important;
+  background: var(--et-paper) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+}
+
+.app-shell .page,
+.app-shell .mode-page {
+  width: 100% !important;
+  max-width: 760px !important;
+  margin: 0 auto !important;
+  padding: 28px 20px 112px !important;
+  background: transparent !important;
+}
+
+.app-shell header {
+  margin: 0 0 28px !important;
+  padding: 0 0 20px !important;
+  border-bottom: 1px solid var(--et-line-strong) !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+
+.app-shell header h1 {
+  margin: 6px 0 8px !important;
+  font-size: clamp(2.35rem, 11vw, 4.6rem) !important;
+  line-height: .94 !important;
+  letter-spacing: -.055em !important;
+}
+
+.app-shell header p {
+  margin: 0 !important;
+  color: var(--et-ink-soft) !important;
+  font-size: 1rem !important;
+  line-height: 1.6 !important;
+  max-width: 38rem !important;
+}
+
+.app-shell .eyebrow,
+.app-shell .mode-kicker,
+.app-shell .section-heading > span,
+.app-shell .unit-label small,
+.app-shell .status-dot {
+  color: var(--et-ink-soft) !important;
+  font-size: .72rem !important;
+  line-height: 1.2 !important;
+  letter-spacing: .11em !important;
+  text-transform: uppercase !important;
+  font-weight: 750 !important;
+}
+
+/* Remove the legacy synthetic visual vocabulary completely. */
+.app-shell [class*="gradient"],
+.app-shell [class*="glass"],
+.app-shell [class*="shine"],
+.app-shell [class*="neon"],
+.app-shell [class*="halo"],
+.app-shell [class*="glow"],
+.app-shell [class*="aurora"] {
+  background-image: none !important;
+}
+
+.app-shell .lucide,
+.app-shell svg[class*="lucide"],
+.app-shell .mini-twin,
+.app-shell .continue-art,
+.app-shell .brand-wordmark i,
+.app-shell .confetti,
+.app-shell .sparkles,
+.app-shell .orb,
+.app-shell .blob,
+.app-shell .ambient-shape,
+.app-shell .floating-shape,
+.app-shell .decorative-icon {
+  display: none !important;
+}
+
+/* Buttons and controls */
+.app-shell button,
+.app-shell .button,
+.app-shell .primary,
+.app-shell .secondary,
+.app-shell .ghost,
+.app-shell .solid,
+.app-shell .cta {
+  border-radius: 0 !important;
+  min-height: 48px !important;
+  font-weight: 700 !important;
+}
+
+.app-shell button:not(.dock a) {
+  touch-action: manipulation;
+}
+
+.app-shell .primary,
+.app-shell .solid,
+.app-shell .continue-card button,
+.app-shell .practice-command > button,
+.app-shell .activity-action {
+  background: var(--et-ink) !important;
+  color: var(--et-paper) !important;
+  border: 1px solid var(--et-ink) !important;
+}
+
+.app-shell .primary:disabled,
+.app-shell .solid:disabled,
+.app-shell button:disabled {
+  opacity: .42 !important;
+}
+
+.app-shell .back {
+  width: auto !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+  margin: 0 0 24px !important;
+  background: transparent !important;
+  color: var(--et-ink) !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--et-ink) !important;
+}
+
+/* Bottom navigation — flat editorial rule, no floating pill. */
+.app-shell .dock,
+.app-shell .editorial-dock,
+.app-shell .mode-dock {
+  position: fixed !important;
+  inset-inline: 0 !important;
+  bottom: 0 !important;
+  z-index: 50 !important;
+  width: min(100%, 760px) !important;
+  margin-inline: auto !important;
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  background: var(--et-paper) !important;
+  border: 0 !important;
+  border-top: 1px solid var(--et-ink) !important;
+  border-radius: 0 !important;
+  transform: none !important;
+}
+
+.app-shell .dock a,
+.app-shell .editorial-dock a,
+.app-shell .mode-dock a {
+  min-width: 0 !important;
+  min-height: 68px !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 8px 4px !important;
+  color: var(--et-ink-soft) !important;
+  background: var(--et-paper) !important;
+  border: 0 !important;
+  border-inline-start: 1px solid var(--et-line) !important;
+  border-radius: 0 !important;
+  text-decoration: none !important;
+}
+
+.app-shell .dock a:first-child,
+.app-shell .editorial-dock a:first-child,
+.app-shell .mode-dock a:first-child {
+  border-inline-start: 0 !important;
+}
+
+.app-shell .dock a.active,
+.app-shell .editorial-dock a.active,
+.app-shell .mode-dock a.active {
+  color: var(--et-paper) !important;
+  background: var(--et-ink) !important;
+}
+
+.app-shell .dock small,
+.app-shell .editorial-dock small,
+.app-shell .mode-dock small {
+  font-size: .69rem !important;
+  font-weight: 750 !important;
+  line-height: 1.2 !important;
+  letter-spacing: .04em !important;
+  text-transform: none !important;
+}
+
+/* HOME */
+.reference-home .home-header {
+  display: flex !important;
+  align-items: end !important;
+  justify-content: space-between !important;
+  margin-bottom: 24px !important;
+}
+
+.reference-home .brand-wordmark {
+  display: block !important;
+  color: var(--et-ink) !important;
+  font-size: 1.15rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -.035em !important;
+}
+
+.reference-home .brand-wordmark b {
+  color: var(--et-accent) !important;
+}
+
+.reference-home .reference-header small {
+  color: var(--et-ink-soft) !important;
+  font-size: .75rem !important;
+}
+
+.reference-home .crown-button {
+  display: none !important;
+}
+
+.reference-home .welcome-card,
+.reference-home .goal-card,
+.reference-home .continue-card,
+.reference-home .home-reward {
+  width: 100% !important;
+  margin: 0 0 20px !important;
+  padding: 22px 0 !important;
+  display: block !important;
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-top: 1px solid var(--et-line-strong) !important;
+  border-bottom: 1px solid var(--et-line-strong) !important;
+  border-radius: 0 !important;
+}
+
+.reference-home .welcome-card h1 {
+  margin: 6px 0 6px !important;
+  font-size: clamp(2.1rem, 10vw, 4.4rem) !important;
+  line-height: .95 !important;
+  letter-spacing: -.05em !important;
+}
+
+.reference-home .welcome-card p,
+.reference-home .goal-card p,
+.reference-home .continue-card p,
+.reference-home .home-reward small {
+  color: var(--et-ink-soft) !important;
+}
+
+.reference-home .goal-card {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: end !important;
+  gap: 20px !important;
+}
+
+.reference-home .goal-title,
+.reference-home .goal-content {
+  display: contents !important;
+}
+
+.reference-home .goal-title > div {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.reference-home .goal-title span {
+  color: var(--et-ink-soft) !important;
+  font-family: var(--et-font-mono) !important;
+  font-size: .78rem !important;
+}
+
+.reference-home .goal-ring {
+  order: 2 !important;
+  width: auto !important;
+  height: auto !important;
+  aspect-ratio: auto !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.reference-home .goal-ring strong {
+  font-family: var(--et-font-mono) !important;
+  font-size: 2rem !important;
+  letter-spacing: -.05em !important;
+}
+
+.reference-home .goal-card p {
+  grid-column: 1 / -1 !important;
+  margin: 0 !important;
+}
+
+.reference-home .continue-card {
+  padding: 26px 0 28px !important;
+  border-top: 5px solid var(--et-accent) !important;
+}
+
+.reference-home .continue-copy {
+  width: 100% !important;
+  max-width: none !important;
+  display: block !important;
+}
+
+.reference-home .continue-copy > span,
+.reference-home .continue-copy > small {
+  display: block !important;
+  margin-bottom: 8px !important;
+  color: var(--et-ink-soft) !important;
+}
+
+.reference-home .continue-card h2 {
+  margin: 6px 0 10px !important;
+  font-size: clamp(2rem, 9vw, 3.8rem) !important;
+  line-height: .98 !important;
+  letter-spacing: -.05em !important;
+}
+
+.reference-home .continue-progress,
+.app-shell .thin-progress,
+.app-shell .progress-track,
+.app-shell .assessment-progress {
+  width: 100% !important;
+  height: 3px !important;
+  margin: 18px 0 !important;
+  overflow: hidden !important;
+  background: var(--et-line) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+
+.reference-home .continue-progress i,
+.app-shell .thin-progress i,
+.app-shell .progress-track i,
+.app-shell .assessment-progress i {
+  display: block !important;
+  height: 100% !important;
+  background: var(--et-accent) !important;
+  border-radius: 0 !important;
+}
+
+.reference-home .continue-card button {
+  width: 100% !important;
+  margin-top: 4px !important;
+  padding: 13px 16px !important;
+}
+
+.reference-home .reference-section {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: baseline !important;
+  margin: 32px 0 8px !important;
+  padding-bottom: 10px !important;
+  border-bottom: 1px solid var(--et-ink) !important;
+}
+
+.reference-home .reference-section h3 {
+  margin: 0 !important;
+  font-size: 1.15rem !important;
+}
+
+.reference-home .reference-section button {
+  min-height: auto !important;
+  padding: 0 !important;
+  color: var(--et-accent) !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.reference-home .today-list {
+  display: block !important;
+}
+
+.reference-home .today-list > button {
+  width: 100% !important;
+  min-height: 76px !important;
+  margin: 0 !important;
+  padding: 16px 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 16px !important;
+  text-align: start !important;
+  color: var(--et-ink) !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--et-line) !important;
+}
+
+.reference-home .today-list .plan-icon {
+  display: none !important;
+}
+
+.reference-home .today-list > button > div {
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+.reference-home .today-list b,
+.reference-home .today-list small {
+  display: block !important;
+}
+
+.reference-home .today-list small {
+  color: var(--et-ink-soft) !important;
+  font-family: var(--et-font-mono) !important;
+  font-size: .75rem !important;
+  margin-top: 4px !important;
+}
+
+.reference-home .home-reward {
+  margin-top: 28px !important;
+}
+
+.reference-home .home-reward > div {
+  width: 100% !important;
+}
+
+.reference-home .home-reward button {
+  width: 100% !important;
+  margin-top: 16px !important;
+  background: transparent !important;
+  color: var(--et-ink) !important;
+  border: 1px solid var(--et-ink) !important;
+}
+
+/* LEARN */
+.app-shell .language-support-banner {
+  width: 100% !important;
+  margin: 0 0 28px !important;
+  padding: 14px 0 !important;
+  display: block !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-top: 1px solid var(--et-line) !important;
+  border-bottom: 1px solid var(--et-line) !important;
+  border-radius: 0 !important;
+}
+
+.app-shell .language-support-banner b,
+.app-shell .language-support-banner small {
+  display: block !important;
+}
+
+.app-shell .language-support-banner small {
+  margin-top: 5px !important;
+  color: var(--et-ink-soft) !important;
+  line-height: 1.5 !important;
+}
+
+.app-shell .level-section {
+  margin: 0 0 44px !important;
+}
+
+.app-shell .learn-overview {
+  margin: 0 0 28px !important;
+  padding: 18px 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-top: 4px solid var(--et-ink) !important;
+  border-bottom: 1px solid var(--et-ink) !important;
+  border-radius: 0 !important;
+}
+
+.app-shell .learn-overview > div:first-child {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: end !important;
+  gap: 16px !important;
+}
+
+.app-shell .learn-overview strong {
+  font-family: var(--et-font-mono) !important;
+  font-size: 2.4rem !important;
+  line-height: 1 !important;
+}
+
+.app-shell .learn-overview small {
+  color: var(--et-ink-soft) !important;
+}
+
+.app-shell .journey,
+.app-shell .journey-unit,
+.app-shell .journey-content,
+.app-shell .lesson-rows {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.app-shell .journey {
+  display: block !important;
+}
+
+.app-shell .journey-unit {
+  display: grid !important;
+  grid-template-columns: 36px minmax(0, 1fr) !important;
+  gap: 14px !important;
+  margin: 0 0 34px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+
+[dir="rtl"] .journey-unit {
+  grid-template-columns: minmax(0, 1fr) 36px !important;
+}
+
+[dir="rtl"] .journey-marker {
+  grid-column: 2 !important;
+}
+
+[dir="rtl"] .journey-content {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+}
+
+.app-shell .journey-marker {
+  width: 36px !important;
+  height: 36px !important;
+  display: grid !important;
+  place-items: center !important;
+  background: var(--et-ink) !important;
+  color: var(--et-paper) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  font-family: var(--et-font-mono) !important;
+}
+
+.app-shell .journey-marker span {
+  color: inherit !important;
+}
+
+.app-shell .journey-content {
+  min-width: 0 !important;
+}
+
+.app-shell .unit-label {
+  margin-bottom: 10px !important;
+  padding-bottom: 10px !important;
+  border-bottom: 1px solid var(--et-line) !important;
+}
+
+.app-shell .unit-label h3 {
+  margin: 4px 0 0 !important;
+  font-size: 1.35rem !important;
+}
+
+.app-shell .lesson-rows {
+  display: block !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.app-shell .lesson-rows > button {
+  width: 100% !important;
+  min-height: 82px !important;
+  margin: 0 !important;
+  padding: 15px 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 14px !important;
+  text-align: start !important;
+  color: var(--et-ink) !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--et-line) !important;
+}
+
+.app-shell .lesson-rows > button > div {
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+.app-shell .lesson-rows b,
+.app-shell .lesson-rows small {
+  display: block !important;
+  overflow-wrap: anywhere !important;
+}
+
+.app-shell .lesson-rows small {
+  margin-top: 5px !important;
+  color: var(--et-ink-soft) !important;
+  font-size: .78rem !important;
+}
+
+.app-shell .lesson-rows > button > span {
+  white-space: nowrap !important;
+  color: var(--et-accent) !important;
+  font-weight: 750 !important;
+}
+
+/* PRACTICE / MODES */
+.app-shell .mode-page > div,
+.app-shell .voice-live,
+.app-shell .practice-command,
+.app-shell .mode-list,
+.app-shell .builder-card,
+.app-shell .review-card,
+.app-shell .assessment-card,
+.app-shell .assessment-result,
+.app-shell .rich-activity-card,
+.app-shell .activity-card,
+.app-shell .voice-stage {
+  max-width: none !important;
+}
+
+.app-shell .practice-command {
+  width: 100% !important;
+  margin: 0 0 20px !important;
+  padding: 22px 0 !important;
+  display: block !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-top: 4px solid var(--et-accent) !important;
+  border-bottom: 1px solid var(--et-ink) !important;
+  border-radius: 0 !important;
+}
+
+.app-shell .practice-command > div {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.app-shell .practice-command h2 {
+  margin: 6px 0 8px !important;
+  font-size: clamp(1.7rem, 8vw, 3rem) !important;
+  line-height: 1 !important;
+  letter-spacing: -.045em !important;
+}
+
+.app-shell .practice-command p {
+  margin: 0 !important;
+  color: var(--et-ink-soft) !important;
+}
+
+.app-shell .practice-command > button {
+  width: 100% !important;
+  margin-top: 18px !important;
+  padding: 12px 14px !important;
+}
+
+.app-shell .mode-list {
+  display: block !important;
+  width: 100% !important;
+}
+
+.app-shell .mode-list > button {
+  width: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 20px 0 !important;
+  display: block !important;
+  text-align: start !important;
+  color: var(--et-ink) !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--et-line) !important;
+  border-radius: 0 !important;
+}
+
+.app-shell .mode-list > button > div {
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.app-shell .mode-list span,
+.app-shell .mode-list h3,
+.app-shell .mode-list p {
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important;
+  text-align: start !important;
+  overflow-wrap: anywhere !important;
+}
+
+.app-shell .mode-list h3 {
+  margin: 5px 0 7px !important;
+  font-size: 1.45rem !important;
+  line-height: 1.08 !important;
+}
+
+.app-shell .mode-list p {
+  margin: 0 !important;
+  color: var(--et-ink-soft) !important;
+  line-height: 1.5 !important;
+}
+
+/* Lessons, review, builder, speech */
+.app-shell .builder-card,
+.app-shell .review-card,
+.app-shell .assessment-card,
+.app-shell .assessment-result,
+.app-shell .rich-activity-card,
+.app-shell .activity-card,
+.app-shell .voice-stage,
+.app-shell .signal-empty,
+.app-shell .voice-transcript article {
+  width: 100% !important;
+  margin: 0 0 20px !important;
+  padding: 22px 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-top: 1px solid var(--et-ink) !important;
+  border-bottom: 1px solid var(--et-line) !important;
+  border-radius: 0 !important;
+}
+
+.app-shell .builder-card h2,
+.app-shell .review-card h2,
+.app-shell .assessment-card h2,
+.app-shell .voice-stage h2,
+.app-shell .activity-card h2 {
+  font-size: clamp(1.7rem, 8vw, 3.1rem) !important;
+  line-height: 1 !important;
+  letter-spacing: -.045em !important;
+}
+
+.app-shell .speech-target {
+  width: 100% !important;
+  margin: 18px 0 !important;
+  padding: 18px 0 !important;
+  color: var(--et-ink) !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-top: 1px solid var(--et-line) !important;
+  border-bottom: 1px solid var(--et-line) !important;
+  border-radius: 0 !important;
+  font-size: clamp(2rem, 9vw, 3.5rem) !important;
+  line-height: 1.05 !important;
+  text-align: start !important;
+}
+
+.app-shell .builder-actions,
+.app-shell .lesson-actions,
+.app-shell .rating-row {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+
+.app-shell .builder-actions button,
+.app-shell .lesson-actions button {
+  width: 100% !important;
+}
+
+.app-shell .review-example-audio,
+.app-shell .review-audio {
+  width: auto !important;
+  padding: 0 !important;
+  min-height: 38px !important;
+  color: var(--et-accent) !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--et-accent) !important;
+}
+
+.app-shell .review-term-row {
+  display: block !important;
+}
+
+.app-shell .review-term-row h2 {
+  font-size: clamp(2.5rem, 12vw, 5rem) !important;
+  line-height: .95 !important;
+}
+
+.app-shell .answer-list,
+.app-shell .assessment-options,
+.app-shell .word-bank,
+.app-shell .built-zone {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 8px !important;
+}
+
+.app-shell .answer-list button,
+.app-shell .assessment-options button,
+.app-shell .word-bank button,
+.app-shell .built-zone button {
+  width: 100% !important;
+  padding: 13px 14px !important;
+  text-align: start !important;
+  color: var(--et-ink) !important;
+  background: var(--et-surface) !important;
+  border: 1px solid var(--et-line) !important;
+  border-radius: 0 !important;
+}
+
+.app-shell .answer-list button.selected,
+.app-shell .assessment-options button.selected {
+  border-color: var(--et-ink) !important;
+  background: var(--et-paper-strong) !important;
+}
+
+.app-shell .lesson-input,
+.app-shell input,
+.app-shell textarea,
+.app-shell select {
+  width: 100% !important;
+  min-height: 50px !important;
+  color: var(--et-ink) !important;
+  background: var(--et-surface) !important;
+  border: 1px solid var(--et-ink) !important;
+  border-radius: 0 !important;
+}
+
+.app-shell .feedback,
+.app-shell .review-answer,
+.app-shell .builder-feedback {
+  margin: 16px 0 !important;
+  padding: 14px 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-top: 1px solid var(--et-line) !important;
+  border-bottom: 1px solid var(--et-line) !important;
+  border-radius: 0 !important;
+}
+
+.app-shell .feedback.ok,
+.app-shell .builder-feedback.ok {
+  color: var(--et-success) !important;
+}
+
+.app-shell .feedback.bad,
+.app-shell .builder-feedback.bad,
+.app-shell .error {
+  color: var(--et-danger) !important;
+}
+
+/* Never allow hidden legacy icon columns to squeeze copy. */
+.app-shell .mode-list > button,
+.app-shell .today-list > button,
+.app-shell .lesson-rows > button,
+.app-shell .practice-command,
+.app-shell .home-reward,
+.app-shell .pronunciation-entry-card {
+  grid-auto-columns: auto !important;
+}
+
+.app-shell .mode-list > button > div,
+.app-shell .today-list > button > div,
+.app-shell .lesson-rows > button > div,
+.app-shell .practice-command > div,
+.app-shell .home-reward > div {
+  min-width: 0 !important;
+  max-width: none !important;
+}
+
+@media (max-width: 420px) {
+  .app-shell .page,
+  .app-shell .mode-page {
+    padding-inline: 16px !important;
+  }
+
+  .app-shell .goal-card {
+    grid-template-columns: 1fr auto !important;
+  }
+
+  .app-shell .journey-unit {
+    grid-template-columns: 30px minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  [dir="rtl"] .journey-unit {
+    grid-template-columns: minmax(0, 1fr) 30px !important;
+  }
+
+  .app-shell .journey-marker {
+    width: 30px !important;
+    height: 30px !important;
+  }
+
+  .app-shell .lesson-rows > button {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .app-shell .lesson-rows > button > span {
+    margin-top: 6px !important;
+    white-space: normal !important;
+  }
+}
