@@ -22,6 +22,7 @@ export class AudioWorkerClient {
   private disposed = false;
   private ready = false;
   private pending: QueuedChunk[] = [];
+  private pendingInputPort: MessagePort | null = null;
 
   constructor(options: AudioWorkerClientOptions) {
     this.inputSampleRate = options.inputSampleRate;
@@ -33,6 +34,7 @@ export class AudioWorkerClient {
 
       if (message.type === 'ready') {
         this.ready = true;
+        this.attachPendingInputPort();
         this.drainPending();
       }
 
@@ -44,6 +46,17 @@ export class AudioWorkerClient {
     };
 
     this.initialize();
+  }
+
+  attachInputPort(port: MessagePort) {
+    if (this.disposed) {
+      port.close();
+      return;
+    }
+
+    this.pendingInputPort?.close();
+    this.pendingInputPort = port;
+    this.attachPendingInputPort();
   }
 
   process(samples: Float32Array): number {
@@ -76,6 +89,8 @@ export class AudioWorkerClient {
     this.sequence = 0;
     this.ready = false;
     this.pending = [];
+    this.pendingInputPort?.close();
+    this.pendingInputPort = null;
     this.post({ type: 'reset' });
     this.initialize();
   }
@@ -85,6 +100,8 @@ export class AudioWorkerClient {
     this.disposed = true;
     this.ready = false;
     this.pending = [];
+    this.pendingInputPort?.close();
+    this.pendingInputPort = null;
     this.worker.terminate();
   }
 
@@ -95,6 +112,14 @@ export class AudioWorkerClient {
       targetSampleRate: this.targetSampleRate,
       channels: 1,
     });
+  }
+
+  private attachPendingInputPort() {
+    if (!this.ready || this.disposed || !this.pendingInputPort) return;
+
+    const port = this.pendingInputPort;
+    this.pendingInputPort = null;
+    this.post({ type: 'attach_port', port }, [port]);
   }
 
   private drainPending() {

@@ -15,7 +15,7 @@ type AudioRuntime = {
   outputContext: AudioContext;
   stream: MediaStream;
   source: MediaStreamAudioSourceNode;
-  processor: ScriptProcessorNode;
+  captureNode: AudioWorkletNode;
   worker: AudioWorkerClient;
 };
 
@@ -211,10 +211,19 @@ export default function VoiceLab() {
     });
     const inputContext = new AudioContext();
     const outputContext = new AudioContext();
+
+    const workletModule = new URL('./audio/audio-capture.worklet.js', import.meta.url);
+    await inputContext.audioWorklet.addModule(workletModule.href);
     await Promise.all([inputContext.resume(), outputContext.resume()]);
 
     const source = inputContext.createMediaStreamSource(stream);
-    const processor = inputContext.createScriptProcessor(4096, 1, 1);
+    const captureNode = new AudioWorkletNode(inputContext, 'english-twin-audio-capture', {
+      numberOfInputs: 1,
+      numberOfOutputs: 1,
+      outputChannelCount: [1],
+      channelCount: 1,
+      channelCountMode: 'explicit',
+    });
     const silentGain = inputContext.createGain();
     silentGain.gain.value = 0;
 
@@ -229,7 +238,6 @@ export default function VoiceLab() {
         if (message.type !== 'chunk') return;
         if (ws.readyState !== WebSocket.OPEN || stateRef.current === 'CONNECTING') return;
 
-        // Prefer dropping stale audio over growing an unbounded socket queue.
         if (ws.bufferedAmount > MAX_SOCKET_BUFFER_BYTES) return;
 
         ws.send(
@@ -249,16 +257,15 @@ export default function VoiceLab() {
       },
     });
 
-    source.connect(processor);
-    processor.connect(silentGain);
+    const directChannel = new MessageChannel();
+    captureNode.port.postMessage({ type: 'connect', port: directChannel.port1 }, [directChannel.port1]);
+    worker.attachInputPort(directChannel.port2);
+
+    source.connect(captureNode);
+    captureNode.connect(silentGain);
     silentGain.connect(inputContext.destination);
 
-    processor.onaudioprocess = event => {
-      if (ws.readyState !== WebSocket.OPEN || stateRef.current === 'CONNECTING') return;
-      worker.process(event.inputBuffer.getChannelData(0));
-    };
-
-    audioRef.current = { inputContext, outputContext, stream, source, processor, worker };
+    audioRef.current = { inputContext, outputContext, stream, source, captureNode, worker };
   }
 
   async function start(consentOverride = false) {
@@ -344,11 +351,11 @@ export default function VoiceLab() {
     audioRef.current = null;
 
     if (runtime) {
-      runtime.processor.onaudioprocess = null;
+      runtime.captureNode.port.postMessage({ type: 'stop' });
       runtime.worker.flush();
       runtime.worker.dispose();
       try {
-        runtime.processor.disconnect();
+        runtime.captureNode.disconnect();
       } catch {}
       try {
         runtime.source.disconnect();
@@ -442,7 +449,10 @@ export default function VoiceLab() {
             <span className="status-dot">{state}</span>
             <h2>{stateTitle}</h2>
             <p>{state === 'READY' ? copy.readyHint : copy.activeHint}</p>
-            <button className={active ? 'voice-stop' : 'primary lime'} onClick={() => (active ? void teardown(true) : void start())}>
+            <button
+              className={active ? 'voice-stop' : 'primary lime'}
+              onClick={() => (active ? void teardown(true) : void start())}
+            >
               {active ? copy.end : copy.start}
             </button>
           </section>
