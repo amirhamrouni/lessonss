@@ -35,7 +35,8 @@ export type AudioWorkerChunkMessage = {
   type: 'chunk';
   sequence: number;
   sampleRate: number;
-  samples: Float32Array;
+  pcm16Base64: string;
+  sampleCount: number;
   rms: number;
   peak: number;
   durationMs: number;
