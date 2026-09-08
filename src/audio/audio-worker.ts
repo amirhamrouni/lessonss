@@ -1,13 +1,18 @@
 /// <reference lib="webworker" />
 
 import { floatToPcm16Bytes, measureAudio, resampleMono } from './audioProcessing';
-import type { AudioWorkerInboundMessage, AudioWorkerOutboundMessage } from './audioProtocol';
+import type {
+  AudioWorkerInboundMessage,
+  AudioWorkerOutboundMessage,
+  AudioWorkerProcessMessage,
+} from './audioProtocol';
 
 const workerScope = self as DedicatedWorkerGlobalScope;
 
 let inputSampleRate = 0;
 let targetSampleRate = 16_000;
 let initialized = false;
+let directInputPort: MessagePort | null = null;
 
 function post(message: AudioWorkerOutboundMessage) {
   workerScope.postMessage(message);
@@ -25,42 +30,7 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-workerScope.onmessage = (event: MessageEvent<AudioWorkerInboundMessage>) => {
-  const message = event.data;
-
-  if (message.type === 'init') {
-    const nextInput = Number(message.inputSampleRate);
-    const nextTarget = Number(message.targetSampleRate);
-
-    if (!Number.isFinite(nextInput) || !Number.isFinite(nextTarget) || nextInput <= 0 || nextTarget <= 0) {
-      initialized = false;
-      post({
-        type: 'error',
-        code: 'invalid_sample_rate',
-        message: 'Audio worker received an invalid sample rate.',
-      });
-      return;
-    }
-
-    inputSampleRate = nextInput;
-    targetSampleRate = nextTarget;
-    initialized = true;
-    post({ type: 'ready', inputSampleRate, targetSampleRate });
-    return;
-  }
-
-  if (message.type === 'reset') {
-    initialized = false;
-    inputSampleRate = 0;
-    targetSampleRate = 16_000;
-    return;
-  }
-
-  if (message.type === 'flush') {
-    post({ type: 'flushed' });
-    return;
-  }
-
+function processSamples(message: AudioWorkerProcessMessage) {
   if (!initialized) {
     post({
       type: 'error',
@@ -93,6 +63,64 @@ workerScope.onmessage = (event: MessageEvent<AudioWorkerInboundMessage>) => {
       message: error instanceof Error ? error.message : 'Audio processing failed.',
     });
   }
+}
+
+function detachDirectInputPort() {
+  if (!directInputPort) return;
+  directInputPort.onmessage = null;
+  directInputPort.close();
+  directInputPort = null;
+}
+
+workerScope.onmessage = (event: MessageEvent<AudioWorkerInboundMessage>) => {
+  const message = event.data;
+
+  if (message.type === 'init') {
+    const nextInput = Number(message.inputSampleRate);
+    const nextTarget = Number(message.targetSampleRate);
+
+    if (!Number.isFinite(nextInput) || !Number.isFinite(nextTarget) || nextInput <= 0 || nextTarget <= 0) {
+      initialized = false;
+      post({
+        type: 'error',
+        code: 'invalid_sample_rate',
+        message: 'Audio worker received an invalid sample rate.',
+      });
+      return;
+    }
+
+    inputSampleRate = nextInput;
+    targetSampleRate = nextTarget;
+    initialized = true;
+    post({ type: 'ready', inputSampleRate, targetSampleRate });
+    return;
+  }
+
+  if (message.type === 'attach_port') {
+    detachDirectInputPort();
+    directInputPort = message.port;
+    directInputPort.onmessage = (inputEvent: MessageEvent<AudioWorkerProcessMessage>) => {
+      const inputMessage = inputEvent.data;
+      if (inputMessage?.type === 'process') processSamples(inputMessage);
+    };
+    directInputPort.start();
+    return;
+  }
+
+  if (message.type === 'reset') {
+    detachDirectInputPort();
+    initialized = false;
+    inputSampleRate = 0;
+    targetSampleRate = 16_000;
+    return;
+  }
+
+  if (message.type === 'flush') {
+    post({ type: 'flushed' });
+    return;
+  }
+
+  processSamples(message);
 };
 
 export {};
