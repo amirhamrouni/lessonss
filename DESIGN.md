@@ -1,49 +1,50 @@
 ---
 version: alpha
-name: "English Twin — Language Lab"
-description: "A mobile-first adult language-learning product whose identity comes from bilingual signal rails, transcript geometry, and functional audio states rather than generic AI decoration."
+name: "English Twin — Reference UI"
+description: "The approved mobile-first English Twin interface: bright white learning surfaces, cobalt primary actions, soft blue hierarchy, teal speech feedback, rounded cards and clear bilingual Arabic/English composition."
 colors:
-  canvas: "#F4F7F8"
+  canvas: "#F7F8FC"
   surface: "#FFFFFF"
-  surface-muted: "#E8EEF1"
-  ink: "#132A36"
-  ink-muted: "#5B6C74"
-  line: "#B8C5CB"
+  surface-muted: "#F1F3F9"
+  surface-blue: "#EEF3FF"
+  ink: "#14213D"
+  ink-muted: "#6B7280"
+  line: "#E2E6EF"
   primary: "#2F5BFF"
-  primary-strong: "#1739C7"
+  primary-strong: "#2149DF"
   voice: "#00A9A5"
   memory: "#F2B43A"
-  success: "#2E7D5B"
-  danger: "#D9574A"
+  success: "#16A34A"
+  danger: "#E04436"
   focus: "#2F5BFF"
 typography:
-  latin-display:
-    fontFamily: "IBM Plex Sans, Segoe UI Variable Display, Segoe UI, system-ui, sans-serif"
-  latin-body:
-    fontFamily: "IBM Plex Sans, Segoe UI Variable Text, Segoe UI, system-ui, sans-serif"
+  latin:
+    fontFamily: "Inter, Segoe UI Variable Text, Segoe UI, system-ui, sans-serif"
   arabic:
-    fontFamily: "Noto Sans Arabic, Noto Kufi Arabic, Tahoma, Arial, sans-serif"
+    fontFamily: "Tajawal, Noto Sans Arabic, Tahoma, Arial, sans-serif"
   utility:
-    fontFamily: "IBM Plex Mono, SFMono-Regular, Consolas, Liberation Mono, monospace"
+    fontFamily: "SFMono-Regular, Consolas, Liberation Mono, monospace"
 rounded:
-  DEFAULT: "0.5rem"
-  sm: "0.25rem"
-  md: "0.5rem"
-  lg: "0.75rem"
+  DEFAULT: "0.75rem"
+  sm: "0.75rem"
+  md: "1rem"
+  lg: "1.35rem"
+  xl: "1.75rem"
 spacing:
-  page-inline: "1.25rem"
-  section-gap: "2rem"
-  control-height: "3rem"
-  dock-height: "4.25rem"
-  content-max: "47.5rem"
+  page-inline: "1.125rem"
+  section-gap: "1.5rem"
+  control-height: "3.25rem"
+  dock-height: "4.65rem"
+  content-max: "32.5rem"
 components:
-  twin-rail: { }
-  button: { }
-  bottom-nav: { }
-  recommendation: { }
-  lesson-row: { }
-  progress-rail: { }
-  audio-state: { }
+  button:
+    radius: "0.75rem"
+  card:
+    radius: "1.35rem"
+  bottom-nav:
+    height: "4.65rem"
+  progress:
+    height: "0.4375rem"
 ---
 
 # English Twin Design System
@@ -52,95 +53,97 @@ components:
 
 ### Creative North Star
 
-English Twin should feel like a **modern language lab desk**: a learner is moving between two synchronized channels — the support language and the target English — while listening, repeating, reviewing and building sentences. The product borrows visual logic from subtitle timelines, transcript marks, phonetic workbooks and studio meters, not from AI dashboards or newspaper layouts.
+The owner-approved multi-screen mockup is the visual source of truth. English Twin should look like a polished consumer language-learning application: bright, friendly, highly legible and immediately understandable on a phone. It is not a newspaper/editorial interface, an AI dashboard, or a developer tool.
 
 ### Product context and register
 
-- **Audience and primary job:** adult and older-teen English learners, including Arabic-speaking beginners, who need one understandable next learning action rather than a dashboard of metrics.
-- **Target market(s) and evidence:** multilingual consumer learning product; repository research establishes CEFR structure, Arabic RTL support, mobile primary navigation, FSRS review and dedicated speaking modes.
-- **Locale(s) and language policy:** interface/support languages include Arabic, Dutch, French, German, Spanish and English. Arabic UI is RTL; target-language English content remains LTR inside lessons and practice.
-- **Usage scene:** primarily phone, short repeat sessions, one-handed navigation, frequent mixed-script content, microphone and listening interactions.
-- **Register:** product-first. Brand expression is concentrated in the shell, recommendation state and Twin Rail; lesson interactions stay quiet and predictable.
-- **Memorable signature:** **Twin Rail** — two parallel signal tracks representing support-language guidance and English output. The rails appear as aligned paired strokes, split labels and progress markers across Home, Learn, Review and Speak. They are semantic, not decoration.
-- **Restraint:** typography, controls, lesson responses, error states and long Arabic copy remain conventional, readable and stable.
-- **Anti-references:** generic purple/blue AI gradient cards; glassmorphism; robot mascots; emoji decoration; cream-and-terracotta editorial templates; broadsheet/newspaper layouts; giant rounded SaaS cards; hidden icon columns; decorative waveforms that imply audio activity when none exists.
-- **Token ownership/runtime mapping:** existing runtime CSS variables remain canonical (Model B). `DESIGN.md` mirrors approved values and rationale; `src/design-tokens.css` owns the runtime values consumed by the final application stylesheet and shared components.
+- **Audience:** adult and older-teen English learners, including Arabic-speaking beginners.
+- **Primary job:** make the next learning action obvious, then keep the learner inside a consistent Learn → Lesson → Review → Speak loop.
+- **Locales:** Arabic, Dutch, French, German, Spanish and English support. Arabic UI is RTL; English target phrases remain LTR.
+- **Register:** consumer learning product with restrained brand expression.
+- **Approved signature:** white rounded learning cards, cobalt primary action, soft blue active states, teal real speech feedback, small warm achievement accents, and a stable five-item icon + label bottom navigation.
+- **Anti-references:** Swiss/broadsheet layouts, cream editorial themes, empty whitespace as decoration, floating percentage blocks, arbitrary vertical rails, glassmorphism, fake AI glow, inconsistent button shapes, and oversized dark navigation tiles.
+- **Runtime ownership:** `src/design-tokens.css` is canonical. `src/language-lab-system.css` is the final visual authority layer. This file mirrors those accepted runtime values.
 
 ## Colors
 
-The palette comes from language-lab instrumentation rather than lifestyle branding. `canvas` is a cool neutral so Arabic and English text both remain crisp. `ink` is deep blue-green rather than black. `primary` cobalt marks the current learning action and navigation selection. `voice` teal is reserved for actual listening/recording/speaking state. `memory` amber marks recall/review state. `success` and `danger` are semantic only.
-
-Do not use gradients for brand identity. Do not recolor entire cards by feature. Use color as a narrow signal: rail, status bar, focus ring, progress segment, active tab or one primary action.
+Use white cards on the very light cool canvas. Cobalt is the main learning/action color. Teal is reserved for actual listening/speaking feedback. Green means verified success, amber is memory/achievement, and red is error/destructive feedback. Light blue supports active learning surfaces. Gradients are allowed only in the main branded lesson/recommendation hero and must stay within the cobalt family.
 
 ## Typography
 
-Latin display and body use an IBM Plex/Segoe system-capable stack to evoke language tooling without looking like a code editor. Arabic uses a dedicated Arabic-capable stack with increased line height. Utility metadata may use mono for CEFR labels, timers, percentages and transcription timestamps.
-
-- Latin headings: 700–800 weight, compact but not hyper-compressed.
-- Arabic headings: 700–800 weight, no negative tracking, line-height around 1.35–1.5 depending on size.
-- Body: 16px minimum on mobile; Arabic body line-height approximately 1.75.
-- English target phrases are explicitly `dir="ltr"` where mixed into RTL views.
-- Do not uppercase Arabic labels or apply Latin tracking conventions to Arabic text.
+Use a contemporary sans-serif feel matching the approved mockup. Latin uses Inter-compatible metrics. Arabic uses Tajawal/Noto Sans Arabic-compatible metrics with greater line-height. Heading weight is 700–800; body is 400–600. English target text inside RTL pages is explicitly LTR. Arabic never receives Latin letter-spacing or uppercase transformations.
 
 ## Layout
 
-Mobile baseline: 360–430px. Content max: 760px. The page shell uses a stable full-width document flow and a fixed bottom navigation that respects safe-area insets.
+Primary baseline is 360–430px phone width, with a 520px maximum application column. Page padding is approximately 14–18px on phones. Content is grouped into purposeful rounded cards rather than large empty regions.
 
-The core layout device is the Twin Rail. On mobile it sits at the inline edge as two 2px parallel strokes separated by 4px; content begins after a fixed 14–18px rail gutter. Progress markers align to these rails. On wide screens the rail may become a narrow left/right metadata column, but text must never collapse into an artificially narrow lane.
+Home hierarchy:
+1. Compact English Twin brand header + profile control.
+2. Learner greeting card.
+3. Honest weekly learning progress.
+4. One strong cobalt recommendation card with one primary action.
+5. Compact Today task list.
+6. Fixed five-item bottom navigation.
 
-Home order:
-1. Brand/status line.
-2. Learner greeting + one real daily meter.
-3. One recommended next action anchored to Twin Rail.
-4. Today plan as compact rows.
+Learn hierarchy:
+1. Short title.
+2. A0/A1/A2/B1/B2 CEFR tabs.
+3. Compact level progress card.
+4. Vertical numbered unit/lesson path with complete/current/locked states.
 
-Learn uses numbered CEFR units and lesson rows attached to a progress rail. Practice uses a mode index, not large blank cards. Speak uses a real audio-state panel only when audio is available. Bottom navigation is a stable five-item dock with a narrow active signal bar, not a floating pill.
+Lesson hierarchy:
+1. Exit/back control + honest step counter.
+2. Thin cobalt progress bar.
+3. One main activity card.
+4. English target prominent, native-language support secondary.
+5. One clear primary action at the bottom of the activity.
+
+Speak hierarchy follows the same shell but uses teal for real speech/pronunciation feedback.
 
 ## Elevation & Depth
 
-Hierarchy comes from tonal surfaces, rail position, border strength and spacing. Static content has no shadows. A modal or transient overlay may use one soft elevation layer. No glass blur, glow, halo, or colored shadow.
+Cards use a soft, low-opacity shadow only to separate white surfaces from the cool canvas. The branded hero may use a slightly stronger cobalt shadow. No glow, glass blur, or decorative shadow effects.
 
 ## Shapes
 
-Default radius is 8px. Small controls may use 4px; major panels may use 12px only when the geometry needs separation. Pills are reserved for genuine compact statuses such as CEFR level or microphone state, never for every button or card.
-
-The Twin Rail uses square line endings and small rectangular markers. Avoid ornamental circles unless the state itself is circular by meaning (for example, an audio record control).
+Cards are intentionally rounded as in the approved reference: roughly 16–22px. Controls use 10–14px. Avatar/audio controls may be circular when their function benefits from it. Pills are for compact metadata only.
 
 ## Components
 
 ### Foundational visual states
 
-Every interactive control has default, hover, focus-visible, pressed, disabled and busy states. Focus uses a visible cobalt outline. Loading reserves final geometry; it does not replace whole screens with floating spinners. Reduced motion disables non-essential transitions.
+Every interactive control requires default, focus-visible, pressed, disabled and busy behavior. Selected answers and active CEFR tabs use soft/cobalt states. Success and error feedback preserve layout rather than replacing the screen.
 
 ### Buttons and actions
 
-Primary: cobalt background, white text, 48px minimum height, 8px radius. Secondary: transparent surface with ink border. Ghost: text only for low-emphasis navigation. Voice actions use teal only while the function is explicitly audio-related. Danger uses red only for destructive/critical actions.
+Primary buttons: cobalt fill, white text, ~52px height, 12px radius. Secondary: white or soft-blue surface with cobalt text/border. Low-emphasis text actions have no filled container. Within a screen there is normally one dominant primary action.
 
 ### Navigation and data display
 
-Bottom navigation: five equal targets, 44px+ touch area, text labels always visible. Active state is a top signal bar plus stronger text, not an oversized dark tile. Progress bars are thin rails with explicit numeric text nearby so color is not the only signal.
+Bottom navigation has five equal targets with functional outline icons plus visible text labels. The active item is cobalt with a small active dot; it is not a dark rectangular tile. Progress bars are 6–8px rounded rails and include numeric context nearby.
 
 ### Forms and overlays
 
-Fields use stable labels, visible focus and inline errors. Product forms own validation. Overlays stay within the visual viewport and restore focus. Long Arabic strings must wrap naturally without shrinking to unreadable sizes.
+Fields use white/light-neutral surfaces, 10–12px radius, visible labels and inline error states. Overlays remain accessible within the visual viewport and restore focus.
 
 ### Iconography
 
-Icons are functional only. Use one consistent outlined family at 18–20px. Never hide icons globally with CSS while leaving layout columns behind. If an icon is removed, remove its geometry from component markup or layout. Important navigation/action icons keep visible text labels.
+Use the existing Lucide outline family consistently. Icons are functional, generally 18–20px. Do not globally hide icon libraries. Text remains visible for main navigation and primary actions.
 
 ### Motion
 
-120–180ms transitions for state changes, progress and pressed feedback. Audio visual motion is permitted only when driven by real microphone/playback data. No ambient floating animation, sparkles or confetti by default.
+Use short 120–180ms pressed/selection transitions. Real audio may animate from actual input/playback data. Respect reduced-motion preferences.
 
 ### Content and data visualization
 
-Copy is direct and learner-centered. Home answers: "What should I do now?" Learn answers: "Where am I in the course?" Practice answers: "What skill am I training?" Speak answers: "What is the microphone doing?" Empty and error states explain the next action.
+Home answers “What do I do next?”. Learn answers “Where am I in the course?”. Review answers “What is due now?”. Speak answers “What did I say and how can I improve it?”. No fake progress, fake streaks or fake AI insight.
 
 ## Do's and Don'ts
 
-- **Do:** make the support-language and English relationship visible through Twin Rail structure and mixed-script direction rules.
-- **Do:** reuse cobalt, teal and amber as narrow semantic signals rather than flooding surfaces.
-- **Do:** keep Home focused on one recommendation and one honest daily meter.
-- **Don't:** return to cream editorial/newspaper styling; it is not specific to language learning and reads as a current AI-design default.
-- **Don't:** use purple gradient cards, glass effects, fake AI glow, robot art, emoji decoration, or giant rounded containers.
-- **Don't:** hide icon libraries globally as a visual fix; refactor the layout owner instead.
+- **Do:** follow the approved reference composition before inventing new UI patterns.
+- **Do:** keep Arabic support visually secondary to English targets inside exercises.
+- **Do:** reuse the same card, button, progress, spacing and navigation grammar across every route.
+- **Do:** use real saved progress and FSRS/speech data in visual indicators.
+- **Don't:** reintroduce Swiss/editorial rails, giant whitespace or floating metric typography.
+- **Don't:** make every card a different style or every feature a different color.
+- **Don't:** use generic AI gradients, glassmorphism, decorative sparkles or non-functional waveforms.
