@@ -204,6 +204,25 @@ button,
   letter-spacing: var(--et-tracking-label);
 }
 
+/* Final visual policy: no decorative iconography or synthetic effects in product UI. */
+.app-shell .lucide,
+.app-shell svg[class*="lucide"] {
+  display: none !important;
+}
+
+.app-shell [class*="gradient"],
+.app-shell [class*="glass"],
+.app-shell [class*="shine"],
+.app-shell [class*="neon"],
+.app-shell [class*="halo"],
+.app-shell [class*="glow"] {
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  text-shadow: none !important;
+}
+
 /* Decorative-only motion and synthetic visual effects are removed. */
 .confetti,
 .sparkles,
