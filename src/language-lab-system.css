@@ -1,0 +1,1418 @@
+/* English Twin — Language Lab system
+   Frontend Design Premium migration target.
+   This is the only final visual authority layer; earlier legacy files remain temporarily for
+   untouched routes and are progressively retired. No new override sheet should follow this file. */
+
+html {
+  background: var(--et-canvas);
+  scrollbar-color: var(--et-ink-soft) var(--et-surface-muted);
+  scrollbar-width: thin;
+}
+
+html::-webkit-scrollbar,
+.app-shell *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+html::-webkit-scrollbar-track,
+.app-shell *::-webkit-scrollbar-track {
+  background: var(--et-surface-muted);
+}
+
+html::-webkit-scrollbar-thumb,
+.app-shell *::-webkit-scrollbar-thumb {
+  background: var(--et-ink-soft);
+  border: 2px solid var(--et-surface-muted);
+  border-radius: var(--et-radius-pill);
+}
+
+html::-webkit-scrollbar-thumb:hover,
+.app-shell *::-webkit-scrollbar-thumb:hover {
+  background: var(--et-ink);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--et-canvas);
+  color: var(--et-ink);
+  font-family: var(--et-font-sans);
+  font-size: var(--et-text-md);
+  line-height: var(--et-leading-copy);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: var(--et-primary);
+  color: #fff;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--et-focus) 72%, white);
+  outline-offset: 3px;
+}
+
+.app-shell {
+  min-height: 100dvh;
+  background: var(--et-canvas) !important;
+  color: var(--et-ink) !important;
+}
+
+.app-shell .phone {
+  width: min(100%, var(--et-content-max)) !important;
+  min-height: 100dvh !important;
+  margin: 0 auto !important;
+  overflow: visible !important;
+  background: var(--et-canvas) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.app-shell .page,
+.app-shell .mode-page {
+  width: 100% !important;
+  max-width: var(--et-content-max) !important;
+  margin: 0 auto !important;
+  padding: clamp(22px, 5vw, 34px) clamp(18px, 5vw, 28px) calc(var(--et-dock-height) + 42px + env(safe-area-inset-bottom)) !important;
+  overflow: visible !important;
+  background: transparent !important;
+}
+
+[dir="rtl"] .page,
+[dir="rtl"] .mode-page,
+.app-shell[dir="rtl"] {
+  font-family: var(--et-font-arabic);
+  line-height: var(--et-leading-arabic);
+}
+
+[dir="rtl"] .page [dir="ltr"],
+[dir="rtl"] .mode-page [dir="ltr"] {
+  font-family: var(--et-font-sans);
+  line-height: var(--et-leading-copy);
+}
+
+.app-shell h1,
+.app-shell h2,
+.app-shell h3,
+.app-shell h4 {
+  margin-top: 0 !important;
+  color: var(--et-ink) !important;
+  font-family: var(--et-font-display);
+  font-weight: 780 !important;
+  line-height: 1.1 !important;
+  letter-spacing: var(--et-tracking-tight) !important;
+  text-wrap: balance;
+}
+
+.app-shell[dir="rtl"] h1,
+.app-shell[dir="rtl"] h2,
+.app-shell[dir="rtl"] h3,
+.app-shell[dir="rtl"] h4,
+[dir="rtl"] .app-shell h1,
+[dir="rtl"] .app-shell h2,
+[dir="rtl"] .app-shell h3,
+[dir="rtl"] .app-shell h4 {
+  font-family: var(--et-font-arabic);
+  letter-spacing: 0 !important;
+  line-height: 1.38 !important;
+}
+
+.app-shell p {
+  color: var(--et-ink-soft) !important;
+  max-width: var(--et-copy-max);
+}
+
+.app-shell .eyebrow,
+.app-shell .mode-kicker,
+.app-shell .section-label,
+.app-shell .section-heading > span,
+.app-shell .status-dot,
+.app-shell .unit-label small {
+  color: var(--et-ink-soft) !important;
+  font-family: var(--et-font-mono) !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+  letter-spacing: var(--et-tracking-label) !important;
+  text-transform: uppercase;
+}
+
+[dir="rtl"] .app-shell .eyebrow,
+[dir="rtl"] .app-shell .mode-kicker,
+[dir="rtl"] .app-shell .section-label,
+[dir="rtl"] .app-shell .section-heading > span {
+  font-family: var(--et-font-arabic) !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+/* No decorative AI effects. Functional icons remain visible. */
+.app-shell [class*="gradient"],
+.app-shell [class*="glass"],
+.app-shell [class*="shine"],
+.app-shell [class*="neon"],
+.app-shell [class*="halo"],
+.app-shell [class*="glow"],
+.app-shell [class*="aurora"] {
+  background-image: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.app-shell .confetti,
+.app-shell .sparkles,
+.app-shell .orb,
+.app-shell .blob,
+.app-shell .ambient-shape,
+.app-shell .floating-shape,
+.app-shell .decorative-icon,
+.app-shell .continue-art,
+.app-shell .mini-twin,
+.app-shell .brand-wordmark i {
+  display: none !important;
+}
+
+.app-shell .lucide,
+.app-shell svg[class*="lucide"] {
+  display: inline-block !important;
+  width: 19px !important;
+  height: 19px !important;
+  flex: 0 0 19px !important;
+  stroke-width: 1.8 !important;
+}
+
+/* Controls */
+.app-shell button,
+.app-shell .button,
+.app-shell .primary,
+.app-shell .secondary,
+.app-shell .ghost,
+.app-shell .solid,
+.app-shell .cta {
+  min-height: var(--et-control-height) !important;
+  border-radius: var(--et-radius-md) !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+  transition: transform var(--et-transition-fast), background-color var(--et-transition-fast), border-color var(--et-transition-fast), color var(--et-transition-fast) !important;
+}
+
+.app-shell button:not(:disabled),
+.app-shell a {
+  cursor: pointer;
+}
+
+.app-shell button:not(:disabled):active,
+.app-shell .button:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+.app-shell .primary,
+.app-shell .solid,
+.app-shell .continue-card button,
+.app-shell .activity-action {
+  background: var(--et-primary) !important;
+  color: #fff !important;
+  border: 1px solid var(--et-primary) !important;
+}
+
+.app-shell .primary:hover,
+.app-shell .solid:hover,
+.app-shell .continue-card button:hover,
+.app-shell .activity-action:hover {
+  background: var(--et-primary-strong) !important;
+  border-color: var(--et-primary-strong) !important;
+}
+
+.app-shell button:disabled,
+.app-shell .primary:disabled,
+.app-shell .solid:disabled {
+  opacity: 0.46 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+.app-shell .back {
+  width: auto !important;
+  min-height: 44px !important;
+  margin: 0 0 18px !important;
+  padding: 0 2px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  color: var(--et-ink) !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--et-line) !important;
+  border-radius: 0 !important;
+}
+
+/* Brand header */
+.reference-home .home-header,
+.reference-home .reference-header {
+  margin: 0 0 24px !important;
+  padding: 0 0 14px !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--et-line) !important;
+  background: transparent !important;
+}
+
+.reference-home .brand-wordmark {
+  display: inline-flex !important;
+  align-items: baseline !important;
+  gap: 0.28em !important;
+  color: var(--et-ink) !important;
+  font-family: var(--et-font-display) !important;
+  font-size: 1.18rem !important;
+  font-weight: 780 !important;
+  letter-spacing: -0.035em !important;
+}
+
+.reference-home .brand-wordmark::before {
+  content: "";
+  width: 14px;
+  height: 18px;
+  display: inline-block;
+  border-inline-start: 3px solid var(--et-primary);
+  border-inline-end: 3px solid var(--et-voice);
+  transform: skewY(-14deg);
+}
+
+.reference-home .brand-wordmark b {
+  color: var(--et-primary) !important;
+}
+
+.reference-home .reference-header small {
+  display: block !important;
+  margin-top: 3px !important;
+  color: var(--et-ink-soft) !important;
+  font-family: var(--et-font-mono) !important;
+  font-size: 0.68rem !important;
+  letter-spacing: 0.02em !important;
+}
+
+.reference-home .crown-button {
+  min-width: 44px !important;
+  width: 44px !important;
+  height: 44px !important;
+  padding: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  color: var(--et-ink) !important;
+  background: var(--et-surface) !important;
+  border: 1px solid var(--et-line) !important;
+}
+
+/* Home: compact instrument hierarchy, not a stack of cards. */
+.reference-home .welcome-card,
+.reference-home .goal-card,
+.reference-home .continue-card,
+.reference-home .home-reward {
+  width: 100% !important;
+  margin: 0 0 18px !important;
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.reference-home .welcome-card {
+  padding: 14px 0 20px !important;
+  border-bottom: 1px solid var(--et-line) !important;
+}
+
+.reference-home .welcome-card h1 {
+  margin: 6px 0 4px !important;
+  font-size: clamp(2rem, 9vw, 3.7rem) !important;
+  line-height: 1.04 !important;
+  overflow-wrap: anywhere;
+}
+
+.reference-home .welcome-card p {
+  margin: 0 !important;
+}
+
+.reference-home .goal-card {
+  padding: 14px 0 20px !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 10px 20px !important;
+  align-items: end !important;
+  border-bottom: 1px solid var(--et-line) !important;
+}
+
+.reference-home .goal-title,
+.reference-home .goal-content {
+  display: contents !important;
+}
+
+.reference-home .goal-title > div {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+}
+
+.reference-home .goal-title b {
+  font-size: 0.94rem !important;
+}
+
+.reference-home .goal-title span {
+  color: var(--et-ink-soft) !important;
+  font-family: var(--et-font-mono) !important;
+  font-size: 0.75rem !important;
+}
+
+.reference-home .goal-ring {
+  width: auto !important;
+  height: auto !important;
+  aspect-ratio: auto !important;
+  display: block !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+
+.reference-home .goal-ring::before,
+.reference-home .goal-ring::after {
+  display: none !important;
+}
+
+.reference-home .goal-ring strong {
+  color: var(--et-primary) !important;
+  font-family: var(--et-font-mono) !important;
+  font-size: 2.15rem !important;
+  line-height: 1 !important;
+  letter-spacing: -0.05em !important;
+}
+
+.reference-home .goal-card p {
+  grid-column: 1 / -1 !important;
+  margin: 4px 0 0 !important;
+}
+
+/* Twin Rail signature */
+.reference-home .continue-card,
+.app-shell .journey-unit,
+.app-shell .review-card,
+.app-shell .builder-card,
+.app-shell .activity-card,
+.app-shell .voice-stage {
+  position: relative !important;
+  padding-inline-start: 24px !important;
+}
+
+.reference-home .continue-card::before,
+.reference-home .continue-card::after,
+.app-shell .journey-unit::before,
+.app-shell .journey-unit::after,
+.app-shell .review-card::before,
+.app-shell .review-card::after,
+.app-shell .builder-card::before,
+.app-shell .builder-card::after,
+.app-shell .activity-card::before,
+.app-shell .activity-card::after,
+.app-shell .voice-stage::before,
+.app-shell .voice-stage::after {
+  content: "" !important;
+  position: absolute !important;
+  inset-block: 0 !important;
+  width: 2px !important;
+  border-radius: 0 !important;
+  pointer-events: none !important;
+}
+
+.reference-home .continue-card::before,
+.app-shell .journey-unit::before,
+.app-shell .builder-card::before,
+.app-shell .activity-card::before,
+.app-shell .voice-stage::before {
+  inset-inline-start: 0 !important;
+  background: var(--et-primary) !important;
+}
+
+.reference-home .continue-card::after,
+.app-shell .journey-unit::after,
+.app-shell .builder-card::after,
+.app-shell .activity-card::after,
+.app-shell .voice-stage::after {
+  inset-inline-start: 6px !important;
+  background: var(--et-voice) !important;
+}
+
+.app-shell .review-card::before {
+  inset-inline-start: 0 !important;
+  background: var(--et-memory) !important;
+}
+
+.app-shell .review-card::after {
+  inset-inline-start: 6px !important;
+  background: var(--et-primary) !important;
+}
+
+.reference-home .continue-card {
+  margin-top: 26px !important;
+  padding-block: 22px 24px !important;
+  padding-inline-end: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--et-line) !important;
+}
+
+.reference-home .continue-copy {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.reference-home .continue-copy > span,
+.reference-home .continue-copy > small {
+  display: block !important;
+  margin-bottom: 6px !important;
+  color: var(--et-ink-soft) !important;
+}
+
+.reference-home .continue-card h2 {
+  margin: 3px 0 8px !important;
+  font-size: clamp(1.8rem, 8vw, 3.15rem) !important;
+  line-height: 1.08 !important;
+}
+
+.reference-home .continue-card p {
+  margin: 0 0 16px !important;
+}
+
+.reference-home .continue-progress,
+.app-shell .thin-progress,
+.app-shell .progress-track,
+.app-shell .assessment-progress {
+  width: 100% !important;
+  height: 6px !important;
+  margin: 16px 0 !important;
+  overflow: hidden !important;
+  background: var(--et-surface-muted) !important;
+  border: 1px solid var(--et-line) !important;
+  border-radius: var(--et-radius-xs) !important;
+}
+
+.reference-home .continue-progress i,
+.app-shell .thin-progress i,
+.app-shell .progress-track i,
+.app-shell .assessment-progress i {
+  display: block !important;
+  min-width: 2px !important;
+  height: 100% !important;
+  background: var(--et-primary) !important;
+  border-radius: 0 !important;
+}
+
+.reference-home .continue-card button {
+  width: 100% !important;
+  padding-inline: 16px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+}
+
+.reference-home .reference-section {
+  margin: 30px 0 6px !important;
+  padding-bottom: 8px !important;
+  display: flex !important;
+  align-items: baseline !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  border-bottom: 1px solid var(--et-line-strong) !important;
+}
+
+.reference-home .reference-section h3 {
+  margin: 0 !important;
+  font-size: 1.05rem !important;
+}
+
+.reference-home .reference-section button {
+  min-height: 40px !important;
+  padding: 0 !important;
+  color: var(--et-primary) !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.reference-home .today-list {
+  display: block !important;
+}
+
+.reference-home .today-list > button {
+  width: 100% !important;
+  min-height: 70px !important;
+  margin: 0 !important;
+  padding: 12px 0 !important;
+  display: grid !important;
+  grid-template-columns: 34px minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 12px !important;
+  color: var(--et-ink) !important;
+  text-align: start !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--et-line) !important;
+  border-radius: 0 !important;
+}
+
+.reference-home .today-list .plan-icon {
+  width: 32px !important;
+  height: 32px !important;
+  display: grid !important;
+  place-items: center !important;
+  color: var(--et-primary) !important;
+  background: color-mix(in srgb, var(--et-primary) 8%, white) !important;
+  border: 1px solid color-mix(in srgb, var(--et-primary) 28%, var(--et-line)) !important;
+  border-radius: var(--et-radius-sm) !important;
+}
+
+.reference-home .today-list > button > div {
+  min-width: 0 !important;
+}
+
+.reference-home .today-list b,
+.reference-home .today-list small {
+  display: block !important;
+}
+
+.reference-home .today-list small {
+  margin-top: 2px !important;
+  color: var(--et-ink-soft) !important;
+  font-family: var(--et-font-mono) !important;
+  font-size: 0.72rem !important;
+}
+
+.reference-home .home-reward {
+  margin-top: 28px !important;
+  padding: 18px !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 10px 16px !important;
+  align-items: center !important;
+  background: var(--et-surface-muted) !important;
+  border: 1px solid var(--et-line) !important;
+  border-radius: var(--et-radius-md) !important;
+}
+
+.reference-home .home-reward > .lucide {
+  display: none !important;
+}
+
+.reference-home .home-reward > div {
+  min-width: 0 !important;
+}
+
+.reference-home .home-reward b,
+.reference-home .home-reward small {
+  display: block !important;
+}
+
+.reference-home .home-reward button {
+  min-width: 104px !important;
+  padding-inline: 14px !important;
+  color: var(--et-ink) !important;
+  background: var(--et-surface) !important;
+  border: 1px solid var(--et-line-strong) !important;
+}
+
+/* Standard page headers */
+.app-shell main > header:not(.home-header) {
+  margin: 0 0 22px !important;
+  padding: 0 0 14px !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--et-line) !important;
+  border-radius: 0 !important;
+}
+
+.app-shell main > header:not(.home-header) h1 {
+  margin: 4px 0 6px !important;
+  font-size: clamp(2rem, 9vw, 3.7rem) !important;
+}
+
+.app-shell main > header:not(.home-header) p {
+  margin: 0 !important;
+}
+
+/* Learn */
+.app-shell .language-support-banner {
+  width: 100% !important;
+  margin: 0 0 22px !important;
+  padding: 12px 14px !important;
+  display: grid !important;
+  grid-template-columns: 24px minmax(0, 1fr) !important;
+  align-items: start !important;
+  gap: 10px !important;
+  color: var(--et-ink) !important;
+  background: color-mix(in srgb, var(--et-primary) 5%, var(--et-surface)) !important;
+  border: 1px solid color-mix(in srgb, var(--et-primary) 24%, var(--et-line)) !important;
+  border-radius: var(--et-radius-md) !important;
+}
+
+.app-shell .language-support-banner .lucide {
+  color: var(--et-primary) !important;
+}
+
+.app-shell .language-support-banner b,
+.app-shell .language-support-banner small {
+  display: block !important;
+}
+
+.app-shell .language-support-banner small {
+  margin-top: 3px !important;
+  color: var(--et-ink-soft) !important;
+}
+
+.app-shell .level-section {
+  margin: 0 0 34px !important;
+}
+
+.app-shell .learn-overview {
+  margin: 0 0 20px !important;
+  padding: 14px 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-top: 3px solid var(--et-primary) !important;
+  border-bottom: 1px solid var(--et-line) !important;
+  border-radius: 0 !important;
+}
+
+.app-shell .learn-overview > div:first-child {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: baseline !important;
+  gap: 12px !important;
+}
+
+.app-shell .learn-overview strong {
+  color: var(--et-primary) !important;
+  font-family: var(--et-font-mono) !important;
+  font-size: 2rem !important;
+  line-height: 1 !important;
+}
+
+.app-shell .learn-overview small {
+  color: var(--et-ink-soft) !important;
+}
+
+.app-shell .journey {
+  display: grid !important;
+  gap: 6px !important;
+}
+
+.app-shell .journey-unit {
+  margin: 0 !important;
+  padding-block: 18px !important;
+  padding-inline-end: 0 !important;
+  display: grid !important;
+  grid-template-columns: 40px minmax(0, 1fr) !important;
+  gap: 12px !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--et-line) !important;
+  border-radius: 0 !important;
+}
+
+.app-shell .journey-marker {
+  width: 36px !important;
+  height: 36px !important;
+  display: grid !important;
+  place-items: center !important;
+  align-self: start !important;
+  color: var(--et-ink) !important;
+  background: var(--et-surface) !important;
+  border: 1px solid var(--et-line-strong) !important;
+  border-radius: var(--et-radius-sm) !important;
+}
+
+.app-shell .journey-marker span {
+  font-family: var(--et-font-mono) !important;
+  font-size: 0.78rem !important;
+}
+
+.app-shell .journey-content,
+.app-shell .unit-label,
+.app-shell .lesson-rows {
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+.app-shell .unit-label h3 {
+  margin: 3px 0 10px !important;
+  font-size: 1.25rem !important;
+}
+
+.app-shell .lesson-rows {
+  display: grid !important;
+  gap: 0 !important;
+}
+
+.app-shell .lesson-rows > button {
+  width: 100% !important;
+  min-height: 66px !important;
+  padding: 10px 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 12px !important;
+  color: var(--et-ink) !important;
+  text-align: start !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-top: 1px solid var(--et-line) !important;
+  border-radius: 0 !important;
+}
+
+.app-shell .lesson-rows > button b,
+.app-shell .lesson-rows > button small {
+  display: block !important;
+}
+
+.app-shell .lesson-rows > button small {
+  margin-top: 3px !important;
+  color: var(--et-ink-soft) !important;
+  font-family: var(--et-font-mono) !important;
+  font-size: 0.7rem !important;
+}
+
+.app-shell .lesson-rows > button > span {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  color: var(--et-primary) !important;
+  white-space: nowrap !important;
+  font-size: 0.8rem !important;
+}
+
+.app-shell .lesson-rows > button > span.done {
+  color: var(--et-success) !important;
+}
+
+/* Practice index */
+.app-shell .practice-command {
+  margin: 0 0 20px !important;
+  padding: 16px !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 12px 16px !important;
+  align-items: center !important;
+  background: var(--et-surface) !important;
+  border: 1px solid var(--et-line) !important;
+  border-inline-start: 4px solid var(--et-primary) !important;
+  border-radius: var(--et-radius-md) !important;
+}
+
+.app-shell .practice-command > div {
+  min-width: 0 !important;
+}
+
+.app-shell .practice-command h2 {
+  margin: 3px 0 5px !important;
+  font-size: 1.25rem !important;
+}
+
+.app-shell .practice-command p {
+  margin: 0 !important;
+}
+
+.app-shell .practice-command > button {
+  min-width: 120px !important;
+  padding-inline: 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  color: #fff !important;
+  background: var(--et-primary) !important;
+  border: 1px solid var(--et-primary) !important;
+}
+
+.app-shell .mode-list {
+  display: grid !important;
+  gap: 0 !important;
+  background: transparent !important;
+}
+
+.app-shell .mode-list > button {
+  width: 100% !important;
+  min-height: 96px !important;
+  margin: 0 !important;
+  padding: 14px 0 !important;
+  display: grid !important;
+  grid-template-columns: 40px minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 12px !important;
+  color: var(--et-ink) !important;
+  text-align: start !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--et-line) !important;
+  border-radius: 0 !important;
+}
+
+.app-shell .mode-list > button > .lucide:first-child {
+  width: 36px !important;
+  height: 36px !important;
+  padding: 8px !important;
+  color: var(--et-primary) !important;
+  background: color-mix(in srgb, var(--et-primary) 8%, white) !important;
+  border: 1px solid color-mix(in srgb, var(--et-primary) 25%, var(--et-line)) !important;
+  border-radius: var(--et-radius-sm) !important;
+}
+
+.app-shell .mode-list > button.pronunciation-mode-entry > .lucide:first-child {
+  color: var(--et-voice) !important;
+  background: color-mix(in srgb, var(--et-voice) 8%, white) !important;
+  border-color: color-mix(in srgb, var(--et-voice) 30%, var(--et-line)) !important;
+}
+
+.app-shell .mode-list > button > div {
+  min-width: 0 !important;
+}
+
+.app-shell .mode-list span,
+.app-shell .mode-list h3,
+.app-shell .mode-list p {
+  overflow-wrap: anywhere;
+}
+
+.app-shell .mode-list span {
+  color: var(--et-ink-soft) !important;
+  font-size: 0.72rem !important;
+}
+
+.app-shell .mode-list h3 {
+  margin: 2px 0 3px !important;
+  font-size: 1.06rem !important;
+}
+
+.app-shell .mode-list p {
+  margin: 0 !important;
+  font-size: 0.86rem !important;
+  line-height: 1.45 !important;
+}
+
+.app-shell .mode-list > button > .lucide:last-child {
+  color: var(--et-ink-soft) !important;
+}
+
+/* Review, builder, assessment, lesson */
+.app-shell .review-card,
+.app-shell .builder-card,
+.app-shell .assessment-card,
+.app-shell .activity-card,
+.app-shell .lesson-complete,
+.app-shell .voice-stage,
+.app-shell .rich-activity-card,
+.app-shell .signal-empty {
+  width: 100% !important;
+  margin: 0 0 18px !important;
+  padding-block: 18px !important;
+  padding-inline-end: 16px !important;
+  background: var(--et-surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--et-line) !important;
+  border-radius: var(--et-radius-md) !important;
+  box-shadow: none !important;
+}
+
+.app-shell .assessment-card,
+.app-shell .lesson-complete,
+.app-shell .rich-activity-card,
+.app-shell .signal-empty {
+  padding-inline-start: 16px !important;
+}
+
+.app-shell .review-card h2,
+.app-shell .builder-card h2,
+.app-shell .assessment-card h2,
+.app-shell .activity-card h2 {
+  margin: 5px 0 12px !important;
+  font-size: clamp(1.35rem, 6vw, 2rem) !important;
+}
+
+.app-shell .review-term-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+}
+
+.app-shell .review-term-row h2,
+.app-shell .speech-target {
+  color: var(--et-ink) !important;
+  font-family: var(--et-font-display) !important;
+}
+
+.app-shell .review-audio,
+.app-shell .review-example-audio {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  color: var(--et-voice) !important;
+  background: color-mix(in srgb, var(--et-voice) 7%, white) !important;
+  border: 1px solid color-mix(in srgb, var(--et-voice) 34%, var(--et-line)) !important;
+}
+
+.app-shell .review-answer {
+  margin: 14px 0 !important;
+  padding: 14px !important;
+  background: color-mix(in srgb, var(--et-memory) 11%, white) !important;
+  border-inline-start: 4px solid var(--et-memory) !important;
+}
+
+.app-shell .rating-row,
+.app-shell .builder-actions,
+.app-shell .lesson-actions {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+
+.app-shell .rating-row {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+.app-shell .rating-row > button,
+.app-shell .builder-actions > button,
+.app-shell .lesson-actions > button {
+  min-width: 0 !important;
+  padding: 9px 8px !important;
+  color: var(--et-ink) !important;
+  background: var(--et-surface) !important;
+  border: 1px solid var(--et-line) !important;
+}
+
+.app-shell .rating-row button span,
+.app-shell .rating-row button small {
+  display: block !important;
+}
+
+.app-shell .rating-row button small {
+  margin-top: 2px !important;
+  color: var(--et-ink-soft) !important;
+  font-size: 0.66rem !important;
+}
+
+.app-shell .built-zone,
+.app-shell .word-bank,
+.app-shell .answer-list,
+.app-shell .assessment-options {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+
+.app-shell .built-zone {
+  min-height: 68px !important;
+  margin: 12px 0 !important;
+  padding: 12px !important;
+  background: var(--et-surface-muted) !important;
+  border: 1px dashed var(--et-line-strong) !important;
+  border-radius: var(--et-radius-sm) !important;
+}
+
+.app-shell .word-bank > button,
+.app-shell .answer-list > button,
+.app-shell .assessment-options > button {
+  min-height: 44px !important;
+  padding: 9px 12px !important;
+  color: var(--et-ink) !important;
+  background: var(--et-surface) !important;
+  border: 1px solid var(--et-line) !important;
+  border-radius: var(--et-radius-sm) !important;
+}
+
+.app-shell .answer-list > button.selected,
+.app-shell .assessment-options > button.selected {
+  color: #fff !important;
+  background: var(--et-primary) !important;
+  border-color: var(--et-primary) !important;
+}
+
+.app-shell .lesson-top {
+  margin: 0 0 12px !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 16px !important;
+  align-items: start !important;
+}
+
+.app-shell .lesson-top h1 {
+  margin: 4px 0 5px !important;
+  font-size: clamp(1.75rem, 8vw, 3rem) !important;
+}
+
+.app-shell .lesson-top > span {
+  color: var(--et-primary) !important;
+  font-family: var(--et-font-mono) !important;
+  font-size: 0.78rem !important;
+}
+
+.app-shell .lesson-language-chip {
+  width: fit-content !important;
+  max-width: 100% !important;
+  min-height: 38px !important;
+  margin: 0 0 8px !important;
+  padding: 6px 9px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  color: var(--et-ink-soft) !important;
+  background: var(--et-surface-muted) !important;
+  border: 1px solid var(--et-line) !important;
+  border-radius: var(--et-radius-sm) !important;
+  font-size: 0.76rem !important;
+}
+
+.app-shell .feedback {
+  margin: 14px 0 !important;
+  padding: 12px !important;
+  display: grid !important;
+  grid-template-columns: 24px minmax(0, 1fr) !important;
+  gap: 10px !important;
+  background: var(--et-surface-muted) !important;
+  border: 1px solid var(--et-line) !important;
+  border-radius: var(--et-radius-sm) !important;
+}
+
+.app-shell .feedback.ok {
+  border-inline-start: 4px solid var(--et-success) !important;
+}
+
+.app-shell .feedback.bad {
+  border-inline-start: 4px solid var(--et-danger) !important;
+}
+
+.app-shell .feedback p {
+  margin: 2px 0 0 !important;
+}
+
+/* Speak / pronunciation */
+.app-shell .voice-live .practice-command,
+.app-shell .pronunciation-entry-card {
+  border-inline-start-color: var(--et-voice) !important;
+}
+
+.app-shell .voice-stage {
+  min-height: 210px !important;
+  padding-block: 24px !important;
+  padding-inline-end: 18px !important;
+  display: grid !important;
+  align-content: center !important;
+  gap: 8px !important;
+  background: color-mix(in srgb, var(--et-voice) 5%, var(--et-surface)) !important;
+  border-color: color-mix(in srgb, var(--et-voice) 28%, var(--et-line)) !important;
+}
+
+.app-shell .voice-stage.listening,
+.app-shell .voice-stage.ai_speaking {
+  border-color: var(--et-voice) !important;
+}
+
+.app-shell .voice-stage h2 {
+  margin: 0 !important;
+  font-size: clamp(1.6rem, 7vw, 2.6rem) !important;
+}
+
+.app-shell .voice-stage p {
+  margin: 0 0 8px !important;
+}
+
+.app-shell .voice-stage .primary,
+.app-shell .voice-stage .voice-stop {
+  width: 100% !important;
+  margin-top: 8px !important;
+}
+
+.app-shell .voice-stage .primary {
+  background: var(--et-voice) !important;
+  border-color: var(--et-voice) !important;
+}
+
+.app-shell .voice-stop {
+  color: var(--et-ink) !important;
+  background: var(--et-surface) !important;
+  border: 1px solid var(--et-line-strong) !important;
+}
+
+.app-shell .voice-pulse {
+  width: fit-content !important;
+  min-width: 54px !important;
+  height: 28px !important;
+  margin: 0 !important;
+  padding: 4px 8px !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  color: var(--et-voice) !important;
+  background: var(--et-surface) !important;
+  border: 1px solid var(--et-voice) !important;
+  border-radius: var(--et-radius-pill) !important;
+  box-shadow: none !important;
+  animation: none !important;
+  font-family: var(--et-font-mono) !important;
+  font-size: 0.66rem !important;
+  letter-spacing: 0.05em !important;
+}
+
+.app-shell .voice-transcript {
+  display: grid !important;
+  gap: 8px !important;
+}
+
+.app-shell .voice-transcript article {
+  margin: 0 !important;
+  padding: 12px !important;
+  background: var(--et-surface) !important;
+  border: 1px solid var(--et-line) !important;
+  border-radius: var(--et-radius-sm) !important;
+}
+
+.app-shell .voice-transcript article.twin {
+  border-inline-start: 4px solid var(--et-primary) !important;
+}
+
+.app-shell .voice-transcript article.learner {
+  border-inline-start: 4px solid var(--et-voice) !important;
+}
+
+/* Bottom navigation — stable labels, narrow active signal. */
+.app-shell .dock,
+.app-shell .editorial-dock,
+.app-shell .mode-dock {
+  position: fixed !important;
+  inset-inline: 0 !important;
+  bottom: 0 !important;
+  z-index: 50 !important;
+  width: min(100%, var(--et-content-max)) !important;
+  min-height: calc(var(--et-dock-height) + env(safe-area-inset-bottom)) !important;
+  margin-inline: auto !important;
+  padding: 0 0 env(safe-area-inset-bottom) !important;
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 0 !important;
+  background: color-mix(in srgb, var(--et-surface) 96%, transparent) !important;
+  border: 0 !important;
+  border-top: 1px solid var(--et-line-strong) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 -8px 28px rgb(19 42 54 / 0.05) !important;
+  backdrop-filter: blur(12px) !important;
+  transform: none !important;
+}
+
+.app-shell .dock a,
+.app-shell .editorial-dock a,
+.app-shell .mode-dock a {
+  position: relative !important;
+  min-width: 0 !important;
+  min-height: var(--et-dock-height) !important;
+  padding: 8px 3px !important;
+  display: grid !important;
+  place-items: center !important;
+  color: var(--et-ink-soft) !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-inline-start: 1px solid var(--et-line) !important;
+  border-radius: 0 !important;
+  text-decoration: none !important;
+}
+
+.app-shell .dock a:first-child,
+.app-shell .editorial-dock a:first-child,
+.app-shell .mode-dock a:first-child {
+  border-inline-start: 0 !important;
+}
+
+.app-shell .dock a::before,
+.app-shell .editorial-dock a::before,
+.app-shell .mode-dock a::before {
+  content: "";
+  position: absolute;
+  inset-inline: 10px;
+  top: -1px;
+  height: 3px;
+  background: transparent;
+}
+
+.app-shell .dock a.active,
+.app-shell .editorial-dock a.active,
+.app-shell .mode-dock a.active {
+  color: var(--et-ink) !important;
+  background: color-mix(in srgb, var(--et-primary) 5%, transparent) !important;
+}
+
+.app-shell .dock a.active::before,
+.app-shell .editorial-dock a.active::before,
+.app-shell .mode-dock a.active::before {
+  background: var(--et-primary) !important;
+}
+
+.app-shell .dock small,
+.app-shell .editorial-dock small,
+.app-shell .mode-dock small {
+  min-width: 0 !important;
+  color: inherit !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  overflow-wrap: anywhere !important;
+}
+
+/* Error and loading states */
+.app-shell .error,
+.app-shell [role="alert"] {
+  color: var(--et-danger) !important;
+}
+
+.app-shell .route-loading,
+.app-shell .mode-loading,
+.app-shell .mode-empty,
+.app-shell .signal-empty {
+  min-height: 120px !important;
+}
+
+.app-shell .route-loading,
+.app-shell .mode-loading,
+.app-shell .mode-empty {
+  padding: 18px !important;
+  background: var(--et-surface) !important;
+  border: 1px solid var(--et-line) !important;
+  border-radius: var(--et-radius-md) !important;
+  box-shadow: none !important;
+}
+
+/* Mixed-script safeguards */
+[dir="rtl"] .reference-home .today-list > button,
+[dir="rtl"] .app-shell .lesson-rows > button,
+[dir="rtl"] .app-shell .mode-list > button {
+  text-align: right !important;
+}
+
+[dir="rtl"] .app-shell [dir="ltr"],
+[dir="rtl"] .app-shell .speech-target,
+[dir="rtl"] .app-shell .review-term-row,
+[dir="rtl"] .app-shell .lesson-top h1:lang(en),
+[dir="rtl"] .app-shell .activity-card [dir="ltr"] {
+  text-align: left !important;
+}
+
+@media (max-width: 540px) {
+  .reference-home .practice-command,
+  .app-shell .practice-command {
+    grid-template-columns: 1fr !important;
+  }
+
+  .app-shell .practice-command > button {
+    width: 100% !important;
+  }
+
+  .app-shell .journey-unit {
+    grid-template-columns: 34px minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .app-shell .journey-marker {
+    width: 30px !important;
+    height: 30px !important;
+  }
+
+  .app-shell .rating-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .reference-home .home-reward {
+    grid-template-columns: 1fr !important;
+  }
+
+  .reference-home .home-reward button {
+    width: 100% !important;
+  }
+
+  .app-shell .mode-list > button {
+    grid-template-columns: 36px minmax(0, 1fr) auto !important;
+  }
+
+  .app-shell .mode-list > button > .lucide:first-child {
+    width: 32px !important;
+    height: 32px !important;
+    padding: 7px !important;
+  }
+}
+
+@media (min-width: 760px) {
+  .app-shell .page,
+  .app-shell .mode-page {
+    padding-inline: 32px !important;
+  }
+
+  .reference-home .continue-card,
+  .app-shell .journey-unit,
+  .app-shell .review-card,
+  .app-shell .builder-card,
+  .app-shell .activity-card,
+  .app-shell .voice-stage {
+    padding-inline-start: 28px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .app-shell .dock a.active::before,
+  .app-shell .editorial-dock a.active::before,
+  .app-shell .mode-dock a.active::before {
+    background: Highlight !important;
+  }
+
+  .app-shell button,
+  .app-shell a,
+  .app-shell .review-card,
+  .app-shell .builder-card,
+  .app-shell .activity-card,
+  .app-shell .voice-stage {
+    forced-color-adjust: auto;
+  }
+}
