@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { BookOpen, CheckCircle2, ChevronRight, LoaderCircle, Mic2, RotateCcw, UserRound } from 'lucide-react';
+import { BookOpen, Check, ChevronRight, LoaderCircle, Mic2, RotateCcw, Target, UserRound } from 'lucide-react';
 import AppDock from './AppDock';
 import { auth, db } from './firebase';
-import { lessons, lessonsForLevel } from './curriculumAll';
-import { loadLessonProgress, ProgressMap, summarizeProgress } from './learning';
+import { lessons } from './curriculumAll';
+import { loadLessonProgress, ProgressMap } from './learning';
 import { dueCards, ensureReviewCards } from './review';
 import { buildDailyPlan, SkillLevels, weakestMeasuredSkill } from './adaptiveLearning';
 import { directionFor, normalizeLanguage, SupportedLanguage, t } from './languageSupport';
@@ -34,13 +34,13 @@ type Recommendation = {
   minutes: number;
 };
 
-const copyByLanguage: Record<SupportedLanguage, { weekly:string; weeklyBody:string; continue:string; next:string; foundation:string; review:string; reviewBody:string; speak:string; speakBody:string; start:string }> = {
-  English:{weekly:'Your goal this week',weeklyBody:'Complete 5 learning sessions',continue:'Continue lesson',next:'Your best next step today.',foundation:'Pictures, listening, pronunciation and meaning in short steps.',review:'Smart review',reviewBody:'Lock due words into memory before the next lesson.',speak:'Speak with Twin',speakBody:'Turn what you learned into a real conversation.',start:'Start now'},
-  Arabic:{weekly:'هدفك هذا الأسبوع',weeklyBody:'أكمل 5 جلسات تعلّم',continue:'متابعة الدرس',next:'خطوتك الأنسب اليوم.',foundation:'تعلّم بالصور والاستماع والنطق والمعنى في خطوات قصيرة.',review:'مراجعة ذكية',reviewBody:'ثبّت الكلمات المستحقة في ذاكرتك قبل الدرس التالي.',speak:'تحدّث مع Twin',speakBody:'حوّل ما تعلمته إلى محادثة حقيقية.',start:'ابدأ الآن'},
-  Dutch:{weekly:'Je doel deze week',weeklyBody:'Voltooi 5 leersessies',continue:'Ga verder',next:'Je beste volgende stap voor vandaag.',foundation:'Beelden, luisteren, uitspraak en betekenis in korte stappen.',review:'Slim herhalen',reviewBody:'Zet woorden vast voor je volgende les.',speak:'Spreek met Twin',speakBody:'Maak van wat je leerde een echt gesprek.',start:'Start nu'},
-  French:{weekly:'Ton objectif cette semaine',weeklyBody:'Termine 5 sessions',continue:'Continuer',next:'Ta meilleure prochaine étape.',foundation:'Images, écoute, prononciation et sens en petites étapes.',review:'Révision intelligente',reviewBody:'Fixe les mots avant la prochaine leçon.',speak:'Parler avec Twin',speakBody:'Transforme ton apprentissage en conversation.',start:'Commencer'},
-  German:{weekly:'Dein Wochenziel',weeklyBody:'5 Lerneinheiten abschließen',continue:'Lektion fortsetzen',next:'Dein bester nächster Schritt.',foundation:'Bilder, Hören, Aussprache und Bedeutung in kurzen Schritten.',review:'Smart wiederholen',reviewBody:'Festige fällige Wörter vor der nächsten Lektion.',speak:'Mit Twin sprechen',speakBody:'Mach aus dem Gelernten ein echtes Gespräch.',start:'Jetzt starten'},
-  Spanish:{weekly:'Tu meta esta semana',weeklyBody:'Completa 5 sesiones',continue:'Continuar lección',next:'Tu mejor siguiente paso.',foundation:'Imágenes, escucha, pronunciación y significado en pasos cortos.',review:'Repaso inteligente',reviewBody:'Fija las palabras antes de la siguiente lección.',speak:'Habla con Twin',speakBody:'Convierte lo aprendido en conversación real.',start:'Empezar'},
+const copyByLanguage: Record<SupportedLanguage, { weekly:string; weeklyBody:string; continue:string; next:string; foundation:string; reviewBody:string; speak:string; speakBody:string; start:string; better:string }> = {
+  English:{weekly:'Your goal this week',weeklyBody:'Complete 5 lessons',continue:'Continue lesson',next:'Build confidence with practical English you can use every day.',foundation:'Learn your first useful English through pictures, listening and speaking.',reviewBody:'Lock due words into memory before the next lesson.',speak:'Speak with Twin',speakBody:'Turn what you learned into a real conversation.',start:'Start now',better:'Every day, one step closer to better English'},
+  Arabic:{weekly:'هدفك هذا الأسبوع',weeklyBody:'إكمال 5 دروس',continue:'متابعة الدرس',next:'تعلّم الإنجليزية بثقة في مواقف الحياة اليومية.',foundation:'تعلّم أول كلماتك المفيدة بالصور والاستماع والنطق.',reviewBody:'ثبّت الكلمات المستحقة في ذاكرتك قبل الدرس التالي.',speak:'تحدّث مع Twin',speakBody:'حوّل ما تعلمته إلى محادثة حقيقية.',start:'ابدأ الآن',better:'كل يوم خطوة أقرب لإنجليزية أفضل'},
+  Dutch:{weekly:'Je doel deze week',weeklyBody:'Voltooi 5 lessen',continue:'Ga verder',next:'Bouw zelfvertrouwen op met praktisch Engels voor elke dag.',foundation:'Leer je eerste nuttige Engelse woorden met beeld, luisteren en spreken.',reviewBody:'Zet woorden vast voor je volgende les.',speak:'Spreek met Twin',speakBody:'Maak van wat je leerde een echt gesprek.',start:'Start nu',better:'Elke dag een stap dichter bij beter Engels'},
+  French:{weekly:'Ton objectif cette semaine',weeklyBody:'Termine 5 leçons',continue:'Continuer',next:'Prends confiance avec un anglais pratique du quotidien.',foundation:'Apprends tes premiers mots utiles avec images, écoute et expression orale.',reviewBody:'Fixe les mots avant la prochaine leçon.',speak:'Parler avec Twin',speakBody:'Transforme ton apprentissage en conversation.',start:'Commencer',better:'Chaque jour, un pas vers un meilleur anglais'},
+  German:{weekly:'Dein Wochenziel',weeklyBody:'5 Lektionen abschließen',continue:'Lektion fortsetzen',next:'Baue Sicherheit mit praktischem Alltagsenglisch auf.',foundation:'Lerne erste nützliche Wörter mit Bildern, Hören und Sprechen.',reviewBody:'Festige fällige Wörter vor der nächsten Lektion.',speak:'Mit Twin sprechen',speakBody:'Mach aus dem Gelernten ein echtes Gespräch.',start:'Jetzt starten',better:'Jeden Tag ein Schritt zu besserem Englisch'},
+  Spanish:{weekly:'Tu meta esta semana',weeklyBody:'Completa 5 lecciones',continue:'Continuar lección',next:'Gana confianza con inglés práctico para la vida diaria.',foundation:'Aprende tus primeras palabras útiles con imágenes, escucha y habla.',reviewBody:'Fija las palabras antes de la siguiente lección.',speak:'Habla con Twin',speakBody:'Convierte lo aprendido en conversación real.',start:'Empezar',better:'Cada día, un paso más hacia un mejor inglés'},
 };
 
 function dateFromTimestamp(value: unknown) {
@@ -98,15 +98,14 @@ export default function SmartHomeV2() {
     weakestSkill,
     speakingAvailable: true,
   }), [profile?.dailyTargetMinutes, dueCount, nextLesson?.id, weakestSkill]);
-  const a1 = useMemo(() => summarizeProgress(progress, lessonsForLevel('A1').length), [progress]);
   const weeklyCompleted = useMemo(() => Object.values(progress).filter(item => item.completed && isThisWeek(item.completedAt)).length, [progress]);
   const weeklyGoal = 5;
   const weeklyPercent = Math.min(100, Math.round((weeklyCompleted / weeklyGoal) * 100));
 
   const recommendation: Recommendation = useMemo(() => {
     if (!profile?.beginnerFoundationCompleted) return { kind:'foundation', eyebrow:'A0 → A1', title:t(language,'firstWords'), body:ui.foundation, action:t(language,'startFirstWords'), to:'/start', minutes:5 };
-    if (dueCount) return { kind:'review', eyebrow:'FSRS', title:`${dueCount} ${t(language,'reviewDueSuffix')}`, body:ui.reviewBody, action:t(language,'reviewNow'), to:'/review', minutes:3 };
-    if (nextLesson) return { kind:'lesson', eyebrow:nextLesson.id.startsWith('a2-')?'A2':'A1', title:nextLesson.title, body:ui.next, action:ui.continue, to:`/lesson/${nextLesson.id}`, minutes:nextLesson.minutes };
+    if (dueCount) return { kind:'review', eyebrow:'FSRS', title:t(language,'smartReview'), body:ui.reviewBody, action:t(language,'reviewNow'), to:'/review', minutes:3 };
+    if (nextLesson) return { kind:'lesson', eyebrow:nextLesson.id.startsWith('a2-')?'A2 · Lesson':'A1 · Lesson', title:nextLesson.title, body:ui.next, action:ui.start, to:`/lesson/${nextLesson.id}`, minutes:nextLesson.minutes };
     return { kind:'speak', eyebrow:'LIVE', title:ui.speak, body:ui.speakBody, action:ui.start, to:'/speak', minutes:5 };
   }, [profile?.beginnerFoundationCompleted, dueCount, nextLesson, language, ui]);
 
@@ -122,44 +121,50 @@ export default function SmartHomeV2() {
   if (!profile?.onboardingCompleted || !profile?.nativeLanguage) return <Navigate to="/setup" replace />;
 
   const name = profile.displayName || user.displayName || 'Learner';
+  const planItems = !profile.beginnerFoundationCompleted ? [{id:'foundation',minutes:5,lessonId:undefined}] : dailyPlan.slice(0,3);
 
-  return <div className="app-shell reference-home" dir={dir}><div className="phone"><main className="page">
-    <header className="reference-app-header">
-      <div className="reference-brand"><img src="/icon.svg" alt="" /><div><strong>English <b>Twin</b></strong><small>Your Personal English Coach</small></div></div>
-      <button className="profile-avatar" onClick={() => nav('/profile')} aria-label="Profile"><UserRound /></button>
+  return <div className="app-shell reference-home exact-reference-home" dir={dir}><div className="phone"><main className="page">
+    <header className="exact-brand-row">
+      <div className="exact-brand-mark" aria-hidden="true"><BookOpen /></div>
+      <div className="exact-brand-copy"><strong>English <b>Twin</b></strong><small>Your Personal English Coach</small></div>
+      <button className="exact-header-avatar" onClick={() => nav('/profile')} aria-label="Profile">{name.slice(0,1).toUpperCase()}</button>
     </header>
 
-    <section className="reference-welcome-card">
-      <div className="welcome-avatar"><img src="/icon.svg" alt="" /></div>
-      <div><small>{t(language,'greeting')}</small><h1>{name}</h1><p>{t(language,'amazing')}</p></div>
+    <section className="exact-user-row">
+      <button className="exact-user-picture" onClick={() => nav('/profile')} aria-label="Profile"><img src="/tutor-avatar.svg" alt=""/><span><Target /></span></button>
+      <div><small>{t(language,'greeting')}</small><h1>{name}</h1><p>{ui.better}</p></div>
     </section>
 
-    <section className="reference-week-card">
-      <div><b>{ui.weekly}</b><span>{weeklyCompleted} / {weeklyGoal}</span><p>{ui.weeklyBody}</p></div>
-      <div className="reference-progress"><i style={{width:`${weeklyPercent}%`}} /></div>
+    <section className="exact-week-card">
+      <span className="exact-goal-icon"><Target /></span>
+      <div className="exact-week-copy"><b>{ui.weekly}</b><p>{ui.weeklyBody}</p></div>
+      <strong>{weeklyCompleted} / {weeklyGoal}</strong>
+      <div className="exact-week-progress"><i style={{width:`${weeklyPercent}%`}} /></div>
     </section>
 
-    <section className={`reference-hero reference-${recommendation.kind}`}>
-      <div className="hero-copy">
+    <section className={`exact-feature-card exact-${recommendation.kind}`}>
+      <div className="exact-feature-copy">
         <span>{ui.continue}</span>
         <small>{recommendation.eyebrow}</small>
         <h2>{recommendation.title}</h2>
         <p>{recommendation.body}</p>
-        <div className="hero-meta"><em>{recommendation.eyebrow}</em><em>{recommendation.minutes} min</em></div>
-        <button onClick={() => nav(recommendation.to)}>{recommendation.action}<ChevronRight /></button>
+        <div className="exact-feature-meta"><em>{recommendation.eyebrow}</em><em>{recommendation.minutes} min</em></div>
       </div>
-      <div className="hero-mascot" aria-hidden="true"><img src="/icon.svg" alt="" /><span /></div>
-      <div className="hero-progress"><i style={{width:`${Math.max(8,a1.percent)}%`}} /></div>
+      <img className="exact-tutor-art" src="/tutor-avatar.svg" alt="" aria-hidden="true"/>
+      <button className="exact-feature-action" onClick={() => nav(recommendation.to)}>{recommendation.action}<ChevronRight /></button>
     </section>
 
-    <section className="reference-today">
-      <div className="reference-section-heading"><h3>{t(language,'todayPlan')}</h3><button onClick={() => nav('/learn')}>{t(language,'seeAll')}</button></div>
-      <div className="reference-task-list">
-        {(!profile.beginnerFoundationCompleted ? [{id:'foundation',minutes:5,lessonId:undefined}] : dailyPlan.slice(0,3)).map((item:any,index) => {
+    <section className="exact-today">
+      <div className="exact-section-title"><h3>{t(language,'todayPlan')}</h3><button onClick={() => nav('/learn')}>{t(language,'seeAll')}</button></div>
+      <div className="exact-plan-list">
+        {planItems.map((item:any,index) => {
           const Icon = index === 0 ? BookOpen : index === 1 ? Mic2 : RotateCcw;
           const label = item.id === 'foundation' ? t(language,'startFirstWords') : item.id === 'review' ? t(language,'vocabularyReview') : item.id === 'speaking' ? t(language,'speakWithTwin') : item.id === 'lesson' ? t(language,'nextLesson') : t(language,'smartReview');
-          return <button key={`${item.id}-${index}`} onClick={() => nav(item.id === 'foundation' ? '/start' : planRoute(item.id,item.lessonId))}>
-            <span className="task-icon"><Icon /></span><div><b>{label}</b><small>{item.minutes || 5} min</small></div>{index === 0 && weeklyCompleted > 0 ? <CheckCircle2 className="task-done" /> : <ChevronRight />}
+          const route = item.id === 'foundation' ? '/start' : planRoute(item.id,item.lessonId);
+          return <button key={`${item.id}-${index}`} onClick={() => nav(route)}>
+            <span className={index === 0 && weeklyCompleted > 0 ? 'exact-plan-state done' : 'exact-plan-state'}>{index === 0 && weeklyCompleted > 0 ? <Check/> : <Icon/>}</span>
+            <div><b>{label}</b><small>{item.minutes || 5} min</small></div>
+            <ChevronRight />
           </button>;
         })}
       </div>
