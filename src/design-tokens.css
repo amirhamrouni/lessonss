@@ -1,23 +1,24 @@
 :root {
   color-scheme: light;
 
-  /* English Twin Language Lab — runtime token source (DESIGN.md mirrors these values). */
-  --et-canvas: #f4f7f8;
+  /* Approved English Twin reference palette */
+  --et-canvas: #f7f8fc;
   --et-surface: #ffffff;
-  --et-surface-muted: #e8eef1;
-  --et-ink: #132a36;
-  --et-ink-soft: #5b6c74;
-  --et-line: #b8c5cb;
-  --et-line-strong: #132a36;
+  --et-surface-muted: #f1f3f9;
+  --et-surface-blue: #eef3ff;
+  --et-ink: #14213d;
+  --et-ink-soft: #6b7280;
+  --et-line: #e2e6ef;
+  --et-line-strong: #cbd3df;
   --et-primary: #2f5bff;
-  --et-primary-strong: #1739c7;
+  --et-primary-strong: #2149df;
+  --et-primary-soft: #e9efff;
   --et-voice: #00a9a5;
   --et-memory: #f2b43a;
-  --et-success: #2e7d5b;
-  --et-danger: #d9574a;
+  --et-success: #16a34a;
+  --et-danger: #e04436;
   --et-focus: #2f5bff;
 
-  /* Backward-compatible semantic aliases while legacy consumers are migrated. */
   --et-paper: var(--et-canvas);
   --et-paper-strong: var(--et-surface-muted);
   --et-accent: var(--et-primary);
@@ -25,27 +26,26 @@
   --et-info: var(--et-voice);
   --et-warning: var(--et-memory);
 
-  /* Mixed-script typography. Arabic receives its own stack and line-height in the app layer. */
-  --et-font-sans: "IBM Plex Sans", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --et-font-display: "IBM Plex Sans", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
-  --et-font-arabic: "Noto Sans Arabic", "Noto Kufi Arabic", Tahoma, Arial, sans-serif;
-  --et-font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  --et-text-xs: 0.75rem;
-  --et-text-sm: 0.875rem;
+  --et-font-sans: Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --et-font-display: Inter, "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --et-font-arabic: Tajawal, "Noto Sans Arabic", Tahoma, Arial, sans-serif;
+  --et-font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+
+  --et-text-xs: .75rem;
+  --et-text-sm: .875rem;
   --et-text-md: 1rem;
   --et-text-lg: 1.25rem;
-  --et-text-xl: clamp(1.65rem, 4vw, 2.5rem);
-  --et-text-display: clamp(2.2rem, 8vw, 4.75rem);
-  --et-leading-tight: 1.08;
-  --et-leading-copy: 1.58;
-  --et-leading-arabic: 1.76;
-  --et-tracking-tight: -0.025em;
-  --et-tracking-label: 0.055em;
+  --et-text-xl: clamp(1.6rem, 5vw, 2.1rem);
+  --et-text-display: clamp(2rem, 8vw, 3.2rem);
+  --et-leading-tight: 1.15;
+  --et-leading-copy: 1.55;
+  --et-leading-arabic: 1.72;
+  --et-tracking-tight: -.025em;
+  --et-tracking-label: .035em;
 
-  /* Product spacing. */
-  --et-space-1: 0.25rem;
-  --et-space-2: 0.5rem;
-  --et-space-3: 0.75rem;
+  --et-space-1: .25rem;
+  --et-space-2: .5rem;
+  --et-space-3: .75rem;
   --et-space-4: 1rem;
   --et-space-5: 1.25rem;
   --et-space-6: 1.5rem;
@@ -53,43 +53,29 @@
   --et-space-10: 2.5rem;
   --et-space-12: 3rem;
   --et-space-16: 4rem;
-  --et-space-20: 5rem;
-  --et-space-24: 6rem;
 
-  /* Controlled geometry: status pills may be round; product surfaces are not bubble-shaped. */
-  --et-radius-none: 0;
-  --et-radius-xs: 0.125rem;
-  --et-radius-sm: 0.25rem;
-  --et-radius-md: 0.5rem;
-  --et-radius-lg: 0.75rem;
+  --et-radius-xs: .5rem;
+  --et-radius-sm: .75rem;
+  --et-radius-md: 1rem;
+  --et-radius-lg: 1.35rem;
+  --et-radius-xl: 1.75rem;
   --et-radius-pill: 999px;
-  --et-border: 1px solid var(--et-line);
-  --et-border-strong: 1px solid var(--et-line-strong);
-  --et-shadow-none: none;
-  --et-shadow-overlay: 0 18px 52px rgb(19 42 54 / 0.14);
+  --et-shadow-card: 0 10px 28px rgb(31 49 89 / .08);
+  --et-shadow-soft: 0 4px 14px rgb(31 49 89 / .07);
 
   --et-content-max: 47.5rem;
   --et-copy-max: 42rem;
-  --et-control-height: 3rem;
-  --et-dock-height: 4.25rem;
+  --et-control-height: 3.25rem;
+  --et-dock-height: 4.65rem;
   --et-transition-fast: 140ms cubic-bezier(.2,.7,.2,1);
 }
 
-[dir="rtl"] {
-  --et-leading-copy: var(--et-leading-arabic);
-}
+[dir="rtl"] { --et-leading-copy: var(--et-leading-arabic); }
 
 @media (prefers-contrast: more) {
-  :root {
-    --et-line: #63757d;
-    --et-ink-soft: #344750;
-  }
+  :root { --et-line: #aab2c1; --et-ink-soft: #4b5563; }
 }
 
 @media (forced-colors: active) {
-  :root {
-    --et-primary: LinkText;
-    --et-primary-strong: LinkText;
-    --et-focus: Highlight;
-  }
+  :root { --et-primary: LinkText; --et-primary-strong: LinkText; --et-focus: Highlight; }
 }

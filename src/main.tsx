@@ -38,7 +38,7 @@ const SpeechDrill = React.lazy(() => import('./SpeechDrill'));
 const PronunciationLab = React.lazy(() => import('./PronunciationLab'));
 const VoiceLab = React.lazy(() => import('./VoiceLab'));
 const PrivacyPolicy = React.lazy(() => import('./PrivacyPolicy'));
-const LearnJourney = React.lazy(() => import('./LearningPath').then(module => ({ default: module.LearnJourney })));
+const LearnJourney = React.lazy(() => import('./ReferenceLearnJourney'));
 const PracticeHub = React.lazy(() => import('./LearningModes').then(module => ({ default: module.PracticeHub })));
 const ReviewMode = React.lazy(() => import('./LearningModes').then(module => ({ default: module.ReviewMode })));
 const AssessmentMode = React.lazy(() => import('./LearningModes').then(module => ({ default: module.AssessmentMode })));
