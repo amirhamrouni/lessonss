@@ -1,3 +1,9 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html {
   background: var(--et-paper);
 }
@@ -12,6 +18,11 @@ body {
   line-height: var(--et-leading-copy);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--et-ink);
+  color: var(--et-paper);
 }
 
 button,
@@ -52,6 +63,11 @@ h4 {
   font-weight: 760;
   letter-spacing: var(--et-tracking-tight);
   line-height: var(--et-leading-tight);
+  text-wrap: balance;
+}
+
+p {
+  max-width: var(--et-copy-max);
 }
 
 .eyebrow,
@@ -68,12 +84,14 @@ h4 {
 .page,
 .phone {
   background: var(--et-paper) !important;
+  background-image: none !important;
   color: var(--et-ink) !important;
 }
 
 .page {
-  max-width: var(--et-content-max);
+  width: min(100%, var(--et-content-max));
   margin-inline: auto;
+  padding-inline: clamp(var(--et-space-4), 4vw, var(--et-space-8));
 }
 
 /* Phase-one cleanup: flatten artificial depth while preserving layout semantics. */
@@ -84,7 +102,11 @@ h4 {
 .feature-card,
 .profile-card,
 .pronunciation-card,
+.rich-activity-card,
 .route-loading,
+.signal-empty,
+.voice-stage,
+.voice-transcript article,
 [class*="panel"],
 [class*="surface"] {
   box-shadow: var(--et-shadow-none) !important;
@@ -99,8 +121,13 @@ h4 {
 .feature-card,
 .profile-card,
 .pronunciation-card,
-.route-loading {
+.rich-activity-card,
+.route-loading,
+.signal-empty,
+.voice-stage,
+.voice-transcript article {
   background: var(--et-surface) !important;
+  background-image: none !important;
   border: var(--et-border) !important;
   border-radius: var(--et-radius-md) !important;
 }
@@ -109,13 +136,75 @@ button,
 .button,
 .primary-button,
 .secondary-button,
+.primary,
+.secondary,
+.ghost,
 .cta,
 [class*="btn"] {
+  min-height: var(--et-control-height);
   box-shadow: none !important;
+  filter: none !important;
+  background-image: none !important;
   border-radius: var(--et-radius-sm) !important;
 }
 
-/* Decorative-only motion is removed. Functional state transitions remain. */
+/* Swiss/editorial navigation: text first, hard rules, no ornamental glyphs. */
+.editorial-dock {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0 !important;
+  background: var(--et-paper) !important;
+  background-image: none !important;
+  border-top: var(--et-border-strong) !important;
+  box-shadow: none !important;
+}
+
+.editorial-dock a {
+  min-height: var(--et-control-height);
+  display: grid;
+  place-items: center;
+  padding: var(--et-space-2) var(--et-space-1);
+  color: var(--et-ink-soft) !important;
+  text-decoration: none;
+  border-inline-start: var(--et-border);
+  border-radius: 0 !important;
+}
+
+.editorial-dock a:first-child {
+  border-inline-start: 0;
+}
+
+.editorial-dock a.active {
+  background: var(--et-ink) !important;
+  color: var(--et-paper) !important;
+}
+
+.editorial-dock small {
+  font-size: var(--et-text-xs);
+  font-weight: 700;
+  letter-spacing: var(--et-tracking-label);
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.voice-pulse {
+  width: auto !important;
+  height: auto !important;
+  padding: var(--et-space-2) var(--et-space-3) !important;
+  background: transparent !important;
+  background-image: none !important;
+  color: var(--et-ink) !important;
+  border: var(--et-border-strong) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  animation: none !important;
+  font-family: var(--et-font-mono);
+  font-size: var(--et-text-xs);
+  font-weight: 700;
+  letter-spacing: var(--et-tracking-label);
+}
+
+/* Decorative-only motion and synthetic visual effects are removed. */
 .confetti,
 .sparkles,
 .glow,
@@ -124,11 +213,14 @@ button,
 .ambient-shape,
 .floating-shape,
 .decorative-icon,
+.aurora,
+.gradient-orb,
 [class*="confetti"],
 [class*="sparkle"],
 [class*="glow"],
 [class*="orb"],
-[class*="blob"] {
+[class*="blob"],
+[class*="aurora"] {
   display: none !important;
 }
 

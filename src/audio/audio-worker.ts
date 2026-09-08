@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-import { measureAudio, resampleMono } from './audioProcessing';
+import { floatToPcm16Bytes, measureAudio, resampleMono } from './audioProcessing';
 import type { AudioWorkerInboundMessage, AudioWorkerOutboundMessage } from './audioProtocol';
 
 const workerScope = self as DedicatedWorkerGlobalScope;
@@ -9,8 +9,20 @@ let inputSampleRate = 0;
 let targetSampleRate = 16_000;
 let initialized = false;
 
-function post(message: AudioWorkerOutboundMessage, transfer?: Transferable[]) {
-  workerScope.postMessage(message, transfer ?? []);
+function post(message: AudioWorkerOutboundMessage) {
+  workerScope.postMessage(message);
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  const chunkSize = 0x8000;
+  let binary = '';
+
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    const chunk = bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length));
+    binary += String.fromCharCode(...chunk);
+  }
+
+  return btoa(binary);
 }
 
 workerScope.onmessage = (event: MessageEvent<AudioWorkerInboundMessage>) => {
@@ -21,6 +33,7 @@ workerScope.onmessage = (event: MessageEvent<AudioWorkerInboundMessage>) => {
     const nextTarget = Number(message.targetSampleRate);
 
     if (!Number.isFinite(nextInput) || !Number.isFinite(nextTarget) || nextInput <= 0 || nextTarget <= 0) {
+      initialized = false;
       post({
         type: 'error',
         code: 'invalid_sample_rate',
@@ -60,19 +73,19 @@ workerScope.onmessage = (event: MessageEvent<AudioWorkerInboundMessage>) => {
   try {
     const processed = resampleMono(message.samples, inputSampleRate, targetSampleRate);
     const metrics = measureAudio(processed);
+    const pcm16 = floatToPcm16Bytes(processed);
     const durationMs = processed.length === 0 ? 0 : (processed.length / targetSampleRate) * 1000;
 
-    const response: AudioWorkerOutboundMessage = {
+    post({
       type: 'chunk',
       sequence: message.sequence,
       sampleRate: targetSampleRate,
-      samples: processed,
+      pcm16Base64: bytesToBase64(pcm16),
+      sampleCount: processed.length,
       rms: metrics.rms,
       peak: metrics.peak,
       durationMs,
-    };
-
-    post(response, [processed.buffer]);
+    });
   } catch (error) {
     post({
       type: 'error',

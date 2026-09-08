@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampAudio, measureAudio, resampleMono } from './audioProcessing';
+import { clampAudio, floatToPcm16Bytes, measureAudio, resampleMono } from './audioProcessing';
 
 describe('audioProcessing', () => {
   it('measures RMS and peak deterministically', () => {
@@ -19,6 +19,16 @@ describe('audioProcessing', () => {
     const output = resampleMono(samples, 48_000, 16_000);
     expect(output.length).toBe(3);
     expect(Array.from(output)).toEqual([0, 0.75, 0.5]);
+  });
+
+  it('converts clamped float samples to little-endian PCM16 bytes', () => {
+    const bytes = floatToPcm16Bytes(new Float32Array([-1, 0, 1, Number.NaN]));
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+
+    expect(view.getInt16(0, true)).toBe(-32768);
+    expect(view.getInt16(2, true)).toBe(0);
+    expect(view.getInt16(4, true)).toBe(32767);
+    expect(view.getInt16(6, true)).toBe(0);
   });
 
   it('rejects invalid sample rates', () => {

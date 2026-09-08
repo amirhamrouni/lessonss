@@ -60,3 +60,15 @@ export function resampleMono(
 
   return output;
 }
+
+export function floatToPcm16Bytes(samples: Float32Array): Uint8Array {
+  const pcm = new Int16Array(samples.length);
+
+  for (let i = 0; i < samples.length; i += 1) {
+    const finite = Number.isFinite(samples[i]) ? samples[i] : 0;
+    const sample = Math.max(-1, Math.min(1, finite));
+    pcm[i] = sample < 0 ? Math.round(sample * 0x8000) : Math.round(sample * 0x7fff);
+  }
+
+  return new Uint8Array(pcm.buffer);
+}
