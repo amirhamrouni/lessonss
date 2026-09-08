@@ -1,0 +1,509 @@
+name: ADB Codex Executor
+
+on:
+  repository_dispatch:
+    types: [adb.code.requested]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: adb-codex-${{ github.event.client_payload.task_id }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      - name: Fetch and verify authoritative task spec
+        env:
+          ADB_BASE_URL: ${{ secrets.ADB_BASE_URL }}
+          ADB_EXECUTOR_KEY: ${{ secrets.ADB_EXECUTOR_KEY }}
+          TASK_ID: ${{ github.event.client_payload.task_id }}
+          DECISION_ID: ${{ github.event.client_payload.decision_id }}
+          DECISION_REVISION: ${{ github.event.client_payload.decision_revision }}
+          DECISION_SHA256: ${{ github.event.client_payload.decision_sha256 }}
+          BASE_SHA: ${{ github.event.client_payload.base_ref }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          test -n "$ADB_BASE_URL"
+          test -n "$ADB_EXECUTOR_KEY"
+          [[ "$TASK_ID" =~ ^task_[0-9a-fA-F-]{36}$ ]]
+          [[ "$BASE_SHA" =~ ^[0-9a-fA-F]{40}$ ]]
+          [[ "$DECISION_SHA256" =~ ^[0-9a-fA-F]{64}$ ]]
+
+          mkdir -p "$RUNNER_TEMP/adb-prepare"
+          base_url="${ADB_BASE_URL%/}"
+          curl --fail-with-body --silent --show-error --retry 2 \
+            -H "Authorization: Bearer $ADB_EXECUTOR_KEY" \
+            -H "Accept: application/json" \
+            "$base_url/api/council/tasks/$TASK_ID" \
+            > "$RUNNER_TEMP/adb-prepare/task-spec.json"
+
+          SPEC_PATH="$RUNNER_TEMP/adb-prepare/task-spec.json" \
+          PROMPT_PATH="$RUNNER_TEMP/adb-prepare/task-prompt.md" \
+          TASK_ID="$TASK_ID" \
+          DECISION_ID="$DECISION_ID" \
+          DECISION_REVISION="$DECISION_REVISION" \
+          DECISION_SHA256="$DECISION_SHA256" \
+          BASE_SHA="${BASE_SHA,,}" \
+          REPOSITORY="$REPOSITORY" \
+          node <<'NODE'
+          const fs = require('node:fs');
+          const spec = JSON.parse(fs.readFileSync(process.env.SPEC_PATH, 'utf8'));
+          if (!spec.ok || !spec.task || !spec.decision) throw new Error('invalid_task_spec_response');
+
+          const task = spec.task;
+          const expected = {
+            task_id: process.env.TASK_ID,
+            decision_id: process.env.DECISION_ID,
+            decision_revision: Number(process.env.DECISION_REVISION),
+            decision_sha256: process.env.DECISION_SHA256.toLowerCase(),
+            base_ref: process.env.BASE_SHA,
+            repository: process.env.REPOSITORY,
+          };
+
+          for (const [key, value] of Object.entries(expected)) {
+            const actual = key === 'decision_sha256' || key === 'base_ref'
+              ? String(task[key]).toLowerCase()
+              : task[key];
+            if (actual !== value) throw new Error(`task_pointer_mismatch:${key}`);
+          }
+
+          const scope = task.scope_config;
+          if (!scope || !Array.isArray(scope.allowed_paths) || scope.allowed_paths.length === 0) {
+            throw new Error('invalid_task_scope');
+          }
+
+          const list = (items) => items.length ? items.map((x) => `- ${x}`).join('\n') : '- (none)';
+          const prompt = `# Amir Dev Brain — Approved Implementation Task
+
+Task: ${task.task_id}
+Decision: ${task.decision_id} revision ${task.decision_revision}
+Pinned base commit: ${task.base_ref}
+
+## Approved decision
+Title: ${spec.decision.title}
+Project: ${spec.decision.project}
+Question: ${spec.decision.question ?? '(none)'}
+
+${spec.decision.synthesis}
+
+## Hard implementation scope
+Allowed paths:
+${list(scope.allowed_paths)}
+
+Denied paths:
+${list(scope.denied_paths)}
+
+Forbidden literal patterns in the resulting patch:
+${list(scope.forbidden_patterns)}
+
+Maximum files changed: ${scope.max_files_changed}
+Maximum changed lines (additions + deletions): ${scope.max_changed_lines}
+
+## Execution rules
+1. Inspect the current repository at the pinned base commit before editing.
+2. Implement only the approved decision and only inside allowed_paths.
+3. Never modify .github/**, .env*, credential/key files, generated dist, or node_modules.
+4. Never commit, push, open a PR, alter GitHub configuration, or access deployment secrets.
+5. Do not broaden the scope even if a broader refactor looks attractive.
+6. Preserve existing behavior outside the decision. Prefer the smallest correct change.
+7. Run relevant local checks when useful, but the independent Verify job is authoritative.
+8. If the task cannot be completed within the hard scope, do not work around the boundary; stop and explain the blocker.
+`;
+          fs.writeFileSync(process.env.PROMPT_PATH, prompt, { mode: 0o600 });
+          NODE
+
+      - name: Mark task running
+        env:
+          ADB_BASE_URL: ${{ secrets.ADB_BASE_URL }}
+          ADB_EXECUTOR_KEY: ${{ secrets.ADB_EXECUTOR_KEY }}
+          TASK_ID: ${{ github.event.client_payload.task_id }}
+        run: |
+          set -euo pipefail
+          base_url="${ADB_BASE_URL%/}"
+          curl --fail-with-body --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer $ADB_EXECUTOR_KEY" \
+            -H "Content-Type: application/json" \
+            --data '{"status":"RUNNING"}' \
+            "$base_url/api/council/tasks/$TASK_ID/status" > /dev/null
+
+      - name: Upload trusted task input
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: adb-input-${{ github.event.client_payload.task_id }}
+          path: ${{ runner.temp }}/adb-prepare/
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Mark task coding
+        env:
+          ADB_BASE_URL: ${{ secrets.ADB_BASE_URL }}
+          ADB_EXECUTOR_KEY: ${{ secrets.ADB_EXECUTOR_KEY }}
+          TASK_ID: ${{ github.event.client_payload.task_id }}
+        run: |
+          set -euo pipefail
+          base_url="${ADB_BASE_URL%/}"
+          curl --fail-with-body --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer $ADB_EXECUTOR_KEY" \
+            -H "Content-Type: application/json" \
+            --data '{"status":"CODING"}' \
+            "$base_url/api/council/tasks/$TASK_ID/status" > /dev/null
+
+  code:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      policy_blocked: ${{ steps.scope.outputs.blocked }}
+    steps:
+      - name: Checkout pinned base commit without credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.client_payload.base_ref }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Snapshot deterministic scope guard outside workspace
+        run: cp .github/adb/scope-guard.mjs "$RUNNER_TEMP/adb-scope-guard.mjs"
+
+      - name: Download trusted task input
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: adb-input-${{ github.event.client_payload.task_id }}
+          path: ${{ runner.temp }}/adb-input
+
+      - name: Verify pinned checkout
+        env:
+          BASE_SHA: ${{ github.event.client_payload.base_ref }}
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "${BASE_SHA,,}"
+          cp "$RUNNER_TEMP/adb-input/task-prompt.md" .adb-task-prompt.md
+
+      - name: Run Codex in workspace-only mode
+        id: codex
+        uses: openai/codex-action@86365089eb2b84e0a8fb0717b304f8bdcb13b20e # v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt-file: .adb-task-prompt.md
+          permission-profile: ":workspace"
+          safety-strategy: drop-sudo
+          codex-version: "0.153.4"
+          codex-args: '["--ephemeral"]'
+          allow-users: "*"
+
+      - name: Remove transient prompt
+        run: rm -f .adb-task-prompt.md
+
+      - name: Enforce hardened scope guard
+        id: scope
+        continue-on-error: true
+        env:
+          ADB_TASK_SPEC_PATH: ${{ runner.temp }}/adb-input/task-spec.json
+        run: node "$RUNNER_TEMP/adb-scope-guard.mjs"
+
+      - name: Build patch artifact
+        if: steps.scope.outcome == 'success'
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/adb-patch"
+          git diff --binary --no-ext-diff HEAD > "$RUNNER_TEMP/adb-patch/changes.patch"
+          cp "$RUNNER_TEMP/adb-input/task-spec.json" "$RUNNER_TEMP/adb-patch/task-spec.json"
+          test -s "$RUNNER_TEMP/adb-patch/changes.patch"
+
+      - name: Upload candidate patch
+        if: steps.scope.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: adb-patch-${{ github.event.client_payload.task_id }}
+          path: ${{ runner.temp }}/adb-patch/
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Stop policy-blocked candidate
+        if: steps.scope.outcome == 'failure'
+        run: exit 2
+
+  mark_verify:
+    needs: code
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Mark task verifying
+        env:
+          ADB_BASE_URL: ${{ secrets.ADB_BASE_URL }}
+          ADB_EXECUTOR_KEY: ${{ secrets.ADB_EXECUTOR_KEY }}
+          TASK_ID: ${{ github.event.client_payload.task_id }}
+        run: |
+          set -euo pipefail
+          base_url="${ADB_BASE_URL%/}"
+          curl --fail-with-body --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer $ADB_EXECUTOR_KEY" \
+            -H "Content-Type: application/json" \
+            --data '{"status":"VERIFYING"}' \
+            "$base_url/api/council/tasks/$TASK_ID/status" > /dev/null
+
+  verify:
+    needs: [code, mark_verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    outputs:
+      policy_blocked: ${{ steps.scope.outputs.blocked }}
+    steps:
+      - name: Checkout pinned base commit without credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.client_payload.base_ref }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Snapshot deterministic scope guard
+        run: cp .github/adb/scope-guard.mjs "$RUNNER_TEMP/adb-scope-guard.mjs"
+
+      - name: Download candidate patch
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: adb-patch-${{ github.event.client_payload.task_id }}
+          path: ${{ runner.temp }}/adb-patch
+
+      - name: Apply candidate patch
+        run: |
+          set -euo pipefail
+          git apply --check "$RUNNER_TEMP/adb-patch/changes.patch"
+          git apply "$RUNNER_TEMP/adb-patch/changes.patch"
+
+      - name: Re-run hardened scope guard
+        id: scope
+        continue-on-error: true
+        env:
+          ADB_TASK_SPEC_PATH: ${{ runner.temp }}/adb-patch/task-spec.json
+        run: node "$RUNNER_TEMP/adb-scope-guard.mjs"
+
+      - name: Stop policy-blocked patch
+        if: steps.scope.outcome == 'failure'
+        run: exit 2
+
+      - name: Install locked dependencies
+        if: steps.scope.outcome == 'success'
+        run: npm ci --no-fund
+
+      - name: Production dependency audit
+        if: steps.scope.outcome == 'success'
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Typecheck
+        if: steps.scope.outcome == 'success'
+        run: npm run typecheck
+
+      - name: Unit tests
+        if: steps.scope.outcome == 'success'
+        run: npm test
+
+      - name: Production build
+        if: steps.scope.outcome == 'success'
+        run: npm run build
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout pinned base commit without credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.client_payload.base_ref }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      - name: Download verified patch
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: adb-patch-${{ github.event.client_payload.task_id }}
+          path: ${{ runner.temp }}/adb-patch
+
+      - name: Apply verified patch
+        run: |
+          set -euo pipefail
+          git apply --check "$RUNNER_TEMP/adb-patch/changes.patch"
+          git apply "$RUNNER_TEMP/adb-patch/changes.patch"
+
+      - name: Derive deterministic branch name
+        id: branch
+        env:
+          TASK_SPEC: ${{ runner.temp }}/adb-patch/task-spec.json
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const spec = JSON.parse(fs.readFileSync(process.env.TASK_SPEC, 'utf8'));
+          const slug = String(spec.task.decision_id)
+            .toLowerCase()
+            .replace(/[^a-z0-9._-]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+            .slice(0, 80) || 'decision';
+          const task = String(spec.task.task_id).replace(/^task_/, '').slice(0, 8);
+          const branch = `adb/${slug}-r${spec.task.decision_revision}-${task}`;
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `branch=${branch}\n`);
+          NODE
+
+      - name: Mark PR creation started
+        env:
+          ADB_BASE_URL: ${{ secrets.ADB_BASE_URL }}
+          ADB_EXECUTOR_KEY: ${{ secrets.ADB_EXECUTOR_KEY }}
+          TASK_ID: ${{ github.event.client_payload.task_id }}
+          BRANCH_NAME: ${{ steps.branch.outputs.branch }}
+        run: |
+          set -euo pipefail
+          base_url="${ADB_BASE_URL%/}"
+          payload="$(node -e 'process.stdout.write(JSON.stringify({status:"PR_CREATING",branch_name:process.env.BRANCH_NAME}))')"
+          curl --fail-with-body --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer $ADB_EXECUTOR_KEY" \
+            -H "Content-Type: application/json" \
+            --data "$payload" \
+            "$base_url/api/council/tasks/$TASK_ID/status" > /dev/null
+
+      - name: Mint repository-scoped GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          client-id: ${{ vars.ADB_GITHUB_APP_CLIENT_ID }}
+          private-key: ${{ secrets.ADB_GITHUB_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Commit and push verified patch
+        env:
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
+          BRANCH_NAME: ${{ steps.branch.outputs.branch }}
+          DECISION_ID: ${{ github.event.client_payload.decision_id }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --heads "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "refs/heads/$BRANCH_NAME" >/dev/null 2>&1; then
+            echo "Branch already exists: $BRANCH_NAME" >&2
+            exit 1
+          fi
+          git checkout -b "$BRANCH_NAME"
+          git config user.name "Amir Dev Brain Coder"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "ADB: implement ${DECISION_ID}"
+          git push "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:refs/heads/$BRANCH_NAME"
+
+      - name: Open pull request
+        id: pr
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          BRANCH_NAME: ${{ steps.branch.outputs.branch }}
+          DECISION_ID: ${{ github.event.client_payload.decision_id }}
+          TASK_ID: ${{ github.event.client_payload.task_id }}
+          BASE_SHA: ${{ github.event.client_payload.base_ref }}
+        run: |
+          set -euo pipefail
+          body_file="$RUNNER_TEMP/adb-pr-body.md"
+          cat > "$body_file" <<EOF
+          Automated implementation from Amir Dev Brain.
+
+          - Decision: \`$DECISION_ID\`
+          - Task: \`$TASK_ID\`
+          - Pinned base: \`$BASE_SHA\`
+          - Scope guard: passed
+          - Independent typecheck/tests/build: passed
+
+          This PR is intentionally not auto-merged.
+          EOF
+          pr_url="$(gh pr create \
+            --base main \
+            --head "$BRANCH_NAME" \
+            --title "ADB: implement $DECISION_ID" \
+            --body-file "$body_file")"
+          pr_number="${pr_url##*/}"
+          echo "pr_url=$pr_url" >> "$GITHUB_OUTPUT"
+          echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
+
+      - name: Mark task PR ready
+        env:
+          ADB_BASE_URL: ${{ secrets.ADB_BASE_URL }}
+          ADB_EXECUTOR_KEY: ${{ secrets.ADB_EXECUTOR_KEY }}
+          TASK_ID: ${{ github.event.client_payload.task_id }}
+          BRANCH_NAME: ${{ steps.branch.outputs.branch }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+          PR_URL: ${{ steps.pr.outputs.pr_url }}
+        run: |
+          set -euo pipefail
+          base_url="${ADB_BASE_URL%/}"
+          payload="$(node -e 'process.stdout.write(JSON.stringify({status:"PR_READY",branch_name:process.env.BRANCH_NAME,pr_number:Number(process.env.PR_NUMBER),pr_url:process.env.PR_URL}))')"
+          curl --fail-with-body --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer $ADB_EXECUTOR_KEY" \
+            -H "Content-Type: application/json" \
+            --data "$payload" \
+            "$base_url/api/council/tasks/$TASK_ID/status" > /dev/null
+
+  report_failed:
+    needs: [prepare, code, mark_verify, verify, publish]
+    if: ${{ always() && (needs.prepare.result == 'failure' || needs.code.result == 'failure' || needs.mark_verify.result == 'failure' || needs.verify.result == 'failure' || needs.publish.result == 'failure') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Report terminal failure state
+        env:
+          ADB_BASE_URL: ${{ secrets.ADB_BASE_URL }}
+          ADB_EXECUTOR_KEY: ${{ secrets.ADB_EXECUTOR_KEY }}
+          TASK_ID: ${{ github.event.client_payload.task_id }}
+          CODE_POLICY_BLOCKED: ${{ needs.code.outputs.policy_blocked }}
+          VERIFY_POLICY_BLOCKED: ${{ needs.verify.outputs.policy_blocked }}
+        run: |
+          set -euo pipefail
+          base_url="${ADB_BASE_URL%/}"
+          status="FAILED"
+          if [ "$CODE_POLICY_BLOCKED" = "true" ] || [ "$VERIFY_POLICY_BLOCKED" = "true" ]; then
+            status="POLICY_BLOCKED"
+          fi
+          curl --fail-with-body --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer $ADB_EXECUTOR_KEY" \
+            -H "Content-Type: application/json" \
+            --data "{\"status\":\"$status\"}" \
+            "$base_url/api/council/tasks/$TASK_ID/status" > /dev/null
