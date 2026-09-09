@@ -6,10 +6,13 @@ import {
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signOut,
   updateProfile,
   User,
 } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { AlertTriangle, LoaderCircle } from 'lucide-react';
+import { ETButton, LearningShell, StatusState } from './ui/LearningUI';
 import { auth, db, googleProvider, isFirebaseConfigured } from './firebase';
 import { authErrorMessage } from './authErrors';
 
@@ -26,8 +29,8 @@ const defaultProfile = {
   onboardingCompleted: false,
 };
 
-function TwinMark() {
-  return <div className="twin compact idle" aria-label="English Twin"><div className="twin-aura" /><div className="twin-core"><span className="twin-eye left" /><span className="twin-eye right" /><i className="twin-mouth" /></div></div>;
+function BrandMark() {
+  return <span className="et-brand-glyph" aria-hidden="true"><i /><i /></span>;
 }
 
 async function ensureLearnerProfile(user: User) {
@@ -50,31 +53,90 @@ export default function AuthGateway() {
   const navigate = useNavigate();
   const [sessionTarget, setSessionTarget] = useState<'/' | '/setup' | null>(null);
   const [checking, setChecking] = useState(true);
+  const [sessionError, setSessionError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [notice, setNotice] = useState('');
+  const [noticeType, setNoticeType] = useState<'error' | 'success'>('error');
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => onAuthStateChanged(auth, async current => {
-    if (!current) {
-      setSessionTarget(null);
+  useEffect(() => {
+    if (!isFirebaseConfigured) {
       setChecking(false);
       return;
     }
-    try {
-      const completed = await ensureLearnerProfile(current);
-      setSessionTarget(completed ? '/' : '/setup');
-    } catch {
-      setSessionTarget('/');
-    } finally {
-      setChecking(false);
-    }
-  }), []);
 
-  if (checking) return <main className="center wake"><p>Checking your session…</p></main>;
+    let active = true;
+    setChecking(true);
+    setSessionError('');
+    const unsubscribe = onAuthStateChanged(auth, async current => {
+      if (!active) return;
+      if (!current) {
+        setSessionTarget(null);
+        setChecking(false);
+        return;
+      }
+      try {
+        const completed = await ensureLearnerProfile(current);
+        if (active) setSessionTarget(completed ? '/' : '/setup');
+      } catch {
+        if (active) {
+          setSessionTarget(null);
+          setSessionError('We could not load or create your learner profile. Your account is still signed in and no learning data was overwritten.');
+        }
+      } finally {
+        if (active) setChecking(false);
+      }
+    });
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [reloadKey]);
+
+  if (checking) {
+    return <LearningShell showDock={false} pageClassName="auth-status-page">
+      <StatusState icon={<LoaderCircle />} eyebrow="ENGLISH TWIN" title="Checking your session…" body="Your saved learner profile is being verified before the app opens." />
+    </LearningShell>;
+  }
+
+  if (!isFirebaseConfigured) {
+    return <LearningShell showDock={false} pageClassName="auth-status-page">
+      <StatusState
+        icon={<AlertTriangle />}
+        tone="danger"
+        eyebrow="SETUP REQUIRED"
+        title="Account services are not configured"
+        body="Sign-in and learner data cannot start until the Firebase configuration is available."
+      />
+    </LearningShell>;
+  }
+
+  if (sessionError) {
+    return <LearningShell showDock={false} pageClassName="auth-status-page">
+      <StatusState
+        icon={<AlertTriangle />}
+        tone="danger"
+        eyebrow="ACCOUNT RECOVERY"
+        title="Your learner profile is temporarily unavailable"
+        body={sessionError}
+        action={<div className="et-inline-actions">
+          <ETButton onClick={() => setReloadKey(value => value + 1)}>Try again</ETButton>
+          <ETButton variant="secondary" onClick={() => void signOut(auth)}>Sign out</ETButton>
+        </div>}
+      />
+    </LearningShell>;
+  }
+
   if (sessionTarget) return <Navigate to={sessionTarget} replace />;
+
+  function showError(message: string) {
+    setNoticeType('error');
+    setNotice(message);
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -99,24 +161,23 @@ export default function AuthGateway() {
         navigate(completed ? '/' : '/setup', { replace: true });
       }
     } catch (error) {
-      setNotice(authErrorMessage(error));
+      showError(authErrorMessage(error));
     } finally {
       setBusy(false);
     }
   }
 
-  if (!isFirebaseConfigured) {
-    return <main className="center"><section className="auth-card setup-card"><TwinMark /><span className="eyebrow">SETUP REQUIRED</span><h1>English Twin</h1><p>Account services are not configured yet. Sign-in and learner data cannot start until setup is complete.</p></section></main>;
-  }
-
-  return <main className="center auth-stage"><section className="auth-card">
-    <div className="auth-brand"><TwinMark /><div><span className="eyebrow">PERSONAL ENGLISH OS</span><h1>English Twin</h1><p>Structured lessons, intelligent practice and a voice-first coach in one place.</p></div></div>
-    <div className="seg"><button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')}>Sign in</button><button type="button" className={mode === 'register' ? 'active' : ''} onClick={() => setMode('register')}>Create account</button></div>
+  return <main className="center auth-stage"><section className="auth-card" aria-busy={busy}>
+    <div className="auth-brand"><BrandMark /><div><span className="eyebrow">YOUR PERSONAL ENGLISH COACH</span><h1>English Twin</h1><p>Structured lessons, intelligent review and speaking practice in one place.</p></div></div>
+    <div className="seg" role="group" aria-label="Account mode">
+      <button type="button" aria-pressed={mode === 'login'} className={mode === 'login' ? 'active' : ''} onClick={() => { setMode('login'); setNotice(''); }}>Sign in</button>
+      <button type="button" aria-pressed={mode === 'register'} className={mode === 'register' ? 'active' : ''} onClick={() => { setMode('register'); setNotice(''); }}>Create account</button>
+    </div>
     <form onSubmit={submit}>
-      {mode === 'register' && <input autoComplete="name" placeholder="Your name" value={name} onChange={event => setName(event.target.value)} required />}
-      <input type="email" autoComplete="email" placeholder="Email" value={email} onChange={event => setEmail(event.target.value)} required />
-      <input type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} placeholder="Password" minLength={6} value={password} onChange={event => setPassword(event.target.value)} required />
-      {notice && <p className="error" role="alert">{notice}</p>}
+      {mode === 'register' && <input autoComplete="name" aria-label="Your name" placeholder="Your name" value={name} onChange={event => setName(event.target.value)} required />}
+      <input type="email" autoComplete="email" aria-label="Email" placeholder="Email" value={email} onChange={event => setEmail(event.target.value)} required />
+      <input type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} aria-label="Password" placeholder="Password" minLength={6} value={password} onChange={event => setPassword(event.target.value)} required />
+      {notice && <p className={noticeType === 'error' ? 'error' : 'auth-notice'} role={noticeType === 'error' ? 'alert' : 'status'}>{notice}</p>}
       <button className="primary" type="submit" disabled={busy}>{busy ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}</button>
     </form>
     <button className="google" type="button" disabled={busy} onClick={async () => {
@@ -127,14 +188,23 @@ export default function AuthGateway() {
         const completed = await ensureLearnerProfile(credential.user);
         navigate(completed ? '/' : '/setup', { replace: true });
       } catch (error) {
-        setNotice(authErrorMessage(error));
+        showError(authErrorMessage(error));
       } finally { setBusy(false); }
     }}>Continue with Google</button>
-    {mode === 'login' && <button className="text" type="button" onClick={async () => {
-      if (!email) { setNotice('Enter your email first'); return; }
-      try { await sendPasswordResetEmail(auth, email); setNotice('Password reset email sent.'); }
-      catch (error) { setNotice(authErrorMessage(error)); }
+    {mode === 'login' && <button className="text" type="button" disabled={busy} onClick={async () => {
+      if (!email) { showError('Enter your email first'); return; }
+      setBusy(true);
+      setNotice('');
+      try {
+        await sendPasswordResetEmail(auth, email);
+        setNoticeType('success');
+        setNotice('Password reset email sent.');
+      } catch (error) {
+        showError(authErrorMessage(error));
+      } finally {
+        setBusy(false);
+      }
     }}>Forgot password?</button>}
-    <button className="text" type="button" onClick={() => navigate('/privacy')}>Privacy & AI data</button>
+    <button className="text" type="button" disabled={busy} onClick={() => navigate('/privacy')}>Privacy & AI data</button>
   </section></main>;
 }
