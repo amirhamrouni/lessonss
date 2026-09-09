@@ -4,6 +4,17 @@ import { getFirebaseProjectId } from './_config.js';
 
 type HeaderBag = { authorization?: string | string[] };
 
+function splitCredential(projectId: string) {
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL?.trim();
+  const rawPrivateKey = process.env.FIREBASE_PRIVATE_KEY?.trim();
+  if (!clientEmail || !rawPrivateKey) return null;
+  return {
+    projectId,
+    clientEmail,
+    privateKey: rawPrivateKey.replace(/\\n/g, '\n'),
+  };
+}
+
 function ensureAdmin() {
   if (getApps().length) return;
   const projectId = getFirebaseProjectId();
@@ -15,9 +26,15 @@ function ensureAdmin() {
     return;
   }
 
+  const split = splitCredential(projectId);
+  if (split) {
+    initializeApp({ credential: cert(split), projectId });
+    return;
+  }
+
   // ID-token verification only needs a trusted project ID plus Google's public
   // signing certificates. Privileged Firestore/Admin operations still require
-  // service-account credentials and are handled separately.
+  // service-account credentials and fail closed when persistent quota is required.
   initializeApp({ projectId });
 }
 

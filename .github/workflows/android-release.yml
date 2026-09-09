@@ -1,0 +1,83 @@
+name: Android Play Bundle
+
+on:
+  push:
+    branches: [main, release/android-play-hardening]
+    paths:
+      - 'android/**'
+      - '.github/workflows/android-release.yml'
+  pull_request:
+    paths:
+      - 'android/**'
+      - '.github/workflows/android-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android 16 SDK
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+
+      - name: Setup Gradle 8.13
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Configure optional Play upload signing
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ] && [ -n "${ANDROID_KEYSTORE_PASSWORD:-}" ] && [ -n "${ANDROID_KEY_ALIAS:-}" ] && [ -n "${ANDROID_KEY_PASSWORD:-}" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/android/release-upload.jks"
+            echo "ANDROID_KEYSTORE_PATH=$GITHUB_WORKSPACE/android/release-upload.jks" >> "$GITHUB_ENV"
+            echo "PLAY_BUNDLE_SIGNED=true" >> "$GITHUB_ENV"
+          else
+            echo "PLAY_BUNDLE_SIGNED=false" >> "$GITHUB_ENV"
+            echo 'Play upload signing secrets are not configured; validating an unsigned release bundle.'
+          fi
+
+      - name: Lint release
+        run: gradle -p android :app:lintRelease --no-daemon
+
+      - name: Build release AAB
+        run: gradle -p android :app:bundleRelease --no-daemon
+
+      - name: Verify bundle exists
+        run: test -s android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: english-twin-play-aab-${{ github.sha }}
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Release summary
+        run: |
+          echo "### English Twin Android bundle" >> "$GITHUB_STEP_SUMMARY"
+          echo "- applicationId: com.amirhamrouni.englishtwin" >> "$GITHUB_STEP_SUMMARY"
+          echo "- targetSdk: 36" >> "$GITHUB_STEP_SUMMARY"
+          echo "- signed with configured upload key: $PLAY_BUNDLE_SIGNED" >> "$GITHUB_STEP_SUMMARY"

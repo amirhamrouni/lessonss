@@ -26,6 +26,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     firebaseClientSource: envFirebaseClientConfigured ? 'environment' : 'production-fallback',
     firebaseProjectId: readiness.firebaseProjectId,
     firebaseAdminConfigured: readiness.firebaseAdminConfigured,
+    firebaseAdminCredentialSource: readiness.firebaseAdminCredentialSource,
     firebaseTokenVerificationConfigured: Boolean(readiness.firebaseProjectId),
     quotaMode: readiness.persistentQuotaConfigured ? 'persistent-firestore' : 'instance-fallback',
     persistentQuotaRequired,
@@ -33,5 +34,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     geminiConfigured: readiness.geminiConfigured,
     liveModelConfigured: readiness.liveModelConfigured,
     tutorModelConfigured: readiness.tutorModelConfigured,
+    liveModel: readiness.liveModel,
+    tutorModel: readiness.tutorModel,
   });
 }

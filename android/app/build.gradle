@@ -1,0 +1,51 @@
+plugins {
+    id 'com.android.application'
+}
+
+def keystorePath = System.getenv('ANDROID_KEYSTORE_PATH')
+def hasReleaseSigning = keystorePath && file(keystorePath).exists() &&
+        System.getenv('ANDROID_KEYSTORE_PASSWORD') &&
+        System.getenv('ANDROID_KEY_ALIAS') &&
+        System.getenv('ANDROID_KEY_PASSWORD')
+
+android {
+    namespace 'com.amirhamrouni.englishtwin'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.amirhamrouni.englishtwin'
+        minSdk 23
+        targetSdk 36
+        versionCode 1
+        versionName '1.0.0'
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(keystorePath)
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) signingConfig signingConfigs.release
+        }
+    }
+
+    lint {
+        abortOnError true
+        checkReleaseBuilds true
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.2.0'
+}
