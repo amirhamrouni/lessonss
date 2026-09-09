@@ -34,7 +34,12 @@ export default function AppDock({ language, className = '' }: Props) {
       {items.map(([to, label], index) => {
         const Icon = icons[index];
         return (
-          <NavLink end={to === '/'} key={to} to={to}>
+          <NavLink
+            end={to === '/'}
+            key={to}
+            to={to}
+            className={({ isActive }) => isActive ? 'active' : undefined}
+          >
             <Icon aria-hidden="true" />
             <small>{label}</small>
           </NavLink>
