@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { AlertTriangle, BrainCircuit, Check, ChevronRight, Gauge, LoaderCircle, Mic, RotateCcw, Sparkles, Volume2 } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, BrainCircuit, Check, ChevronRight, Gauge, LoaderCircle, Mic, RotateCcw, Sparkles, Volume2 } from 'lucide-react';
 import { ETButton, LearningShell, StatusState } from './ui/LearningUI';
 import { auth, db } from './firebase';
 import { loadLessonProgress, ProgressMap } from './learning';
