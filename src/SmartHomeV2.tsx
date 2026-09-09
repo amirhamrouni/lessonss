@@ -6,7 +6,7 @@ import { AlertTriangle, BookOpen, Check, ChevronRight, LoaderCircle, MessageCirc
 import Brand from './ui/Brand';
 import { ETButton, LanguagePair, LearningShell, ProgressBar, SectionTitle, StatusState, Surface, TaskRow } from './ui/LearningUI';
 import { auth, db } from './firebase';
-import { lessons } from './curriculumAll';
+import { lessonsForLevel, type LearningLevel } from './curriculumAll';
 import { loadLessonProgress, ProgressMap } from './learning';
 import { dueCards, ensureReviewCards } from './review';
 import { buildDailyPlan, SkillLevels, weakestMeasuredSkill } from './adaptiveLearning';
@@ -46,6 +46,12 @@ const copyByLanguage: Record<SupportedLanguage, { weekly:string; weeklyBody:stri
   German:{weekly:'Dein Wochenziel',weeklyBody:'5 Lektionen abschließen',continue:'Weiterlernen',next:'Baue Sicherheit mit praktischem Alltagsenglisch auf.',foundation:'Lerne erste nützliche Wörter mit Bildern, Hören und Sprechen.',reviewBody:'Festige fällige Wörter vor der nächsten Lektion.',speak:'Mit Twin sprechen',speakBody:'Mach aus dem Gelernten ein echtes Gespräch.',start:'Jetzt starten',better:'Ein klarer Schritt nach dem anderen.',support:'Bedeutung',loading:'Dein Lernplan wird vorbereitet…',loadError:'Dein Lernplan konnte nicht geladen werden',loadErrorBody:'Dein gespeicherter Fortschritt wurde nicht verändert. Prüfe die Verbindung und versuche es erneut.',retry:'Erneut versuchen'},
   Spanish:{weekly:'Tu meta esta semana',weeklyBody:'Completa 5 lecciones',continue:'Seguir aprendiendo',next:'Gana confianza con inglés práctico para la vida diaria.',foundation:'Aprende tus primeras palabras útiles con imágenes, escucha y habla.',reviewBody:'Fija las palabras antes de la siguiente lección.',speak:'Habla con Twin',speakBody:'Convierte lo aprendido en conversación real.',start:'Empezar',better:'Un paso claro cada vez.',support:'Significado',loading:'Preparando tu plan de aprendizaje…',loadError:'No se pudo cargar tu plan',loadErrorBody:'Tu progreso guardado no cambió. Revisa la conexión y vuelve a intentarlo.',retry:'Intentar de nuevo'},
 };
+
+const learningLevels: LearningLevel[] = ['A1','A2','B1','B2','C1'];
+function resolveLearningLevel(value?: string): LearningLevel {
+  const upper = String(value || 'A1').toUpperCase() as LearningLevel;
+  return learningLevels.includes(upper) ? upper : 'A1';
+}
 
 function supportSample(language: SupportedLanguage, firstName: string) {
   const samples: Record<SupportedLanguage, string> = {
@@ -114,7 +120,9 @@ export default function SmartHomeV2() {
   const language = normalizeLanguage(profile?.explanationLanguage || profile?.nativeLanguage || profile?.interfaceLanguage);
   const dir = directionFor(language);
   const ui = copyByLanguage[language];
-  const nextLesson = useMemo(() => lessons.find(lesson => !progress[lesson.id]?.completed), [progress]);
+  const currentLevel = resolveLearningLevel(profile?.placementLevel || profile?.cefrLevel);
+  const needsFoundation = currentLevel === 'A1' && !profile?.beginnerFoundationCompleted;
+  const nextLesson = useMemo(() => lessonsForLevel(currentLevel).find(lesson => !progress[lesson.id]?.completed), [progress, currentLevel]);
   const weakestSkill = useMemo(() => weakestMeasuredSkill(profile?.skillLevels), [profile?.skillLevels]);
   const dailyPlan = useMemo(() => buildDailyPlan({
     dailyTargetMinutes: profile?.dailyTargetMinutes || 15,
@@ -128,11 +136,11 @@ export default function SmartHomeV2() {
   const weeklyPercent = Math.min(100, Math.round((weeklyCompleted / weeklyGoal) * 100));
 
   const recommendation: Recommendation = useMemo(() => {
-    if (!profile?.beginnerFoundationCompleted) return { kind:'foundation', eyebrow:'A0 → A1', title:t(language,'firstWords'), body:ui.foundation, action:t(language,'startFirstWords'), to:'/start', minutes:5 };
+    if (needsFoundation) return { kind:'foundation', eyebrow:'A0 → A1', title:t(language,'firstWords'), body:ui.foundation, action:t(language,'startFirstWords'), to:'/start', minutes:5 };
     if (dueCount) return { kind:'review', eyebrow:'FSRS', title:t(language,'smartReview'), body:ui.reviewBody, action:t(language,'reviewNow'), to:'/review', minutes:3 };
-    if (nextLesson) return { kind:'lesson', eyebrow:nextLesson.id.startsWith('a2-')?'A2 · Lesson':'A1 · Lesson', title:nextLesson.title, body:ui.next, action:ui.start, to:`/lesson/${nextLesson.id}`, minutes:nextLesson.minutes };
-    return { kind:'speak', eyebrow:'LIVE', title:ui.speak, body:ui.speakBody, action:ui.start, to:'/speak', minutes:5 };
-  }, [profile?.beginnerFoundationCompleted, dueCount, nextLesson, language, ui]);
+    if (nextLesson) return { kind:'lesson', eyebrow:`${currentLevel} · Lesson`, title:nextLesson.title, body:ui.next, action:ui.start, to:`/lesson/${nextLesson.id}`, minutes:nextLesson.minutes };
+    return { kind:'speak', eyebrow:`${currentLevel} · LIVE`, title:ui.speak, body:ui.speakBody, action:ui.start, to:'/speak', minutes:5 };
+  }, [needsFoundation, dueCount, nextLesson, currentLevel, language, ui]);
 
   function planRoute(id: string, lessonId?: string) {
     if (id === 'review') return '/review';
@@ -149,8 +157,7 @@ export default function SmartHomeV2() {
 
   const name = profile.displayName || user.displayName || 'Learner';
   const firstName = name.trim().split(/\s+/)[0] || 'Learner';
-  const level = profile.placementLevel || profile.cefrLevel || 'A1';
-  const rawPlan: HomePlanItem[] = !profile.beginnerFoundationCompleted
+  const rawPlan: HomePlanItem[] = needsFoundation
     ? [{ id:'foundation', minutes:5 }, { id:'pronunciation', minutes:5 }, { id:'speaking', minutes:5 }]
     : (dailyPlan.slice(0,3) as HomePlanItem[]);
   const planItems: HomePlanItem[] = [...rawPlan];
@@ -167,8 +174,8 @@ export default function SmartHomeV2() {
           <h1>{name}</h1>
           <p>{ui.better}</p>
         </div>
-        <button className="et-level-chip" type="button" onClick={() => nav('/learn')} aria-label={`Current CEFR level ${level}`}>
-          <strong>{level}</strong><small>CEFR</small>
+        <button className="et-level-chip" type="button" onClick={() => nav('/learn')} aria-label={`Current CEFR level ${currentLevel}`}>
+          <strong>{currentLevel}</strong><small>CEFR</small>
         </button>
       </section>
 
