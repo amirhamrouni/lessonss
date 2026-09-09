@@ -161,11 +161,12 @@ export default function LearnerSetup() {
   ];
 
   async function finish() {
-    if (busy) return;
+    const currentUser = user;
+    if (!currentUser || busy) return;
     setBusy(true);
     setSaveError('');
     try {
-      await setDoc(doc(db, 'users', user.uid), {
+      await setDoc(doc(db, 'users', currentUser.uid), {
         nativeLanguage: draft.nativeLanguage,
         explanationLanguage: draft.explanationLanguage,
         instructionLanguage: draft.nativeLanguage,
