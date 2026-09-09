@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { BookOpen, Check, ChevronRight, LoaderCircle, Mic2, RotateCcw, Target } from 'lucide-react';
+import { BookOpen, Check, ChevronRight, LoaderCircle, MessageCircle, Mic2, RotateCcw } from 'lucide-react';
 import AppDock from './AppDock';
+import Brand from './ui/Brand';
 import { auth, db } from './firebase';
 import { lessons } from './curriculumAll';
 import { loadLessonProgress, ProgressMap } from './learning';
@@ -21,6 +22,7 @@ type Profile = {
   explanationLanguage?: string;
   interfaceLanguage?: string;
   placementLevel?: string;
+  cefrLevel?: string;
   skillLevels?: Partial<SkillLevels>;
 };
 
@@ -43,6 +45,15 @@ const copyByLanguage: Record<SupportedLanguage, { weekly:string; weeklyBody:stri
   French:{weekly:'Ton objectif cette semaine',weeklyBody:'Termine 5 leçons',continue:'Continuer',next:'Prends confiance avec un anglais pratique du quotidien.',foundation:'Apprends tes premiers mots utiles avec images, écoute et expression orale.',reviewBody:'Fixe les mots avant la prochaine leçon.',speak:'Parler avec Twin',speakBody:'Transforme ton apprentissage en conversation.',start:'Commencer',better:'Chaque jour, un pas vers un meilleur anglais'},
   German:{weekly:'Dein Wochenziel',weeklyBody:'5 Lektionen abschließen',continue:'Lektion fortsetzen',next:'Baue Sicherheit mit praktischem Alltagsenglisch auf.',foundation:'Lerne erste nützliche Wörter mit Bildern, Hören und Sprechen.',reviewBody:'Festige fällige Wörter vor der nächsten Lektion.',speak:'Mit Twin sprechen',speakBody:'Mach aus dem Gelernten ein echtes Gespräch.',start:'Jetzt starten',better:'Jeden Tag ein Schritt zu besserem Englisch'},
   Spanish:{weekly:'Tu meta esta semana',weeklyBody:'Completa 5 lecciones',continue:'Continuar lección',next:'Gana confianza con inglés práctico para la vida diaria.',foundation:'Aprende tus primeras palabras útiles con imágenes, escucha y habla.',reviewBody:'Fija las palabras antes de la siguiente lección.',speak:'Habla con Twin',speakBody:'Convierte lo aprendido en conversación real.',start:'Empezar',better:'Cada día, un paso más hacia un mejor inglés'},
+};
+
+const sampleSupport: Record<SupportedLanguage, string> = {
+  English: 'A natural self-introduction.',
+  Arabic: 'مرحبًا، أنا أمير.',
+  Dutch: 'Hallo, ik ben Amir.',
+  French: "Bonjour, je m'appelle Amir.",
+  German: 'Hallo, ich bin Amir.',
+  Spanish: 'Hola, soy Amir.',
 };
 
 function dateFromTimestamp(value: unknown) {
@@ -124,54 +135,63 @@ export default function SmartHomeV2() {
   if (!profile?.onboardingCompleted || !profile?.nativeLanguage) return <Navigate to="/setup" replace />;
 
   const name = profile.displayName || user.displayName || 'Learner';
-  const planItems: HomePlanItem[] = !profile.beginnerFoundationCompleted
+  const level = profile.placementLevel || profile.cefrLevel || 'A1';
+  const rawPlan: HomePlanItem[] = !profile.beginnerFoundationCompleted
     ? [
         { id:'foundation', minutes:5 },
         { id:'pronunciation', minutes:5 },
         { id:'speaking', minutes:5 },
       ]
     : (dailyPlan.slice(0,3) as HomePlanItem[]);
+  const planItems: HomePlanItem[] = [...rawPlan];
+  if (planItems.length < 3 && !planItems.some(item => item.id === 'pronunciation')) planItems.push({ id:'pronunciation', minutes:5 });
+  if (planItems.length < 3 && !planItems.some(item => item.id === 'speaking')) planItems.push({ id:'speaking', minutes:5 });
 
-  return <div className="app-shell reference-home exact-reference-home" dir={dir}><div className="phone"><main className="page">
-    <header className="exact-brand-row">
-      <div className="exact-brand-mark" aria-hidden="true"><BookOpen /></div>
-      <div className="exact-brand-copy"><strong>English <b>Twin</b></strong><small>Your Personal English Coach</small></div>
-      <button className="exact-header-avatar" onClick={() => nav('/profile')} aria-label="Profile">{name.slice(0,1).toUpperCase()}</button>
-    </header>
+  return <div className="app-shell" dir={dir}><div className="phone"><main className="page et-home">
+    <Brand showProfile profileInitial={name} />
 
-    <section className="exact-user-row">
-      <button className="exact-user-picture" onClick={() => nav('/profile')} aria-label="Profile"><img src="/tutor-avatar.svg" alt=""/><span><Target /></span></button>
-      <div><small>{t(language,'greeting')}</small><h1>{name}</h1><p>{ui.better}</p></div>
+    <section className="et-home-intro">
+      <div>
+        <small>{t(language,'greeting')}</small>
+        <h1>{name}</h1>
+        <p>{ui.better}</p>
+      </div>
+      <div className="et-streak" aria-label={`Current level ${level}`}><strong>{level}</strong><span>CEFR</span></div>
     </section>
 
-    <section className="exact-week-card">
-      <span className="exact-goal-icon"><Target /></span>
-      <div className="exact-week-copy"><b>{ui.weekly}</b><p>{ui.weeklyBody}</p></div>
+    <section className="et-weekly">
+      <div><b>{ui.weekly}</b><p>{ui.weeklyBody}</p></div>
       <strong dir="ltr">{weeklyCompleted} / {weeklyGoal}</strong>
-      <div className="exact-week-progress"><i style={{width:`${weeklyPercent}%`}} /></div>
+      <div className="et-weekly-track"><i style={{width:`${weeklyPercent}%`}} /></div>
     </section>
 
-    <section className={`exact-feature-card exact-${recommendation.kind}`}>
-      <div className="exact-feature-copy">
+    <section className="et-next-card">
+      <div className="et-next-copy">
         <span>{ui.continue}</span>
         <small>{recommendation.eyebrow}</small>
         <h2>{recommendation.title}</h2>
         <p>{recommendation.body}</p>
-        <div className="exact-feature-meta"><em>{recommendation.eyebrow}</em><em>{recommendation.minutes} min</em></div>
+        <div className="et-next-meta"><em>{recommendation.eyebrow}</em><em>{recommendation.minutes} min</em></div>
       </div>
-      <img className="exact-tutor-art" src="/tutor-avatar.svg" alt="" aria-hidden="true"/>
-      <button className="exact-feature-action" onClick={() => nav(recommendation.to)}>{recommendation.action}<ChevronRight /></button>
+      <div className="et-twin-sample" dir="ltr" aria-label="English Twin language pair preview">
+        <span>English target</span>
+        <strong>Hello, I’m Amir.</strong>
+        <small dir={dir}>{sampleSupport[language]}</small>
+        <div className="et-mini-wave" aria-hidden="true"><i/><i/><i/><i/><i/><i/><i/><i/></div>
+      </div>
+      <button className="et-next-action" onClick={() => nav(recommendation.to)}>{recommendation.action}<ChevronRight /></button>
     </section>
 
-    <section className="exact-today">
-      <div className="exact-section-title"><h3>{t(language,'todayPlan')}</h3><button onClick={() => nav('/learn')}>{t(language,'seeAll')}</button></div>
-      <div className="exact-plan-list">
-        {planItems.map((item,index) => {
-          const Icon = item.id === 'foundation' || item.id === 'lesson' ? BookOpen : item.id === 'pronunciation' ? Mic2 : item.id === 'speaking' ? Mic2 : RotateCcw;
-          const label = item.id === 'foundation' ? t(language,'startFirstWords') : item.id === 'review' ? t(language,'vocabularyReview') : item.id === 'pronunciation' ? (language === 'Arabic' ? 'تمرين الاستماع والنطق' : 'Listening & pronunciation') : item.id === 'speaking' ? t(language,'speakWithTwin') : item.id === 'lesson' ? t(language,'nextLesson') : t(language,'smartReview');
+    <section>
+      <div className="et-section-head"><h3>{t(language,'todayPlan')}</h3><button onClick={() => nav('/learn')}>{t(language,'seeAll')}</button></div>
+      <div className="et-task-list">
+        {planItems.slice(0,3).map((item,index) => {
+          const Icon = item.id === 'foundation' || item.id === 'lesson' ? BookOpen : item.id === 'pronunciation' ? Mic2 : item.id === 'speaking' ? MessageCircle : RotateCcw;
+          const label = item.id === 'foundation' ? t(language,'startFirstWords') : item.id === 'review' ? t(language,'vocabularyReview') : item.id === 'pronunciation' ? (language === 'Arabic' ? 'الاستماع والنطق' : 'Listening & pronunciation') : item.id === 'speaking' ? t(language,'speakWithTwin') : item.id === 'lesson' ? t(language,'nextLesson') : t(language,'smartReview');
           const route = item.id === 'foundation' ? '/start' : planRoute(item.id,item.lessonId);
+          const done = index === 0 && weeklyCompleted > 0;
           return <button key={`${item.id}-${index}`} onClick={() => nav(route)}>
-            <span className={index === 0 && weeklyCompleted > 0 ? 'exact-plan-state done' : 'exact-plan-state'}>{index === 0 && weeklyCompleted > 0 ? <Check/> : <Icon/>}</span>
+            <span className={done ? 'et-task-state done' : 'et-task-state'}>{done ? <Check/> : <Icon/>}</span>
             <div><b>{label}</b><small>{item.minutes || 5} min</small></div>
             <ChevronRight />
           </button>;
