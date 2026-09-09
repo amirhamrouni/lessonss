@@ -1,6 +1,17 @@
-export type SkillName = 'vocabulary' | 'grammar' | 'reading' | 'listening' | 'speaking' | 'writing' | 'pronunciation';
+export type SkillName =
+  | 'vocabulary'
+  | 'grammar'
+  | 'reading'
+  | 'listening'
+  | 'speaking'
+  | 'spoken_interaction'
+  | 'spoken_production'
+  | 'writing'
+  | 'pronunciation'
+  | 'mediation';
 
-export type SkillLevels = Record<SkillName, string>;
+// Partial keeps historical learner profiles valid while v2 evidence is added.
+export type SkillLevels = Partial<Record<SkillName, string>>;
 
 export type PlanInput = {
   dailyTargetMinutes: number;
@@ -53,11 +64,24 @@ export function buildDailyPlan(input: PlanInput): PlanItem[] {
   return items;
 }
 
-export function weakestMeasuredSkill(levels?: Partial<SkillLevels> | null): SkillName | null {
+export function weakestMeasuredSkill(levels?: SkillLevels | null): SkillName | null {
   if (!levels) return null;
-  const order: SkillName[] = ['speaking','listening','pronunciation','writing','reading','grammar','vocabulary'];
-  const rank: Record<string, number> = { A1: 1, A2: 2, B1: 3, B2: 4, C1: 5, C2: 6 };
-  const measured = order.filter(skill => Boolean(levels[skill] && rank[levels[skill] as string]));
+  const order: SkillName[] = [
+    'spoken_interaction',
+    'spoken_production',
+    'speaking',
+    'listening',
+    'pronunciation',
+    'writing',
+    'mediation',
+    'reading',
+    'grammar',
+    'vocabulary',
+  ];
+  const rank: Record<string, number> = { A0: 0, A1: 1, A2: 2, B1: 3, B2: 4, C1: 5, C2: 6 };
+  const measured = order.filter(skill => Boolean(levels[skill] && rank[levels[skill] as string] !== undefined));
   if (!measured.length) return null;
-  return measured.reduce((lowest, skill) => (rank[levels[skill] as string] < rank[levels[lowest] as string] ? skill : lowest));
+  return measured.reduce((lowest, skill) => (
+    rank[levels[skill] as string] < rank[levels[lowest] as string] ? skill : lowest
+  ));
 }
