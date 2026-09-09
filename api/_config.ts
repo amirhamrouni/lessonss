@@ -14,7 +14,7 @@ export type ServerReadiness = {
 };
 
 const PRODUCTION_PROJECT_ID = 'gen-lang-client-0217548336';
-export const DEFAULT_GEMINI_MODEL = 'gemini-3.7-flash';
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.6-flash';
 export const DEFAULT_GEMINI_LIVE_MODEL = 'gemini-3.1-flash-live-preview';
 
 function hasValue(value: string | undefined) {
