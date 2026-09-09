@@ -27,6 +27,7 @@ import './final-product-v6.css';
 import './pronunciation-lab.css';
 import './language-lab-system.css';
 import './reference-fidelity-v9.css';
+import './reference-speak-v10.css';
 import './reference-complete-v10.css';
 
 const AuthGateway = React.lazy(() => import('./AuthGateway'));
