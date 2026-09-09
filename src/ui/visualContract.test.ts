@@ -57,13 +57,12 @@ describe('English Twin visual contract', () => {
     expect(dock).toContain('aria-current');
   });
 
-  it('uses shared loading and recoverable error states on core learner screens', () => {
+  it('uses shared loading and recoverable error states across learner screens', () => {
     const ui = source('./LearningUI.tsx');
     expect(ui).toContain('export function StatusState');
-    for (const file of ['../SmartHomeV2.tsx', '../ReferenceLearnJourney.tsx', '../SpeechDrill.tsx', '../ProfileHub.tsx']) {
+    for (const file of ['../SmartHomeV2.tsx', '../ReferenceLearnJourney.tsx', '../SpeechDrill.tsx', '../ProfileHub.tsx', '../LearningModes.tsx', '../PronunciationLab.tsx', '../TutorMode.tsx']) {
       const screen = source(file);
       expect(screen).toContain('StatusState');
-      expect(screen).toContain('loadError');
     }
   });
 
@@ -79,6 +78,38 @@ describe('English Twin visual contract', () => {
     expect(learn).toContain('function lessonUnlocked');
     expect(learn).toContain('levelLessons[globalIndex - 1]');
     expect(learn).not.toContain('lessonIndex === 0 || complete');
+  });
+
+  it('never presents a failed FSRS queue as an empty review queue', () => {
+    const modes = source('../LearningModes.tsx');
+    expect(modes).toContain('setReviewError(true)');
+    expect(modes).toContain('state.reviewUnavailable');
+    expect(modes).toContain('setActionError(state.ratingError)');
+    expect(modes).not.toContain('.catch(() => setReady(true))');
+  });
+
+  it('keeps assessment saving recoverable and personalized builder content dynamic', () => {
+    const modes = source('../LearningModes.tsx');
+    expect(modes).toContain('setSaveError(state.assessmentSaveError)');
+    expect(modes).toContain('buildersFor(learnerName)');
+    expect(modes).not.toContain("['Amir', 'I’m', 'Hello']");
+  });
+
+  it('prevents microphone startup from leaving speaking UIs stuck', () => {
+    for (const file of ['../SpeechDrill.tsx', '../PronunciationLab.tsx']) {
+      const screen = source(file);
+      expect(screen).toContain('recognition.start();');
+      expect(screen).toContain("copy.micError('start-failed')");
+      expect(screen).toContain('setListening(false)');
+    }
+  });
+
+  it('keeps a successful Twin reply visible even if optional memory persistence fails', () => {
+    const twin = source('../TutorMode.tsx');
+    expect(twin).toContain('setMessages(nextMessages)');
+    expect(twin).toContain('Promise.allSettled');
+    expect(twin).toContain('setMemoryWarning(state.memoryWarning)');
+    expect(twin).toContain('setMessages(messagesBeforeSend)');
   });
 
   it('keeps account deletion aligned with generated learner data', () => {
