@@ -2,8 +2,8 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { deleteUser, onAuthStateChanged, signOut, updateProfile, User } from 'firebase/auth';
 import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore';
-import { ArrowLeft, BrainCircuit, ChevronRight, Languages, LogOut, Save, Target, Trash2 } from 'lucide-react';
-import AppDock from './AppDock';
+import { BrainCircuit, ChevronRight, Languages, LogOut, Save, Target, Trash2 } from 'lucide-react';
+import { ETButton, LearningShell, PageTitle, SectionTitle, Surface } from './ui/LearningUI';
 import { auth, db } from './firebase';
 import { directionFor, normalizeLanguage } from './languageSupport';
 
@@ -38,10 +38,6 @@ const languages: SupportedLanguage[] = ['Arabic', 'Dutch', 'French', 'German', '
 const goals = ['Daily conversation', 'Work', 'Travel', 'Study', 'Moving abroad'];
 const rhythms = [5, 10, 15, 20, 30];
 const userSubcollections = ['lessonProgress', 'reviewCards', 'reviewLogs', 'mistakes', 'twin', 'learningSessions'];
-
-function Shell({ children, language }: { children: React.ReactNode; language?: string }) {
-  return <div className="app-shell"><div className="phone"><main className="page profile-v2">{children}</main><AppDock language={language} /></div></div>;
-}
 
 async function deleteCollectionDocuments(uid: string, name: string) {
   const snapshot = await getDocs(collection(db, 'users', uid, name));
@@ -95,8 +91,9 @@ export function ProfileHub() {
   }), []);
 
   const support = normalizeLanguage(draft.explanationLanguage || draft.nativeLanguage || draft.interfaceLanguage || 'English');
+  const dir = directionFor(support);
 
-  if (loading) return <Shell language={support}><BrainCircuit /><p>Loading profile…</p></Shell>;
+  if (loading) return <LearningShell language={support} dir={dir}><BrainCircuit /><p>Loading profile…</p></LearningShell>;
   if (!user) return <Navigate to="/welcome" replace />;
 
   async function save(event: FormEvent) {
@@ -139,7 +136,6 @@ export function ProfileHub() {
         setConfirmDelete(false);
         return;
       }
-
       await deleteLearnerData(user.uid);
       await deleteUser(user);
       localStorage.removeItem('english-twin-voice-consent-v1');
@@ -148,34 +144,56 @@ export function ProfileHub() {
       const message = error instanceof Error ? error.message : '';
       if (message.includes('requires-recent-login')) setNotice('Sign out and sign in again, then retry account deletion.');
       else setNotice('Account deletion could not be completed. Please retry.');
-    } finally {
-      setDeleting(false);
-    }
+    } finally { setDeleting(false); }
   }
 
-  return <Shell language={support}>
-    <header className="home-header"><div><span className="eyebrow">LEARNER PROFILE</span><h1>{profile.displayName || 'Learner'}</h1><p>{user.email}</p></div><button className="icon" onClick={() => nav('/')}><ArrowLeft /></button></header>
+  const measuredLevel = draft.placementLevel || draft.cefrLevel || 'A1';
 
-    <form className="profile-form" onSubmit={save}>
-      <section className="profile-card"><div className="section-heading"><span>IDENTITY</span><h3>Your learning setup</h3></div><label>Name<input value={draft.displayName || ''} onChange={e => setDraft({ ...draft, displayName: e.target.value })} maxLength={60} /></label></section>
+  return <LearningShell language={support} dir={dir} className="et-profile-shell">
+    <PageTitle eyebrow="LEARNER PROFILE" title={profile.displayName || 'Learner'} description={user.email || ''} />
 
-      <section className="profile-card"><div className="section-heading"><span>LANGUAGES</span><h3>Support vs target</h3></div><div className="language-summary"><Languages /><div><b>{support} support</b><small>English remains the target language.</small></div></div><label>Native language<select value={draft.nativeLanguage || 'Arabic'} onChange={e => setDraft({ ...draft, nativeLanguage: e.target.value as SupportedLanguage })}>{languages.map(language => <option key={language}>{language}</option>)}</select></label><label>Explanation language<select value={draft.explanationLanguage || draft.nativeLanguage || 'Arabic'} onChange={e => setDraft({ ...draft, explanationLanguage: e.target.value as SupportedLanguage })}>{languages.map(language => <option key={language}>{language}</option>)}</select></label><label>Interface language<select value={draft.interfaceLanguage || 'English'} onChange={e => setDraft({ ...draft, interfaceLanguage: e.target.value as SupportedLanguage })}>{languages.map(language => <option key={language}>{language}</option>)}</select></label></section>
+    <Surface className="et-profile-overview" tone="blue">
+      <div className="et-profile-avatar">{(profile.displayName || 'L').slice(0,1).toUpperCase()}</div>
+      <div><span>Current level</span><h2>{measuredLevel}</h2><p>{draft.learningGoal || 'Daily conversation'} · {draft.dailyTargetMinutes || 15} min/day</p></div>
+    </Surface>
 
-      <section className="profile-card"><div className="section-heading"><span>PLAN</span><h3>Goal and daily rhythm</h3></div><label>Learning goal<select value={draft.learningGoal || 'Daily conversation'} onChange={e => setDraft({ ...draft, learningGoal: e.target.value })}>{goals.map(goal => <option key={goal}>{goal}</option>)}</select></label><label>Daily target<select value={draft.dailyTargetMinutes || 15} onChange={e => setDraft({ ...draft, dailyTargetMinutes: Number(e.target.value) })}>{rhythms.map(minutes => <option key={minutes} value={minutes}>{minutes} minutes</option>)}</select></label><div className="profile-signal"><Target /><div><b>Measured level</b><small>{draft.placementLevel ? `Placement: ${draft.placementLevel}` : `Self-reported: ${draft.cefrLevel || 'A1'}`}</small></div></div></section>
+    <form className="et-profile-form" onSubmit={save}>
+      <Surface>
+        <SectionTitle title="Your learning setup" meta="Identity" />
+        <label className="et-field">Name<input value={draft.displayName || ''} onChange={e => setDraft({ ...draft, displayName: e.target.value })} maxLength={60} /></label>
+      </Surface>
 
-      <button className="primary profile-save" type="submit" disabled={saving}><Save />{saving ? 'Saving…' : 'Save profile'}</button>{notice && <p className={notice === 'Saved' ? 'success' : 'error'}>{notice}</p>}
+      <Surface>
+        <SectionTitle title="Support vs target" meta="Languages" />
+        <div className="et-inline-info"><Languages /><div><b>{support} support</b><small>English remains the target language.</small></div></div>
+        <label className="et-field">Native language<select value={draft.nativeLanguage || 'Arabic'} onChange={e => setDraft({ ...draft, nativeLanguage: e.target.value as SupportedLanguage })}>{languages.map(language => <option key={language}>{language}</option>)}</select></label>
+        <label className="et-field">Explanation language<select value={draft.explanationLanguage || draft.nativeLanguage || 'Arabic'} onChange={e => setDraft({ ...draft, explanationLanguage: e.target.value as SupportedLanguage })}>{languages.map(language => <option key={language}>{language}</option>)}</select></label>
+        <label className="et-field">Interface language<select value={draft.interfaceLanguage || 'English'} onChange={e => setDraft({ ...draft, interfaceLanguage: e.target.value as SupportedLanguage })}>{languages.map(language => <option key={language}>{language}</option>)}</select></label>
+      </Surface>
+
+      <Surface>
+        <SectionTitle title="Goal and daily rhythm" meta="Study plan" />
+        <label className="et-field">Learning goal<select value={draft.learningGoal || 'Daily conversation'} onChange={e => setDraft({ ...draft, learningGoal: e.target.value })}>{goals.map(goal => <option key={goal}>{goal}</option>)}</select></label>
+        <label className="et-field">Daily target<select value={draft.dailyTargetMinutes || 15} onChange={e => setDraft({ ...draft, dailyTargetMinutes: Number(e.target.value) })}>{rhythms.map(minutes => <option key={minutes} value={minutes}>{minutes} minutes</option>)}</select></label>
+        <div className="et-inline-info"><Target /><div><b>Measured level</b><small>{draft.placementLevel ? `Placement: ${draft.placementLevel}` : `Self-reported: ${draft.cefrLevel || 'A1'}`}</small></div></div>
+      </Surface>
+
+      <ETButton className="et-full" type="submit" disabled={saving}><Save />{saving ? 'Saving…' : 'Save profile'}</ETButton>
+      {notice ? <p className={notice === 'Saved' ? 'success' : 'error'}>{notice}</p> : null}
     </form>
 
-    <button className="progress-link" onClick={() => nav('/mistakes')}><BrainCircuit /> Open Error Memory <ChevronRight /></button>
-    <button className="progress-link" onClick={() => nav('/privacy')}>Privacy & AI data <ChevronRight /></button>
-    <button className="progress-link" onClick={async () => { await signOut(auth); nav('/welcome'); }}><LogOut /> Sign out <ChevronRight /></button>
+    <Surface className="et-settings-list">
+      <button onClick={() => nav('/mistakes')}><BrainCircuit /><div><b>Error Memory</b><small>Review recurring mistakes from real practice.</small></div><ChevronRight /></button>
+      <button onClick={() => nav('/privacy')}><div><b>Privacy & AI data</b><small>See how voice, progress and AI features use data.</small></div><ChevronRight /></button>
+      <button onClick={async () => { await signOut(auth); nav('/welcome'); }}><LogOut /><div><b>Sign out</b></div><ChevronRight /></button>
+    </Surface>
 
-    <section className="profile-card">
-      <div className="section-heading"><span>DATA CONTROL</span><h3>Delete account</h3></div>
-      <p>This permanently removes your English Twin profile, lesson progress, review history, saved mistakes, Twin memory and saved live-speaking transcripts, then deletes your sign-in account.</p>
-      {!confirmDelete ? <button className="progress-link" type="button" onClick={() => setConfirmDelete(true)}><Trash2 /> Delete account and learning data <ChevronRight /></button> : <div className="lesson-actions"><button className="ghost" type="button" onClick={() => setConfirmDelete(false)} disabled={deleting}>Cancel</button><button className="primary" type="button" onClick={() => void removeAccount()} disabled={deleting}><Trash2 />{deleting ? 'Deleting…' : 'Permanently delete'}</button></div>}
-    </section>
-  </Shell>;
+    <Surface className="et-danger-zone" tone="danger">
+      <SectionTitle title="Delete account" meta="Data control" />
+      <p>This permanently removes your profile, lesson progress, review history, mistakes, Twin memory and saved speaking transcripts, then deletes your sign-in account.</p>
+      {!confirmDelete ? <ETButton variant="danger" type="button" onClick={() => setConfirmDelete(true)}><Trash2 /> Delete account and learning data</ETButton> : <div className="et-inline-actions"><ETButton variant="ghost" type="button" onClick={() => setConfirmDelete(false)} disabled={deleting}>Cancel</ETButton><ETButton variant="danger" type="button" onClick={() => void removeAccount()} disabled={deleting}><Trash2 />{deleting ? 'Deleting…' : 'Permanently delete'}</ETButton></div>}
+    </Surface>
+  </LearningShell>;
 }
 
 export function MistakeMemory() {
@@ -198,13 +216,12 @@ export function MistakeMemory() {
   const lessonCount = useMemo(() => mistakes.filter(item => item.source === 'lesson').length, [mistakes]);
   const twinCount = useMemo(() => mistakes.filter(item => item.source === 'twin-coach').length, [mistakes]);
 
-  if (loading) return <Shell><BrainCircuit /><p>Reading Error Memory…</p></Shell>;
+  if (loading) return <LearningShell><BrainCircuit /><p>Reading Error Memory…</p></LearningShell>;
   if (!user) return <Navigate to="/welcome" replace />;
 
-  return <Shell>
-    <button className="back" onClick={() => nav('/profile')}><ArrowLeft /> Profile</button>
-    <header><span className="eyebrow">ERROR MEMORY</span><h1>Your recurring mistakes</h1><p>Only mistakes captured from real lessons and Twin Coach appear here.</p></header>
-    <div className="metric-strip"><div><strong>{mistakes.length}</strong><span>Total</span></div><div><strong>{lessonCount}</strong><span>Lessons</span></div><div><strong>{twinCount}</strong><span>Twin Coach</span></div></div>
-    {!mistakes.length ? <div className="signal-empty"><BrainCircuit /><div><b>No stored mistakes yet.</b><p>Make a real mistake in a scored lesson or Twin Coach and it will appear here.</p></div></div> : <section className="mistake-list">{mistakes.map(item => <article className="mistake-card" key={item.id}><div className="mistake-meta"><span>{item.source === 'lesson' ? 'LESSON' : 'TWIN COACH'}</span>{item.skill && <span>{item.skill}</span>}<span>{item.timesSeen || 1}× seen</span></div><del>{item.original || '—'}</del><b>{item.corrected || '—'}</b>{item.reason && <p>{item.reason}</p>}{item.latestExample && <small>Context: {item.latestExample}</small>}</article>)}</section>}
-  </Shell>;
+  return <LearningShell className="et-mistake-shell">
+    <PageTitle eyebrow="ERROR MEMORY" title="Your recurring mistakes" description="Only mistakes captured from real lessons and Twin Coach appear here." />
+    <div className="et-metric-grid"><Surface><strong>{mistakes.length}</strong><span>Total</span></Surface><Surface><strong>{lessonCount}</strong><span>Lessons</span></Surface><Surface><strong>{twinCount}</strong><span>Twin Coach</span></Surface></div>
+    {!mistakes.length ? <Surface><BrainCircuit /><h2>No stored mistakes yet.</h2><p>Make a real mistake in a scored lesson or Twin Coach and it will appear here.</p><ETButton variant="secondary" onClick={() => nav('/practice')}>Go to practice</ETButton></Surface> : <div className="et-mistake-list">{mistakes.map(item => <Surface className="et-mistake-card" key={item.id}><div className="et-mistake-meta"><span>{item.source === 'lesson' ? 'LESSON' : 'TWIN COACH'}</span>{item.skill ? <span>{item.skill}</span> : null}<span>{item.timesSeen || 1}× seen</span></div><del>{item.original || '—'}</del><b>{item.corrected || '—'}</b>{item.reason ? <p>{item.reason}</p> : null}{item.latestExample ? <small>Context: {item.latestExample}</small> : null}</Surface>)}</div>}
+  </LearningShell>;
 }
