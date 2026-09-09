@@ -32,8 +32,10 @@ describe('English Twin visual contract', () => {
 
   it('keeps lessons distraction-free and interaction states explicit', () => {
     const lesson = source('../AutoLessonPlayer.tsx');
+    const advanced = source('../AdvancedLessonPlayer.tsx');
     const css = source('../product-system-v12.css');
     expect(lesson).toContain('showDock={false}');
+    expect(advanced).toContain('showDock={false}');
     expect(lesson).toContain('state={choiceState(');
     expect(css).toContain('.et-choice-selected');
     expect(css).toContain('.et-choice-correct');
@@ -73,10 +75,10 @@ describe('English Twin visual contract', () => {
     expect(home).toContain("item.id === 'lesson'");
   });
 
-  it('keeps course unlocking sequential across unit boundaries', () => {
+  it('keeps course unlocking sequential across unit boundaries within each CEFR level', () => {
     const learn = source('../ReferenceLearnJourney.tsx');
     expect(learn).toContain('function lessonUnlocked');
-    expect(learn).toContain('levelLessons[globalIndex - 1]');
+    expect(learn).toContain('levelLessons[levelIndex - 1]');
     expect(learn).not.toContain('lessonIndex === 0 || complete');
   });
 
