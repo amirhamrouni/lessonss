@@ -10,7 +10,7 @@ export default function LessonRouter() {
   let lesson;
   try { lesson = lessonById(lessonId); } catch { return <Navigate to="/learn" replace />; }
   if (isLessonV2(lesson)) {
-    if (!isLearningLevelEnabled(lesson.level)) return <Navigate to="/learn" replace />;
+    if (lesson.level === 'A0' || !isLearningLevelEnabled(lesson.level)) return <Navigate to="/learn" replace />;
     return <AdvancedLessonPlayer lesson={lesson} />;
   }
   return <AutoLessonPlayer />;
