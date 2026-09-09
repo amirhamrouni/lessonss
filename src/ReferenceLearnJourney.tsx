@@ -5,14 +5,14 @@ import { doc, getDoc } from 'firebase/firestore';
 import { AlertTriangle, Check, ChevronRight, LoaderCircle, LockKeyhole, Star } from 'lucide-react';
 import { ETButton, LearningShell, PageTitle, ProgressBar, StatusState, Surface } from './ui/LearningUI';
 import { auth, db } from './firebase';
-import { lessonsForLevel, lessonsForUnit, units } from './curriculumAll';
+import { lessonsForLevel, lessonsForUnit, unitsForLevel, type LearningLevel } from './curriculumAll';
 import { loadLessonProgress, ProgressMap, summarizeProgress } from './learning';
 import { directionFor, normalizeLanguage, SupportedLanguage } from './languageSupport';
 
 type Profile = { nativeLanguage?: string; explanationLanguage?: string; interfaceLanguage?: string; placementLevel?: string; cefrLevel?: string };
-type ActiveLevel = 'A1' | 'A2';
 
-const stateCopy: Record<SupportedLanguage, { loading:string; loadError:string; loadErrorBody:string; retry:string }> = {
+type StateCopy = { loading:string; loadError:string; loadErrorBody:string; retry:string };
+const stateCopy: Record<SupportedLanguage, StateCopy> = {
   English:{loading:'Loading your learning path…',loadError:'Couldn’t load your learning path',loadErrorBody:'Your saved lesson progress is still safe. Check the connection and try again.',retry:'Try again'},
   Arabic:{loading:'نحمّل مسار تعلّمك…',loadError:'تعذّر تحميل مسار التعلّم',loadErrorBody:'تقدّم دروسك المحفوظ مازال آمنًا. تحقق من الاتصال وحاول مرة أخرى.',retry:'حاول مرة أخرى'},
   Dutch:{loading:'Je leerpad wordt geladen…',loadError:'Je leerpad kon niet worden geladen',loadErrorBody:'Je opgeslagen lesvoortgang is veilig. Controleer je verbinding en probeer opnieuw.',retry:'Opnieuw proberen'},
@@ -20,6 +20,28 @@ const stateCopy: Record<SupportedLanguage, { loading:string; loadError:string; l
   German:{loading:'Dein Lernpfad wird geladen…',loadError:'Dein Lernpfad konnte nicht geladen werden',loadErrorBody:'Dein gespeicherter Fortschritt ist sicher. Prüfe die Verbindung und versuche es erneut.',retry:'Erneut versuchen'},
   Spanish:{loading:'Cargando tu ruta de aprendizaje…',loadError:'No se pudo cargar tu ruta',loadErrorBody:'Tu progreso guardado sigue seguro. Revisa la conexión y vuelve a intentarlo.',retry:'Intentar de nuevo'},
 };
+
+const supportedLevels: LearningLevel[] = ['A1','A2','B1','B2','C1'];
+
+function normalizedLearningLevel(value?: string): LearningLevel {
+  const upper = String(value || 'A1').toUpperCase();
+  return supportedLevels.includes(upper as LearningLevel) ? upper as LearningLevel : 'A1';
+}
+
+function levelTitle(level: LearningLevel, ar: boolean) {
+  if (ar) {
+    if (level === 'A1') return 'الأساسيات';
+    if (level === 'A2') return 'الاستقلال اليومي';
+    if (level === 'B1') return 'تواصل مستقل';
+    if (level === 'B2') return 'نقاش وتفكير متقدم';
+    return 'دقة ومرونة متقدمة';
+  }
+  if (level === 'A1') return 'Foundations';
+  if (level === 'A2') return 'Real-world independence';
+  if (level === 'B1') return 'Independent communication';
+  if (level === 'B2') return 'Complex communication & argument';
+  return 'Advanced precision & synthesis';
+}
 
 export default function ReferenceLearnJourney() {
   const nav = useNavigate();
@@ -29,7 +51,7 @@ export default function ReferenceLearnJourney() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
-  const [level, setLevel] = useState<ActiveLevel>('A1');
+  const [level, setLevel] = useState<LearningLevel>('A1');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async current => {
@@ -45,8 +67,7 @@ export default function ReferenceLearnJourney() {
         const nextProfile = profileSnap.exists() ? profileSnap.data() as Profile : {};
         setProfile(nextProfile);
         setProgress(learnerProgress);
-        const measuredLevel = nextProfile.placementLevel || nextProfile.cefrLevel || 'A1';
-        if (String(measuredLevel).toUpperCase().startsWith('A2')) setLevel('A2');
+        setLevel(normalizedLearningLevel(nextProfile.placementLevel || nextProfile.cefrLevel));
       } catch {
         setLoadError(true);
       } finally {
@@ -62,13 +83,13 @@ export default function ReferenceLearnJourney() {
   const state = stateCopy[language];
   const levelLessons = useMemo(() => lessonsForLevel(level), [level]);
   const summary = useMemo(() => summarizeProgress(progress, levelLessons.length), [progress, levelLessons]);
-  const levelUnits = useMemo(() => units.filter(unit => level === 'A2' ? unit.id.startsWith('a2-') : !unit.id.startsWith('a2-')), [level]);
+  const levelUnits = useMemo(() => unitsForLevel(level), [level]);
 
   function lessonUnlocked(lessonId: string) {
-    const globalIndex = levelLessons.findIndex(lesson => lesson.id === lessonId);
-    if (globalIndex < 0) return false;
-    if (progress[lessonId]?.completed || globalIndex === 0) return true;
-    const previous = levelLessons[globalIndex - 1];
+    const levelIndex = levelLessons.findIndex(lesson => lesson.id === lessonId);
+    if (levelIndex < 0) return false;
+    if (progress[lessonId]?.completed || levelIndex === 0) return true;
+    const previous = levelLessons[levelIndex - 1];
     return Boolean(previous && progress[previous.id]?.completed);
   }
 
@@ -78,19 +99,16 @@ export default function ReferenceLearnJourney() {
 
   return (
     <LearningShell language={language} dir={dir} className="et-learn-shell">
-      <PageTitle title={ar ? 'تعلّم' : 'Learn'} description={ar ? 'مسار واضح من الأساسيات إلى المحادثة.' : 'A clear path from foundations to real conversation.'} />
+      <PageTitle title={ar ? 'تعلّم' : 'Learn'} description={ar ? 'مسار متدرج من الأساسيات إلى الفهم والنقاش المتقدم.' : 'A progressive path from foundations to advanced comprehension, synthesis and communication.'} />
 
       <div className="et-cefr-tabs" role="tablist" aria-label="CEFR level">
         <button type="button" onClick={() => nav('/start')}>A0</button>
-        <button type="button" className={level === 'A1' ? 'active' : ''} onClick={() => setLevel('A1')} aria-selected={level === 'A1'} role="tab">A1</button>
-        <button type="button" className={level === 'A2' ? 'active' : ''} onClick={() => setLevel('A2')} aria-selected={level === 'A2'} role="tab">A2</button>
-        <button type="button" disabled aria-disabled="true">B1</button>
-        <button type="button" disabled aria-disabled="true">B2</button>
+        {supportedLevels.map(item => <button key={item} type="button" className={level === item ? 'active' : ''} onClick={() => setLevel(item)} aria-selected={level === item} role="tab">{item}</button>)}
       </div>
 
       <Surface className="et-level-summary">
         <div className="et-level-summary-head">
-          <div><span>{level}</span><h2>{ar ? (level === 'A1' ? 'الأساسيات' : 'الاستقلال اليومي') : (level === 'A1' ? 'Foundations' : 'Real-world independence')}</h2></div>
+          <div><span>{level}</span><h2>{levelTitle(level, ar)}</h2></div>
           <strong>{summary.percent}%</strong>
         </div>
         <ProgressBar value={summary.percent} />
@@ -109,7 +127,7 @@ export default function ReferenceLearnJourney() {
               <div className="et-unit-content">
                 <div className="et-unit-title">
                   <small>{level} · {ar ? 'الوحدة' : 'UNIT'} {String(unitIndex + 1).padStart(2,'0')}</small>
-                  <h2>{unit.title.replace(/^A2 · /,'')}</h2>
+                  <h2>{unit.title.replace(/^(A1|A2|B1|B2|C1) · /,'')}</h2>
                   <p>{ar ? `${completeCount} من ${unitLessons.length} دروس مكتملة` : `${completeCount} of ${unitLessons.length} lessons complete`}</p>
                 </div>
 
@@ -137,7 +155,7 @@ export default function ReferenceLearnJourney() {
 
                 <div className="et-unit-reward">
                   <Star/>
-                  <div><b>{ar ? `تقدّم في ${level}` : `${level} progress`}</b><small>{unitComplete ? (ar ? 'اكتملت هذه الوحدة.' : 'This unit is complete.') : (ar ? 'كل درس يفتح الخطوة التالية.' : 'Each lesson unlocks the next step.')}</small></div>
+                  <div><b>{ar ? `تقدّم في ${level}` : `${level} progress`}</b><small>{unitComplete ? (ar ? 'اكتملت هذه الوحدة.' : 'This unit is complete.') : (ar ? 'كل درس يفتح الخطوة التالية داخل هذا المستوى.' : 'Each lesson unlocks the next step in this level.')}</small></div>
                   <ETButton variant="ghost" disabled={!firstOpen} aria-label={firstOpen ? `Open ${firstOpen.title}` : 'No available lesson'} onClick={() => firstOpen && nav(`/lesson/${firstOpen.id}`)}>{unitComplete ? <Check/> : <ChevronRight />}</ETButton>
                 </div>
               </div>
