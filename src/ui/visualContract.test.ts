@@ -60,7 +60,7 @@ describe('English Twin visual contract', () => {
   it('uses shared loading and recoverable error states across learner screens', () => {
     const ui = source('./LearningUI.tsx');
     expect(ui).toContain('export function StatusState');
-    for (const file of ['../SmartHomeV2.tsx', '../ReferenceLearnJourney.tsx', '../SpeechDrill.tsx', '../ProfileHub.tsx', '../LearningModes.tsx', '../PronunciationLab.tsx', '../TutorMode.tsx']) {
+    for (const file of ['../SmartHomeV2.tsx', '../ReferenceLearnJourney.tsx', '../SpeechDrill.tsx', '../ProfileHub.tsx', '../LearningModes.tsx', '../PronunciationLab.tsx', '../TutorMode.tsx', '../AdaptiveSentenceBuilder.tsx']) {
       const screen = source(file);
       expect(screen).toContain('StatusState');
     }
@@ -88,11 +88,23 @@ describe('English Twin visual contract', () => {
     expect(modes).not.toContain('.catch(() => setReady(true))');
   });
 
-  it('keeps assessment saving recoverable and personalized builder content dynamic', () => {
+  it('keeps assessment saving recoverable', () => {
     const modes = source('../LearningModes.tsx');
     expect(modes).toContain('setSaveError(state.assessmentSaveError)');
-    expect(modes).toContain('buildersFor(learnerName)');
-    expect(modes).not.toContain("['Amir', 'I’m', 'Hello']");
+  });
+
+  it('routes sentence practice through the adaptive mistake-driven builder', () => {
+    const main = source('../main.tsx');
+    const builder = source('../AdaptiveSentenceBuilder.tsx');
+    expect(main).toContain("const AdaptiveSentenceBuilder = React.lazy(() => import('./AdaptiveSentenceBuilder'));");
+    expect(main).toContain('<Route path="/sentence-builder" element={<AdaptiveSentenceBuilder />} />');
+    expect(builder).toContain("getDocs(collection(db, 'users', current.uid, 'mistakes'))");
+    expect(builder).toContain('rankSentenceItems(sentenceItems, mistakes)');
+    expect(builder).toContain('prioritizeReviewFromMistake');
+    expect(builder).toContain('setLoadError(true)');
+    expect(builder).toContain('setSaveError(state.saveError)');
+    expect(builder).toContain('StatusState');
+    expect(builder).not.toContain("['Amir', 'I’m', 'Hello']");
   });
 
   it('prevents microphone startup from leaving speaking UIs stuck', () => {
