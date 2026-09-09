@@ -1,7 +1,7 @@
 import { collection, doc, getDocs, increment, serverTimestamp, setDoc } from 'firebase/firestore';
 import { Card, Grade, Rating, State, createEmptyCard, fsrs } from 'ts-fsrs';
 import { db } from './firebase';
-import { richLearningLessons } from './curriculumAll';
+import { advancedLessonsV2, richLearningLessons } from './curriculumAll';
 import type { RichVisualWordActivity } from './richLesson';
 
 export type ReviewSeed = {
@@ -13,6 +13,8 @@ export type ReviewSeed = {
   example: string;
   phonetic?: string;
   visualId?: unknown;
+  kind?: 'word' | 'collocation' | 'phrasal_verb' | 'idiom' | 'discourse_marker' | 'grammar_pattern' | 'functional_phrase';
+  tags?: string[];
 };
 
 export type StoredReviewCard = ReviewSeed & {
@@ -71,6 +73,7 @@ export function buildReviewSeedsFromRichLessons(lessons = richLearningLessons): 
         example: activity.example,
         phonetic: activity.phonetic,
         visualId: activity.visualId,
+        kind: 'word',
       });
     }
   }
@@ -78,7 +81,22 @@ export function buildReviewSeedsFromRichLessons(lessons = richLearningLessons): 
   return seeds;
 }
 
-export const reviewSeeds: ReviewSeed[] = buildReviewSeedsFromRichLessons();
+export function buildReviewSeedsFromAdvancedLessons(lessons = advancedLessonsV2): ReviewSeed[] {
+  return lessons.flatMap(lesson => (lesson.reviewSeeds || []).map(seed => ({
+    id: seed.id,
+    sourceLessonId: seed.sourceLessonId,
+    term: seed.term,
+    meaning: seed.meaning,
+    example: seed.example,
+    kind: seed.kind,
+    tags: seed.tags,
+  })));
+}
+
+export const reviewSeeds: ReviewSeed[] = [
+  ...buildReviewSeedsFromRichLessons(),
+  ...buildReviewSeedsFromAdvancedLessons(),
+];
 
 export function meaningForLanguage(seed: ReviewSeed, language?: string | null): string {
   if (!language) return seed.meaning;
