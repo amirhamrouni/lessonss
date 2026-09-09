@@ -1,9 +1,9 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { collection, doc, getDoc, getDocs, increment, serverTimestamp, setDoc } from 'firebase/firestore';
-import { ArrowLeft, BrainCircuit, Send, Sparkles } from 'lucide-react';
-import AppDock from './AppDock';
+import { BrainCircuit, Send, Sparkles } from 'lucide-react';
+import { ETButton, LearningShell, PageTitle, Surface } from './ui/LearningUI';
 import { auth, db } from './firebase';
 import { loadLessonProgress } from './learning';
 import { loadReviewCards } from './review';
@@ -44,7 +44,6 @@ function mistakeKey(original: string, corrected: string, index: number) {
 }
 
 export default function TutorMode() {
-  const nav = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile>({});
   const [snapshot, setSnapshot] = useState<TwinLearnerSnapshot>(EMPTY_SNAPSHOT);
@@ -92,7 +91,7 @@ export default function TutorMode() {
   const dir = directionFor(supportLanguage);
   const visibleMessages = starterPending && messages.length === 0 ? [{ role: 'twin' as const, text: copy.starter }] : messages;
 
-  if (loading) return <div className="app-shell" dir={dir}><div className="phone"><main className="page"><BrainCircuit /><p>{copy.loading}</p></main><AppDock language={supportLanguage} /></div></div>;
+  if (loading) return <LearningShell language={supportLanguage} dir={dir}><BrainCircuit /><p>{copy.loading}</p></LearningShell>;
   if (!user) return <Navigate to="/welcome" replace />;
 
   async function rememberMistakes(detail: TutorResponse, learnerMessage: string) {
@@ -167,27 +166,30 @@ export default function TutorMode() {
   const memoryLine = `${snapshot.weakSkills.slice(0, 3).map(item => item.skill).join(' · ') || copy.progressFallback}${snapshot.dueReviewTerms.length ? ` · ${copy.reviewPrefix}: ${snapshot.dueReviewTerms.slice(0, 4).join(', ')}` : ''}`;
   const displayError = error === 'LOAD_FAILED' ? copy.unavailable : error;
 
-  return <div className="app-shell" dir={dir}><div className="phone"><main className="page twin-page-v6">
-    <button className="back" onClick={() => nav('/practice')}><ArrowLeft /> {copy.backPractice}</button>
-    <header className="twin-hero-v6"><div><span className="eyebrow">{copy.eyebrow}</span><h1>{copy.title}</h1><p>{copy.intro}</p></div><div className="twin compact idle twin-hero-mark" aria-hidden="true"><div className="twin-aura" /><div className="twin-core"><span className="twin-eye left" /><span className="twin-eye right" /><i className="twin-mouth" /></div></div></header>
-    {(snapshot.weakSkills.length > 0 || snapshot.dueReviewTerms.length > 0) && <section className="twin-memory-strip">
+  return <LearningShell language={supportLanguage} dir={dir} className="et-twin-shell">
+    <PageTitle eyebrow={copy.eyebrow} title={copy.title} description={copy.intro} />
+
+    {(snapshot.weakSkills.length > 0 || snapshot.dueReviewTerms.length > 0) ? <Surface className="et-memory-strip" tone="blue">
       <BrainCircuit />
       <div><b>{copy.memoryTitle}</b><p>{memoryLine}</p></div>
-    </section>}
-    <section className="tutor-thread" aria-live="polite">
-      {visibleMessages.map((message, index) => <article className={`tutor-message ${message.role}`} key={`${message.role}-${index}`}>
+    </Surface> : null}
+
+    <section className="et-chat-thread" aria-live="polite">
+      {visibleMessages.map((message, index) => <article className={`et-chat-message ${message.role}`} key={`${message.role}-${index}`}>
         <span>{message.role === 'twin' ? copy.twin : copy.you}</span>
-        <p>{message.text}</p>
-        {'detail' in message && message.detail?.correction && <div className="tutor-correction"><Sparkles /><div><b>{copy.natural}</b><p>{message.detail.correction}</p>{message.detail.explanation && <small>{message.detail.explanation}</small>}</div></div>}
-        {'detail' in message && message.detail?.detectedMistakes?.length ? <div className="tutor-mistakes">{message.detail.detectedMistakes.map((mistake, i) => <div key={i}><del>{mistake.original}</del><b>{mistake.corrected}</b><small>{mistake.reason}</small></div>)}</div> : null}
-        {'detail' in message && message.detail?.suggestedReply && <button className="ghost tutor-suggestion" onClick={() => setInput(message.detail!.suggestedReply!)}>{copy.tryPrefix}: “{message.detail.suggestedReply}”</button>}
+        <div className="et-chat-bubble"><p>{message.text}</p></div>
+        {'detail' in message && message.detail?.correction ? <Surface className="et-correction-card" tone="teal"><Sparkles /><div><b>{copy.natural}</b><p>{message.detail.correction}</p>{message.detail.explanation ? <small>{message.detail.explanation}</small> : null}</div></Surface> : null}
+        {'detail' in message && message.detail?.detectedMistakes?.length ? <div className="et-chat-mistakes">{message.detail.detectedMistakes.map((mistake, i) => <div key={i}><del>{mistake.original}</del><b>{mistake.corrected}</b><small>{mistake.reason}</small></div>)}</div> : null}
+        {'detail' in message && message.detail?.suggestedReply ? <ETButton variant="soft" onClick={() => setInput(message.detail!.suggestedReply!)}>{copy.tryPrefix}: “{message.detail.suggestedReply}”</ETButton> : null}
       </article>)}
-      {busy && <article className="tutor-message twin tutor-thinking"><span>{copy.twin}</span><p>{copy.thinking}</p></article>}
+      {busy ? <article className="et-chat-message twin"><span>{copy.twin}</span><div className="et-chat-bubble thinking"><p>{copy.thinking}</p></div></article> : null}
     </section>
-    {displayError && <p className="error" role="alert">{displayError}</p>}
-    <form className="tutor-composer" onSubmit={send}>
+
+    {displayError ? <p className="error" role="alert">{displayError}</p> : null}
+
+    <form className="et-chat-composer" onSubmit={send}>
       <input dir="ltr" value={input} onChange={event => setInput(event.target.value)} maxLength={1200} placeholder={copy.placeholder} aria-label={copy.placeholder} />
       <button type="submit" disabled={busy || !input.trim()} aria-label="Send"><Send /></button>
     </form>
-  </main><AppDock language={supportLanguage} /></div></div>;
+  </LearningShell>;
 }

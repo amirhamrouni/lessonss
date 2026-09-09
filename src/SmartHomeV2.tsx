@@ -3,8 +3,8 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { BookOpen, Check, ChevronRight, LoaderCircle, MessageCircle, Mic2, RotateCcw } from 'lucide-react';
-import AppDock from './AppDock';
 import Brand from './ui/Brand';
+import { ETButton, LanguagePair, LearningShell, ProgressBar, SectionTitle, Surface, TaskRow } from './ui/LearningUI';
 import { auth, db } from './firebase';
 import { lessons } from './curriculumAll';
 import { loadLessonProgress, ProgressMap } from './learning';
@@ -38,13 +38,13 @@ type Recommendation = {
 
 type HomePlanItem = { id: 'foundation' | 'review' | 'lesson' | 'speaking' | 'pronunciation'; minutes: number; lessonId?: string };
 
-const copyByLanguage: Record<SupportedLanguage, { weekly:string; weeklyBody:string; continue:string; next:string; foundation:string; reviewBody:string; speak:string; speakBody:string; start:string; better:string }> = {
-  English:{weekly:'Your goal this week',weeklyBody:'Complete 5 lessons',continue:'Continue lesson',next:'Build confidence with practical English you can use every day.',foundation:'Learn your first useful English through pictures, listening and speaking.',reviewBody:'Lock due words into memory before the next lesson.',speak:'Speak with Twin',speakBody:'Turn what you learned into a real conversation.',start:'Start now',better:'Every day, one step closer to better English'},
-  Arabic:{weekly:'هدفك هذا الأسبوع',weeklyBody:'إكمال 5 دروس',continue:'متابعة الدرس',next:'تعلّم الإنجليزية بثقة في مواقف الحياة اليومية.',foundation:'تعلّم أول كلماتك المفيدة بالصور والاستماع والنطق.',reviewBody:'ثبّت الكلمات المستحقة في ذاكرتك قبل الدرس التالي.',speak:'تحدّث مع Twin',speakBody:'حوّل ما تعلمته إلى محادثة حقيقية.',start:'ابدأ الآن',better:'كل يوم خطوة أقرب لإنجليزية أفضل'},
-  Dutch:{weekly:'Je doel deze week',weeklyBody:'Voltooi 5 lessen',continue:'Ga verder',next:'Bouw zelfvertrouwen op met praktisch Engels voor elke dag.',foundation:'Leer je eerste nuttige Engelse woorden met beeld, luisteren en spreken.',reviewBody:'Zet woorden vast voor je volgende les.',speak:'Spreek met Twin',speakBody:'Maak van wat je leerde een echt gesprek.',start:'Start nu',better:'Elke dag een stap dichter bij beter Engels'},
-  French:{weekly:'Ton objectif cette semaine',weeklyBody:'Termine 5 leçons',continue:'Continuer',next:'Prends confiance avec un anglais pratique du quotidien.',foundation:'Apprends tes premiers mots utiles avec images, écoute et expression orale.',reviewBody:'Fixe les mots avant la prochaine leçon.',speak:'Parler avec Twin',speakBody:'Transforme ton apprentissage en conversation.',start:'Commencer',better:'Chaque jour, un pas vers un meilleur anglais'},
-  German:{weekly:'Dein Wochenziel',weeklyBody:'5 Lektionen abschließen',continue:'Lektion fortsetzen',next:'Baue Sicherheit mit praktischem Alltagsenglisch auf.',foundation:'Lerne erste nützliche Wörter mit Bildern, Hören und Sprechen.',reviewBody:'Festige fällige Wörter vor der nächsten Lektion.',speak:'Mit Twin sprechen',speakBody:'Mach aus dem Gelernten ein echtes Gespräch.',start:'Jetzt starten',better:'Jeden Tag ein Schritt zu besserem Englisch'},
-  Spanish:{weekly:'Tu meta esta semana',weeklyBody:'Completa 5 lecciones',continue:'Continuar lección',next:'Gana confianza con inglés práctico para la vida diaria.',foundation:'Aprende tus primeras palabras útiles con imágenes, escucha y habla.',reviewBody:'Fija las palabras antes de la siguiente lección.',speak:'Habla con Twin',speakBody:'Convierte lo aprendido en conversación real.',start:'Empezar',better:'Cada día, un paso más hacia un mejor inglés'},
+const copyByLanguage: Record<SupportedLanguage, { weekly:string; weeklyBody:string; continue:string; next:string; foundation:string; reviewBody:string; speak:string; speakBody:string; start:string; better:string; support:string }> = {
+  English:{weekly:'Your goal this week',weeklyBody:'Complete 5 lessons',continue:'Continue learning',next:'Build confidence with practical English you can use every day.',foundation:'Learn your first useful English through pictures, listening and speaking.',reviewBody:'Lock due words into memory before the next lesson.',speak:'Speak with Twin',speakBody:'Turn what you learned into a real conversation.',start:'Start now',better:'One clear step at a time.',support:'Meaning'},
+  Arabic:{weekly:'هدفك هذا الأسبوع',weeklyBody:'إكمال 5 دروس',continue:'تابع التعلّم',next:'تعلّم الإنجليزية بثقة في مواقف الحياة اليومية.',foundation:'تعلّم أول كلماتك المفيدة بالصور والاستماع والنطق.',reviewBody:'ثبّت الكلمات المستحقة في ذاكرتك قبل الدرس التالي.',speak:'تحدّث مع Twin',speakBody:'حوّل ما تعلمته إلى محادثة حقيقية.',start:'ابدأ الآن',better:'خطوة واضحة كل مرة.',support:'المعنى'},
+  Dutch:{weekly:'Je doel deze week',weeklyBody:'Voltooi 5 lessen',continue:'Ga verder',next:'Bouw zelfvertrouwen op met praktisch Engels voor elke dag.',foundation:'Leer je eerste nuttige Engelse woorden met beeld, luisteren en spreken.',reviewBody:'Zet woorden vast voor je volgende les.',speak:'Spreek met Twin',speakBody:'Maak van wat je leerde een echt gesprek.',start:'Start nu',better:'Eén duidelijke stap tegelijk.',support:'Betekenis'},
+  French:{weekly:'Ton objectif cette semaine',weeklyBody:'Termine 5 leçons',continue:'Continuer',next:'Prends confiance avec un anglais pratique du quotidien.',foundation:'Apprends tes premiers mots utiles avec images, écoute et expression orale.',reviewBody:'Fixe les mots avant la prochaine leçon.',speak:'Parler avec Twin',speakBody:'Transforme ton apprentissage en conversation.',start:'Commencer',better:'Une étape claire à la fois.',support:'Sens'},
+  German:{weekly:'Dein Wochenziel',weeklyBody:'5 Lektionen abschließen',continue:'Weiterlernen',next:'Baue Sicherheit mit praktischem Alltagsenglisch auf.',foundation:'Lerne erste nützliche Wörter mit Bildern, Hören und Sprechen.',reviewBody:'Festige fällige Wörter vor der nächsten Lektion.',speak:'Mit Twin sprechen',speakBody:'Mach aus dem Gelernten ein echtes Gespräch.',start:'Jetzt starten',better:'Ein klarer Schritt nach dem anderen.',support:'Bedeutung'},
+  Spanish:{weekly:'Tu meta esta semana',weeklyBody:'Completa 5 lecciones',continue:'Seguir aprendiendo',next:'Gana confianza con inglés práctico para la vida diaria.',foundation:'Aprende tus primeras palabras útiles con imágenes, escucha y habla.',reviewBody:'Fija las palabras antes de la siguiente lección.',speak:'Habla con Twin',speakBody:'Convierte lo aprendido en conversación real.',start:'Empezar',better:'Un paso claro cada vez.',support:'Significado'},
 };
 
 const sampleSupport: Record<SupportedLanguage, string> = {
@@ -137,66 +137,50 @@ export default function SmartHomeV2() {
   const name = profile.displayName || user.displayName || 'Learner';
   const level = profile.placementLevel || profile.cefrLevel || 'A1';
   const rawPlan: HomePlanItem[] = !profile.beginnerFoundationCompleted
-    ? [
-        { id:'foundation', minutes:5 },
-        { id:'pronunciation', minutes:5 },
-        { id:'speaking', minutes:5 },
-      ]
+    ? [{ id:'foundation', minutes:5 }, { id:'pronunciation', minutes:5 }, { id:'speaking', minutes:5 }]
     : (dailyPlan.slice(0,3) as HomePlanItem[]);
   const planItems: HomePlanItem[] = [...rawPlan];
   if (planItems.length < 3 && !planItems.some(item => item.id === 'pronunciation')) planItems.push({ id:'pronunciation', minutes:5 });
   if (planItems.length < 3 && !planItems.some(item => item.id === 'speaking')) planItems.push({ id:'speaking', minutes:5 });
 
-  return <div className="app-shell" dir={dir}><div className="phone"><main className="page et-home">
-    <Brand showProfile profileInitial={name} />
+  return (
+    <LearningShell language={language} dir={dir} className="et-home-shell">
+      <Brand showProfile profileInitial={name} />
 
-    <section className="et-home-intro">
-      <div>
-        <small>{t(language,'greeting')}</small>
-        <h1>{name}</h1>
-        <p>{ui.better}</p>
-      </div>
-      <div className="et-streak" aria-label={`Current level ${level}`}><strong>{level}</strong><span>CEFR</span></div>
-    </section>
+      <section className="et-welcome-row">
+        <div>
+          <span>{t(language,'greeting')}</span>
+          <h1>{name}</h1>
+          <p>{ui.better}</p>
+        </div>
+        <button className="et-level-chip" onClick={() => nav('/learn')} aria-label={`Current CEFR level ${level}`}>
+          <strong>{level}</strong><small>CEFR</small>
+        </button>
+      </section>
 
-    <section className="et-weekly">
-      <div><b>{ui.weekly}</b><p>{ui.weeklyBody}</p></div>
-      <strong dir="ltr">{weeklyCompleted} / {weeklyGoal}</strong>
-      <div className="et-weekly-track"><i style={{width:`${weeklyPercent}%`}} /></div>
-    </section>
+      <Surface className="et-goal-card">
+        <div className="et-goal-heading"><div><b>{ui.weekly}</b><p>{ui.weeklyBody}</p></div><strong dir="ltr">{weeklyCompleted} / {weeklyGoal}</strong></div>
+        <ProgressBar value={weeklyPercent} />
+      </Surface>
 
-    <section className="et-next-card">
-      <div className="et-next-copy">
-        <span>{ui.continue}</span>
-        <small>{recommendation.eyebrow}</small>
+      <Surface className="et-recommendation" tone="blue">
+        <div className="et-recommendation-head"><span>{ui.continue}</span><em>{recommendation.eyebrow} · {recommendation.minutes} min</em></div>
         <h2>{recommendation.title}</h2>
         <p>{recommendation.body}</p>
-        <div className="et-next-meta"><em>{recommendation.eyebrow}</em><em>{recommendation.minutes} min</em></div>
-      </div>
-      <div className="et-twin-sample" dir="ltr" aria-label="English Twin language pair preview">
-        <span>English target</span>
-        <strong>Hello, I’m Amir.</strong>
-        <small dir={dir}>{sampleSupport[language]}</small>
-        <div className="et-mini-wave" aria-hidden="true"><i/><i/><i/><i/><i/><i/><i/><i/></div>
-      </div>
-      <button className="et-next-action" onClick={() => nav(recommendation.to)}>{recommendation.action}<ChevronRight /></button>
-    </section>
+        <LanguagePair english="Hello, I’m Amir." support={sampleSupport[language]} supportLabel={ui.support} compact />
+        <ETButton className="et-full" onClick={() => nav(recommendation.to)}>{recommendation.action}<ChevronRight /></ETButton>
+      </Surface>
 
-    <section>
-      <div className="et-section-head"><h3>{t(language,'todayPlan')}</h3><button onClick={() => nav('/learn')}>{t(language,'seeAll')}</button></div>
-      <div className="et-task-list">
+      <SectionTitle title={t(language,'todayPlan')} action={<ETButton variant="ghost" onClick={() => nav('/learn')}>{t(language,'seeAll')}<ChevronRight /></ETButton>} />
+      <Surface className="et-task-stack">
         {planItems.slice(0,3).map((item,index) => {
           const Icon = item.id === 'foundation' || item.id === 'lesson' ? BookOpen : item.id === 'pronunciation' ? Mic2 : item.id === 'speaking' ? MessageCircle : RotateCcw;
           const label = item.id === 'foundation' ? t(language,'startFirstWords') : item.id === 'review' ? t(language,'vocabularyReview') : item.id === 'pronunciation' ? (language === 'Arabic' ? 'الاستماع والنطق' : 'Listening & pronunciation') : item.id === 'speaking' ? t(language,'speakWithTwin') : item.id === 'lesson' ? t(language,'nextLesson') : t(language,'smartReview');
           const route = item.id === 'foundation' ? '/start' : planRoute(item.id,item.lessonId);
           const done = index === 0 && weeklyCompleted > 0;
-          return <button key={`${item.id}-${index}`} onClick={() => nav(route)}>
-            <span className={done ? 'et-task-state done' : 'et-task-state'}>{done ? <Check/> : <Icon/>}</span>
-            <div><b>{label}</b><small>{item.minutes || 5} min</small></div>
-            <ChevronRight />
-          </button>;
+          return <TaskRow key={`${item.id}-${index}`} complete={done} icon={done ? <Check/> : <Icon/>} title={label} meta={`${item.minutes || 5} min`} action={<ETButton variant="ghost" aria-label={String(label)} onClick={() => nav(route)}><ChevronRight /></ETButton>} />;
         })}
-      </div>
-    </section>
-  </main><AppDock language={language}/></div></div>;
+      </Surface>
+    </LearningShell>
+  );
 }

@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { collection, doc, getDoc, getDocs, increment, serverTimestamp, setDoc } from 'firebase/firestore';
-import { ArrowLeft, Headphones, Mic, RotateCcw, Sparkles, Volume2 } from 'lucide-react';
-import AppDock from './AppDock';
+import { Headphones, Mic, RotateCcw, Sparkles, Volume2 } from 'lucide-react';
+import { ETButton, LearningShell, PageTitle, ProgressBar, SectionTitle, Surface } from './ui/LearningUI';
 import { auth, db } from './firebase';
 import { directionFor, normalizeLanguage } from './languageSupport';
 import { prioritizeSpeakingPrompts, scoreSpokenAttempt, speakingPrompts, SpeakingMistakeSignal, SpeechScore } from './speakingEngine';
@@ -82,9 +82,9 @@ export default function SpeechDrill() {
   const pronunciationCopy = pronunciationSupportCopy[language];
   const dir = directionFor(language);
 
-  if (loading) return <div className="app-shell" dir={dir}><div className="phone"><main className="page"><Mic /><p>{copy.loading}</p></main><AppDock language={language} /></div></div>;
+  if (loading) return <LearningShell language={language} dir={dir}><Mic /><p>{copy.loading}</p></LearningShell>;
   if (!user) return <Navigate to="/welcome" replace />;
-  if (!item) return <div className="app-shell" dir={dir}><div className="phone"><main className="page"><button className="back" onClick={() => nav('/')}><ArrowLeft /> {copy.home}</button><p>{copy.noDrills}</p></main><AppDock language={language} /></div></div>;
+  if (!item) return <LearningShell language={language} dir={dir}><p>{copy.noDrills}</p></LearningShell>;
 
   async function saveWeakAttempt(result: SpeechScore, heard: string) {
     if (!user || result.verdict !== 'retry') return;
@@ -116,19 +116,13 @@ export default function SpeechDrill() {
   }
 
   function startListening() {
-    if (!speechConsent) {
-      setShowConsent(true);
-      return;
-    }
+    if (!speechConsent) { setShowConsent(true); return; }
     beginRecognition();
   }
 
   function beginRecognition() {
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!Recognition) {
-      setError(copy.recognitionUnsupported);
-      return;
-    }
+    if (!Recognition) { setError(copy.recognitionUnsupported); return; }
     setError('');
     setTranscript('');
     setScore(null);
@@ -166,41 +160,45 @@ export default function SpeechDrill() {
     setError('');
   }
 
-  return <div className="app-shell" dir={dir}><div className="phone"><main className="page voice-live">
-    <button className="back" onClick={() => nav('/')}><ArrowLeft /> {copy.home}</button>
-    <header><span className="eyebrow">{copy.eyebrow}</span><h1>{copy.title}</h1><p>{copy.intro}</p></header>
+  return <LearningShell language={language} dir={dir} className="et-speak-shell">
+    <PageTitle eyebrow={copy.eyebrow} title={copy.title} description={copy.intro} />
 
-    <section className="practice-command pronunciation-entry-card"><div><span className="mode-kicker">{pronunciationCopy.eyebrow}</span><h2>{pronunciationCopy.title}</h2><p>{pronunciationCopy.intro}</p></div><button onClick={() => nav('/pronunciation')}><Volume2 /> {pronunciationCopy.wordStep} → {pronunciationCopy.sentenceStep}</button></section>
+    <Surface className="et-pronunciation-shortcut" tone="teal">
+      <div><span className="et-eyebrow">{pronunciationCopy.eyebrow}</span><h2>{pronunciationCopy.title}</h2><p>{pronunciationCopy.intro}</p></div>
+      <ETButton variant="secondary" onClick={() => nav('/pronunciation')}><Volume2 /> {pronunciationCopy.wordStep} → {pronunciationCopy.sentenceStep}</ETButton>
+    </Surface>
 
-    {showConsent && <section className="rich-activity-card" role="dialog" aria-modal="true" aria-labelledby="guided-speech-consent-title">
-      <div className="section-heading"><span>{copy.privacyEyebrow}</span><h3 id="guided-speech-consent-title">{copy.consentTitle}</h3></div>
-      <p>{copy.consentBody}</p>
-      <div className="lesson-actions"><button className="ghost" onClick={() => setShowConsent(false)}>{copy.notNow}</button><button className="primary lime" onClick={acceptSpeechConsent}>{copy.acceptStart}</button></div>
-    </section>}
+    {showConsent ? <Surface className="et-consent-card" role="dialog" aria-modal="true" aria-labelledby="guided-speech-consent-title">
+      <SectionTitle title={copy.consentTitle} meta={copy.privacyEyebrow} />
+      <p id="guided-speech-consent-title">{copy.consentBody}</p>
+      <div className="et-inline-actions"><ETButton variant="ghost" onClick={() => setShowConsent(false)}>{copy.notNow}</ETButton><ETButton onClick={acceptSpeechConsent}>{copy.acceptStart}</ETButton></div>
+    </Surface> : null}
 
-    <section className="builder-card">
-      <span className="mode-kicker">{index + 1} / {prompts.length} · {item.lessonId.toUpperCase()}</span>
+    <Surface className="et-speech-card">
+      <div className="et-speech-progress"><span>{index + 1} / {prompts.length}</span><small>{item.lessonId.toUpperCase()}</small></div>
       <h2>{item.prompt}</h2>
-      <div className="speech-target" dir="ltr">{item.target}</div>
-      <button className="review-example-audio" type="button" onClick={() => speakTarget(item.target)}><Volume2 /> {copy.hearTarget}</button>
-      <div className="builder-actions">
-        <button onClick={() => { setTranscript(''); setScore(null); }}><RotateCcw /> {copy.reset}</button>
-        <button className="solid" disabled={listening} onClick={startListening}><Mic /> {listening ? copy.listening : copy.speakNow}</button>
-      </div>
-    </section>
+      <div className="et-speech-target" dir="ltr">{item.target}</div>
+      <ETButton variant="secondary" type="button" onClick={() => speakTarget(item.target)}><Volume2 /> {copy.hearTarget}</ETButton>
+      <button className={`et-mic-button ${listening ? 'listening' : ''}`} disabled={listening} onClick={startListening} aria-label={listening ? copy.listening : copy.speakNow}><Mic /></button>
+      <b className="et-mic-label">{listening ? copy.listening : copy.speakNow}</b>
+    </Surface>
 
-    {transcript && <section className="review-card"><span className="mode-kicker">{copy.heard}</span><p dir="ltr">{transcript}</p></section>}
+    {transcript ? <Surface className="et-transcript-card"><span className="et-eyebrow">{copy.heard}</span><p dir="ltr">{transcript}</p><ETButton variant="ghost" onClick={() => { setTranscript(''); setScore(null); }}><RotateCcw /> {copy.reset}</ETButton></Surface> : null}
 
-    {score && <section className="review-card">
-      <span className="mode-kicker">{copy.accuracy}</span>
-      <div className="assessment-result"><strong>{score.accuracy}%</strong><h2>{score.verdict === 'excellent' ? copy.excellent : score.verdict === 'good' ? copy.good : copy.retry}</h2></div>
-      {!!score.missingWords.length && <p>{copy.missing}: <b>{score.missingWords.join(', ')}</b></p>}
-      {!!score.extraWords.length && <p>{copy.extra}: <b>{score.extraWords.join(', ')}</b></p>}
-      <div className="builder-actions">{score.verdict === 'retry' ? <button className="solid" onClick={startListening}><Mic /> {copy.retry}</button> : <button className="solid" onClick={nextPrompt}><Sparkles /> {copy.nextDrill}</button>}</div>
-    </section>}
+    {score ? <Surface className={`et-speech-score ${score.verdict}`}>
+      <SectionTitle title={score.verdict === 'excellent' ? copy.excellent : score.verdict === 'good' ? copy.good : copy.retry} meta={copy.accuracy} />
+      <div className="et-score-number"><strong>{score.accuracy}</strong><span>%</span></div>
+      <ProgressBar value={score.accuracy} />
+      {score.missingWords.length ? <div className="et-word-feedback"><span>{copy.missing}</span><b>{score.missingWords.join(', ')}</b></div> : null}
+      {score.extraWords.length ? <div className="et-word-feedback"><span>{copy.extra}</span><b>{score.extraWords.join(', ')}</b></div> : null}
+      <ETButton className="et-full" onClick={score.verdict === 'retry' ? startListening : nextPrompt}>{score.verdict === 'retry' ? <><Mic /> {copy.retry}</> : <><Sparkles /> {copy.nextDrill}</>}</ETButton>
+    </Surface> : null}
 
-    {error && <p className="error">{error}</p>}
+    {error ? <p className="error" role="alert">{error}</p> : null}
 
-    <section className="practice-command"><div><span className="mode-kicker">{copy.freeConversation}</span><h2>{copy.readyNatural}</h2><p>{copy.liveBody}</p></div><button onClick={() => nav('/speak/live')}><Headphones /> {copy.openLive}</button></section>
-  </main><AppDock language={language} /></div></div>;
+    <Surface className="et-live-card" tone="blue">
+      <div><span className="et-eyebrow">{copy.freeConversation}</span><h2>{copy.readyNatural}</h2><p>{copy.liveBody}</p></div>
+      <ETButton onClick={() => nav('/speak/live')}><Headphones /> {copy.openLive}</ETButton>
+    </Surface>
+  </LearningShell>;
 }
