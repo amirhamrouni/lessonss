@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc, increment, serverTimestamp, setDoc } from 'firebase/firestore';
-import { ArrowLeft, CheckCircle2, Languages, RotateCcw, Volume2 } from 'lucide-react';
-import { ChoiceButton, ETButton, FeedbackBanner, LanguagePair, LearningShell, ProgressBar, Surface } from './ui/LearningUI';
+import { AlertTriangle, ArrowLeft, CheckCircle2, Languages, LoaderCircle, RotateCcw, Volume2 } from 'lucide-react';
+import { ChoiceButton, ETButton, FeedbackBanner, LanguagePair, LearningShell, ProgressBar, StatusState, Surface } from './ui/LearningUI';
 import { auth, db } from './firebase';
 import { Activity, Lesson, lessonById } from './curriculumAll';
 import type { RichActivity } from './richLesson';
@@ -133,6 +133,8 @@ export default function AutoLessonPlayer() {
   const [profile, setProfile] = useState<LearnerProfile>({});
   const [progress, setProgress] = useState<ProgressMap>({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState('');
   const [fill, setFill] = useState('');
@@ -141,31 +143,54 @@ export default function AutoLessonPlayer() {
   const [total, setTotal] = useState(0);
   const [finished, setFinished] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [mistakeWarning, setMistakeWarning] = useState('');
 
   let lesson: Lesson | null = null;
   try { lesson = lessonById(lessonId); } catch { lesson = null; }
 
   useEffect(() => {
+    let active = true;
     const unsubscribe = onAuthStateChanged(auth, async current => {
+      if (!active) return;
       setUser(current);
-      if (!current) { setLoading(false); return; }
+      setLoading(true);
+      setLoadError(false);
+      if (!current) {
+        setLoading(false);
+        return;
+      }
       try {
         const [profileSnap, learnerProgress] = await Promise.all([getDoc(doc(db, 'users', current.uid)), loadLessonProgress(current.uid)]);
+        if (!active) return;
         setProfile(profileSnap.exists() ? profileSnap.data() as LearnerProfile : {});
         setProgress(learnerProgress);
-      } finally { setLoading(false); }
+      } catch {
+        if (active) setLoadError(true);
+      } finally {
+        if (active) setLoading(false);
+      }
     });
-    return unsubscribe;
-  }, []);
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [reloadKey]);
 
   const supportLanguage = normalizeLanguage(profile.explanationLanguage || profile.nativeLanguage || profile.interfaceLanguage || 'English');
   const dir = directionFor(supportLanguage);
   const ar = supportLanguage === 'Arabic';
+  const loadingTitle = ar ? 'نحمّل الدرس…' : 'Loading lesson…';
+  const loadErrorTitle = ar ? 'تعذّر تحميل الدرس' : 'Couldn’t load this lesson';
+  const loadErrorBody = ar ? 'لم يتغيّر تقدّمك المحفوظ. تحقق من الاتصال وحاول مرة أخرى.' : 'Your saved progress was not changed. Check the connection and try again.';
+  const saveErrorText = ar ? 'تعذّر حفظ إكمال الدرس. ابقَ هنا واضغط متابعة مرة أخرى.' : 'Lesson completion could not be saved. Stay here and press Continue again.';
+  const mistakeWarningText = ar ? 'تم تقييم إجابتك، لكن تعذّر حفظ هذا الخطأ للمراجعة الذكية.' : 'Your answer was scored, but this mistake could not be saved for adaptive review.';
 
-  if (loading) return <LearningShell dir={dir} language={supportLanguage} showDock={false}><p>{ar ? 'نحمّل الدرس…' : 'Loading lesson…'}</p></LearningShell>;
+  if (loading) return <LearningShell dir={dir} language={supportLanguage} showDock={false}><StatusState icon={<LoaderCircle />} eyebrow="ENGLISH TWIN" title={loadingTitle} /></LearningShell>;
   if (!user) return <Navigate to="/welcome" replace />;
+  if (loadError) return <LearningShell dir={dir} language={supportLanguage} showDock={false}><StatusState icon={<AlertTriangle />} tone="danger" title={loadErrorTitle} body={loadErrorBody} action={<ETButton onClick={() => setReloadKey(value => value + 1)}>{ar ? 'حاول مرة أخرى' : 'Try again'}</ETButton>} /></LearningShell>;
   if (!profile.nativeLanguage) return <Navigate to="/setup" replace />;
-  if (!lesson) return <LearningShell dir={dir} language={supportLanguage} showDock={false}><ETButton variant="ghost" onClick={() => nav('/learn')}><ArrowLeft /> {ar ? 'التعلّم' : 'Learn'}</ETButton><h2>{ar ? 'الدرس غير موجود' : 'Lesson not found'}</h2></LearningShell>;
+  if (!lesson) return <LearningShell dir={dir} language={supportLanguage} showDock={false}><StatusState icon={<AlertTriangle />} tone="danger" title={ar ? 'الدرس غير موجود' : 'Lesson not found'} action={<ETButton variant="secondary" onClick={() => nav('/learn')}><ArrowLeft /> {ar ? 'العودة للتعلّم' : 'Back to learn'}</ETButton>} /></LearningShell>;
 
   const uid = user.uid;
   const currentLesson = lesson;
@@ -176,7 +201,7 @@ export default function AutoLessonPlayer() {
     const id = `${currentLesson.id}-activity-${index}`;
     const prompt = 'prompt' in activity && typeof activity.prompt === 'string' ? activity.prompt : currentLesson.title;
     const reviewContext = `${expected} ${given} ${prompt} ${explanation}`;
-    await Promise.all([
+    const results = await Promise.allSettled([
       setDoc(doc(db, 'users', uid, 'mistakes', id), {
         lessonId: currentLesson.id,
         activityIndex: index,
@@ -190,24 +215,32 @@ export default function AutoLessonPlayer() {
         source: 'lesson',
         status: 'active',
       }, { merge: true }),
-      prioritizeReviewFromMistake(uid, currentLesson.id, reviewContext).catch(() => []),
+      prioritizeReviewFromMistake(uid, currentLesson.id, reviewContext),
     ]);
+    if (results.some(result => result.status === 'rejected')) throw new Error('mistake-persistence-failed');
   }
 
   async function finish(nextCorrect = correct, nextTotal = total) {
     if (saving || finished) return;
     setSaving(true);
+    setSaveError('');
     try {
       const saved = await saveLessonCompletion(uid, currentLesson.id, nextCorrect, nextTotal);
       setProgress(current => ({ ...current, [currentLesson.id]: saved }));
       setFinished(true);
-    } finally { setSaving(false); }
+    } catch {
+      setSaveError(saveErrorText);
+    } finally {
+      setSaving(false);
+    }
   }
 
   function goNext() {
     setFeedback(null);
     setSelected('');
     setFill('');
+    setSaveError('');
+    setMistakeWarning('');
     setIndex(current => Math.min(current + 1, currentLesson.activities.length - 1));
   }
 
@@ -220,7 +253,13 @@ export default function AutoLessonPlayer() {
     if (saving) return;
     if (isPassive(activity)) { continuePassive(); return; }
     if (feedback) {
-      if (!feedback.ok) { setFeedback(null); setSelected(''); setFill(''); return; }
+      if (!feedback.ok) {
+        setFeedback(null);
+        setSelected('');
+        setFill('');
+        setMistakeWarning('');
+        return;
+      }
       if (index >= currentLesson.activities.length - 1) { void finish(correct, total); return; }
       goNext();
       return;
@@ -233,7 +272,8 @@ export default function AutoLessonPlayer() {
     const ok = normalizeAnswer(answer) === normalizeAnswer(expected);
     const nextCorrect = correct + (ok ? 1 : 0);
     const nextTotal = total + 1;
-    if (!ok) void rememberObjectiveMistake(answer, expected, explanation);
+    setMistakeWarning('');
+    if (!ok) void rememberObjectiveMistake(answer, expected, explanation).catch(() => setMistakeWarning(mistakeWarningText));
     setCorrect(nextCorrect);
     setTotal(nextTotal);
     setFeedback({ ok, text: explanation });
@@ -277,8 +317,10 @@ export default function AutoLessonPlayer() {
       {renderActivity(activity, selected, setSelected, fill, setFill, supportLanguage, saving || Boolean(feedback), feedback)}
     </Surface>
 
-    <div className={`et-lesson-footer ${feedback ? (feedback.ok ? 'ok' : 'bad') : ''}`}>
+    <div className={`et-lesson-footer ${feedback ? (feedback.ok ? 'ok' : 'bad') : ''}`} aria-busy={saving}>
       {feedback ? <FeedbackBanner ok={feedback.ok} title={feedback.ok ? t(supportLanguage,'correct') : t(supportLanguage,'retry')}><p>{feedback.text}</p></FeedbackBanner> : null}
+      {mistakeWarning ? <p className="error" role="status">{mistakeWarning}</p> : null}
+      {saveError ? <p className="error" role="alert">{saveError}</p> : null}
       <ETButton className="et-full" disabled={saving || (!feedback && !hasAnswer)} onClick={check}>{actionLabel}</ETButton>
     </div>
   </LearningShell>;
