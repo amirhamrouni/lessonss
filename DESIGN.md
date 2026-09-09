@@ -1,149 +1,188 @@
 ---
-version: alpha
-name: "English Twin — Reference UI"
-description: "The approved mobile-first English Twin interface: bright white learning surfaces, cobalt primary actions, soft blue hierarchy, teal speech feedback, rounded cards and clear bilingual Arabic/English composition."
+version: v11
+name: "English Twin — Product UI"
+description: "A compact mobile language-learning product built around a bilingual target/support relationship, cobalt learning actions, teal speech feedback, structured progress and source-informed interaction patterns."
 colors:
-  canvas: "#F7F8FC"
+  canvas: "#F6F8FC"
   surface: "#FFFFFF"
-  surface-muted: "#F1F3F9"
-  surface-blue: "#EEF3FF"
-  ink: "#14213D"
-  ink-muted: "#6B7280"
-  line: "#E2E6EF"
+  surface-soft: "#F0F4FF"
+  ink: "#15213A"
+  ink-muted: "#748096"
+  line: "#E4E9F1"
   primary: "#2F5BFF"
-  primary-strong: "#2149DF"
-  voice: "#00A9A5"
-  memory: "#F2B43A"
+  primary-strong: "#2048DF"
+  voice: "#06A7A1"
   success: "#16A34A"
-  danger: "#E04436"
-  focus: "#2F5BFF"
+  warning: "#E9A72F"
+  danger: "#D94A43"
 typography:
-  latin:
-    fontFamily: "Inter, Segoe UI Variable Text, Segoe UI, system-ui, sans-serif"
-  arabic:
-    fontFamily: "Tajawal, Noto Sans Arabic, Tahoma, Arial, sans-serif"
-  utility:
-    fontFamily: "SFMono-Regular, Consolas, Liberation Mono, monospace"
-rounded:
-  DEFAULT: "0.75rem"
-  sm: "0.75rem"
-  md: "1rem"
-  lg: "1.35rem"
-  xl: "1.75rem"
-spacing:
-  page-inline: "1.125rem"
-  section-gap: "1.5rem"
-  control-height: "3.25rem"
-  dock-height: "4.65rem"
-  content-max: "32.5rem"
-components:
-  button:
-    radius: "0.75rem"
-  card:
-    radius: "1.35rem"
-  bottom-nav:
-    height: "4.65rem"
-  progress:
-    height: "0.4375rem"
+  latin: "Inter, Segoe UI Variable, Segoe UI, system-ui, sans-serif"
+  arabic: "Tajawal, Noto Sans Arabic, Tahoma, Inter, sans-serif"
+layout:
+  phone-max: "430px"
+  page-inline: "16px"
+  bottom-nav: "66px"
+  primary-control: "48px"
 ---
 
 # English Twin Design System
 
-## Overview
+## Product direction
 
-### Creative North Star
+English Twin is a **mobile language-learning product**, not an AI dashboard and not a decorative editorial concept. The UI must make the learner's next action obvious, keep course progress understandable, and make speaking feedback feel concrete.
 
-The owner-approved multi-screen mockup is the visual source of truth. English Twin should look like a polished consumer language-learning application: bright, friendly, highly legible and immediately understandable on a phone. It is not a newspaper/editorial interface, an AI dashboard, or a developer tool.
+The distinctive product idea is **Target ↔ Support**: English is always the target language; the learner's preferred language is the support layer. The visual identity expresses that relationship through paired language surfaces, not a mascot or generic AI imagery.
 
-### Product context and register
+## Source-informed foundations
 
-- **Audience:** adult and older-teen English learners, including Arabic-speaking beginners.
-- **Primary job:** make the next learning action obvious, then keep the learner inside a consistent Learn → Lesson → Review → Speak loop.
-- **Locales:** Arabic, Dutch, French, German, Spanish and English support. Arabic UI is RTL; English target phrases remain LTR.
-- **Register:** consumer learning product with restrained brand expression.
-- **Approved signature:** white rounded learning cards, cobalt primary action, soft blue active states, teal real speech feedback, small warm achievement accents, and a stable five-item icon + label bottom navigation.
-- **Anti-references:** Swiss/broadsheet layouts, cream editorial themes, empty whitespace as decoration, floating percentage blocks, arbitrary vertical rails, glassmorphism, fake AI glow, inconsistent button shapes, and oversized dark navigation tiles.
-- **Runtime ownership:** `src/design-tokens.css` is canonical. `src/language-lab-system.css` is the final visual authority layer. This file mirrors those accepted runtime values.
+The v11 interaction system deliberately studies permissively licensed open-source patterns instead of inventing every behavior from scratch:
 
-## Colors
+- **pablocaeg/polyglot — MIT:** semantic theme-token thinking, compact mobile bottom navigation, visible active rail, dense learning cards.
+- **sanidhyy/duolingo-clone — MIT:** lesson challenge state model, explicit answer states, progress + persistent primary action logic.
+- **shadcn/ui:** open-code component philosophy and predictable control composition. No shadcn visual template is copied into the product.
 
-Use white cards on the very light cool canvas. Cobalt is the main learning/action color. Teal is reserved for actual listening/speaking feedback. Green means verified success, amber is memory/achievement, and red is error/destructive feedback. Light blue supports active learning surfaces. Gradients are allowed only in the main branded lesson/recommendation hero and must stay within the cobalt family.
+Required license notices for substantial adapted patterns live in `THIRD_PARTY_NOTICES.md`.
 
-## Typography
+## Runtime authority
 
-Use a contemporary sans-serif feel matching the approved mockup. Latin uses Inter-compatible metrics. Arabic uses Tajawal/Noto Sans Arabic-compatible metrics with greater line-height. Heading weight is 700–800; body is 400–600. English target text inside RTL pages is explicitly LTR. Arabic never receives Latin letter-spacing or uppercase transformations.
+- `src/design-tokens.css` contains cross-product semantic variables used by older screens.
+- `src/product-system-v11.css` is the **canonical current product visual layer**.
+- `src/live-voice-v11.css` contains only Live Voice route-specific composition.
+- Old experimental theme layers are intentionally **not imported** by `src/main.tsx`.
 
-## Layout
+Do not add another global theme override file. Extend the canonical system or add a narrowly scoped route file only when the route has genuinely unique layout needs.
 
-Primary baseline is 360–430px phone width, with a 520px maximum application column. Page padding is approximately 14–18px on phones. Content is grouped into purposeful rounded cards rather than large empty regions.
+## Brand
 
-Home hierarchy:
-1. Compact English Twin brand header + profile control.
-2. Learner greeting card.
-3. Honest weekly learning progress.
-4. One strong cobalt recommendation card with one primary action.
-5. Compact Today task list.
-6. Fixed five-item bottom navigation.
+The product mark is image-free and built from two overlapping vertical forms representing the learner's support language and the English target. It must remain recognizable at 24–32px and must not depend on a character illustration.
 
-Learn hierarchy:
+No mascot is required for the product to feel friendly. If character art is introduced later, it must be an approved asset with consistent art direction and licensing; placeholder SVG people are prohibited.
+
+## Color semantics
+
+- **Cobalt `#2F5BFF`:** learning progress, primary actions, current lesson, active navigation.
+- **Teal `#06A7A1`:** real listening/speaking/pronunciation states only.
+- **Green `#16A34A`:** verified success/completion.
+- **Amber `#E9A72F`:** achievement/memory emphasis.
+- **Red `#D94A43`:** destructive/error states.
+- **Cool white/gray:** canvas and information surfaces.
+
+Do not give every feature its own color. Color communicates state, not decoration.
+
+## Typography and bilingual rules
+
+- Latin interface: Inter-compatible system stack.
+- Arabic interface: Tajawal/Noto Sans Arabic-compatible stack.
+- Arabic UI uses RTL, but English target phrases stay explicitly LTR.
+- Target English text is visually stronger than translated support text inside lessons.
+- Arabic never receives uppercase or artificial Latin letter spacing.
+
+## Layout grammar
+
+### Home
+
+1. Compact image-free brand header + profile entry.
+2. Learner greeting + current CEFR level.
+3. Honest weekly progress.
+4. One primary **Next** card.
+5. The Next card contains a real Target ↔ Support language sample instead of mascot art.
+6. Three compact Today tasks.
+7. Five-item fixed bottom navigation.
+
+### Learn
+
 1. Short title.
-2. A0/A1/A2/B1/B2 CEFR tabs.
-3. Compact level progress card.
-4. Vertical numbered unit/lesson path with complete/current/locked states.
+2. A0/A1/A2/B1/B2 tabs.
+3. Compact progress summary.
+4. Vertical unit rail.
+5. Complete/current/locked lesson cards with one consistent geometry.
 
-Lesson hierarchy:
-1. Exit/back control + honest step counter.
-2. Thin cobalt progress bar.
-3. One main activity card.
-4. English target prominent, native-language support secondary.
-5. One clear primary action at the bottom of the activity.
+### Lesson
 
-Speak hierarchy follows the same shell but uses teal for real speech/pronunciation feedback.
+1. Exit/back + step context.
+2. Thin progress rail.
+3. One focused activity surface.
+4. Target English prominent; native support secondary.
+5. Explicit selectable states.
+6. One dominant primary action.
 
-## Elevation & Depth
+### Review
 
-Cards use a soft, low-opacity shadow only to separate white surfaces from the cool canvas. The branded hero may use a slightly stronger cobalt shadow. No glow, glass blur, or decorative shadow effects.
+One card at a time. Reveal before rating. FSRS ratings use compact equal controls and never dominate the screen with decorative metrics.
 
-## Shapes
+### Speak / Pronunciation
 
-Cards are intentionally rounded as in the approved reference: roughly 16–22px. Controls use 10–14px. Avatar/audio controls may be circular when their function benefits from it. Pills are for compact metadata only.
+Target phrase first, clear listen controls, one obvious recording action, transcript, then measured feedback. Teal is used only where the interface is representing real audio/speech state.
 
-## Components
+### AI Twin Chat
 
-### Foundational visual states
+Simple conversation thread. Learner messages use cobalt; Twin messages use white. Memory/context is a compact optional strip. Composer stays directly above bottom navigation.
 
-Every interactive control requires default, focus-visible, pressed, disabled and busy behavior. Selected answers and active CEFR tabs use soft/cobalt states. Success and error feedback preserve layout rather than replacing the screen.
+### Profile
 
-### Buttons and actions
+Settings are grouped by Identity, Languages and Plan. Data-control actions are visible but visually separated from everyday settings.
 
-Primary buttons: cobalt fill, white text, ~52px height, 12px radius. Secondary: white or soft-blue surface with cobalt text/border. Low-emphasis text actions have no filled container. Within a screen there is normally one dominant primary action.
+## Control system
 
-### Navigation and data display
+### Primary
 
-Bottom navigation has five equal targets with functional outline icons plus visible text labels. The active item is cobalt with a small active dot; it is not a dark rectangular tile. Progress bars are 6–8px rounded rails and include numeric context nearby.
+- height: ~48px
+- cobalt fill
+- white label
+- 12px radius
+- one dominant primary action per view
 
-### Forms and overlays
+### Secondary
 
-Fields use white/light-neutral surfaces, 10–12px radius, visible labels and inline error states. Overlays remain accessible within the visual viewport and restore focus.
+White or soft neutral surface, visible border, brand-colored text where appropriate.
 
-### Iconography
+### Navigation
 
-Use the existing Lucide outline family consistently. Icons are functional, generally 18–20px. Do not globally hide icon libraries. Text remains visible for main navigation and primary actions.
+Bottom navigation follows the compact open-source pattern of icon + text + clear active rail/state. No oversized floating dark slab.
 
-### Motion
+### Cards
 
-Use short 120–180ms pressed/selection transitions. Real audio may animate from actual input/playback data. Respect reduced-motion preferences.
+Cards are functional groupings, not decoration. Typical radius 11–16px, light border, restrained shadow. The main Next card may use a cobalt gradient because it is the single branded focal surface.
 
-### Content and data visualization
+## Interaction states
 
-Home answers “What do I do next?”. Learn answers “Where am I in the course?”. Review answers “What is due now?”. Speak answers “What did I say and how can I improve it?”. No fake progress, fake streaks or fake AI insight.
+Every interactive control requires:
 
-## Do's and Don'ts
+- default
+- hover where relevant
+- pressed
+- focus-visible
+- disabled
+- busy when async
+- selected where applicable
+- correct/wrong where applicable
 
-- **Do:** follow the approved reference composition before inventing new UI patterns.
-- **Do:** keep Arabic support visually secondary to English targets inside exercises.
-- **Do:** reuse the same card, button, progress, spacing and navigation grammar across every route.
-- **Do:** use real saved progress and FSRS/speech data in visual indicators.
-- **Don't:** reintroduce Swiss/editorial rails, giant whitespace or floating metric typography.
-- **Don't:** make every card a different style or every feature a different color.
-- **Don't:** use generic AI gradients, glassmorphism, decorative sparkles or non-functional waveforms.
+State changes should preserve the layout instead of making components jump.
+
+## Anti-patterns
+
+Do not reintroduce:
+
+- placeholder/cartoon tutor art
+- generic AI robot imagery
+- sparkles/glow as decoration
+- glassmorphism
+- giant empty spacing
+- floating percentage typography
+- multiple competing primary buttons
+- different button geometry per screen
+- Swiss/editorial rails
+- another global CSS override stack
+- fake streaks, fake progress, fake speech metrics
+
+## Verification
+
+Before visual work can merge:
+
+1. Typecheck passes.
+2. Unit tests pass.
+3. Production build passes.
+4. CodeQL passes.
+5. Home, Learn, Lesson, Practice, Speak, Review, Twin Chat and Profile remain usable at 360px and 430px widths.
+6. Arabic RTL and English LTR target content are both checked.
+7. No rejected mascot asset is referenced.
