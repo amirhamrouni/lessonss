@@ -19,7 +19,7 @@ const SmartHomeV2 = React.lazy(() => import('./SmartHomeV2'));
 const LearnerSetup = React.lazy(() => import('./LearnerSetup'));
 const BeginnerFoundation = React.lazy(() => import('./BeginnerFoundation'));
 const AdaptiveSentenceBuilder = React.lazy(() => import('./AdaptiveSentenceBuilder'));
-const AutoLessonPlayer = React.lazy(() => import('./AutoLessonPlayer'));
+const LessonRouter = React.lazy(() => import('./LessonRouter'));
 const TutorMode = React.lazy(() => import('./TutorMode'));
 const SpeechDrill = React.lazy(() => import('./SpeechDrill'));
 const PronunciationLab = React.lazy(() => import('./PronunciationLab'));
@@ -46,7 +46,7 @@ function Root() {
           <Route path="/setup" element={<LearnerSetup />} />
           <Route path="/start" element={<BeginnerFoundation />} />
           <Route path="/learn" element={<LearnJourney />} />
-          <Route path="/lesson/:lessonId" element={<AutoLessonPlayer />} />
+          <Route path="/lesson/:lessonId" element={<LessonRouter />} />
           <Route path="/practice" element={<PracticeHub />} />
           <Route path="/review" element={<ReviewMode />} />
           <Route path="/sentence-builder" element={<AdaptiveSentenceBuilder />} />
