@@ -60,7 +60,7 @@ describe('English Twin visual contract', () => {
   it('uses shared loading and recoverable error states across learner screens', () => {
     const ui = source('./LearningUI.tsx');
     expect(ui).toContain('export function StatusState');
-    for (const file of ['../SmartHomeV2.tsx', '../ReferenceLearnJourney.tsx', '../SpeechDrill.tsx', '../ProfileHub.tsx', '../LearningModes.tsx', '../PronunciationLab.tsx', '../TutorMode.tsx', '../AdaptiveSentenceBuilder.tsx']) {
+    for (const file of ['../SmartHomeV2.tsx', '../ReferenceLearnJourney.tsx', '../SpeechDrill.tsx', '../ProfileHub.tsx', '../LearningModes.tsx', '../PronunciationLab.tsx', '../TutorMode.tsx', '../AdaptiveSentenceBuilder.tsx', '../VoiceLab.tsx']) {
       const screen = source(file);
       expect(screen).toContain('StatusState');
     }
@@ -114,6 +114,19 @@ describe('English Twin visual contract', () => {
       expect(screen).toContain("copy.micError('start-failed')");
       expect(screen).toContain('setListening(false)');
     }
+  });
+
+  it('keeps Gemini Live audio isolation while making profile and archive failures recoverable', () => {
+    const voice = source('../VoiceLab.tsx');
+    expect(voice).toContain('AudioWorkerClient');
+    expect(voice).toContain("new AudioWorkletNode(inputContext, 'english-twin-audio-capture'");
+    expect(voice).toContain('MAX_SOCKET_BUFFER_BYTES');
+    expect(voice).toContain("const LIVE_MODEL = 'gemini-3.1-flash-live-preview'");
+    expect(voice).toContain('setLoadError(true)');
+    expect(voice).toContain('setPendingArchive(payload)');
+    expect(voice).toContain('async function retryArchive()');
+    expect(voice).toContain('StatusState');
+    expect(voice).toContain('aria-busy={state === \'CONNECTING\'}');
   });
 
   it('keeps a successful Twin reply visible even if optional memory persistence fails', () => {

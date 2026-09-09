@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { addDoc, collection, doc, getDoc, serverTimestamp } from 'firebase/firestore';
-import AppDock from './AppDock';
+import { AlertTriangle, LoaderCircle, RefreshCw } from 'lucide-react';
+import { ETButton, LearningShell, StatusState } from './ui/LearningUI';
 import { AudioWorkerClient } from './audio/audioWorkerClient';
 import { auth, db } from './firebase';
-import { directionFor, normalizeLanguage } from './languageSupport';
+import { directionFor, normalizeLanguage, SupportedLanguage } from './languageSupport';
 import { liveVoiceSupportCopy } from './liveVoiceSupportCopy';
 
 type VoiceState = 'READY' | 'CONNECTING' | 'LISTENING' | 'AI_SPEAKING' | 'ERROR';
@@ -18,10 +19,76 @@ type AudioRuntime = {
   captureNode: AudioWorkletNode;
   worker: AudioWorkerClient;
 };
+type SessionArchive = {
+  type: 'speaking-live';
+  model: string;
+  startedAtMs: number;
+  durationSeconds: number;
+  transcript: TranscriptItem[];
+};
+type VoiceReleaseCopy = {
+  loadError: string;
+  loadErrorBody: string;
+  retry: string;
+  archiveWarning: string;
+  retryArchive: string;
+  archiveSaved: string;
+};
 
 const LIVE_MODEL = 'gemini-3.1-flash-live-preview';
 const CONSENT_KEY = 'english-twin-voice-consent-v1';
 const MAX_SOCKET_BUFFER_BYTES = 512 * 1024;
+
+const releaseCopy: Record<SupportedLanguage, VoiceReleaseCopy> = {
+  English: {
+    loadError: 'Couldn’t load your voice profile',
+    loadErrorBody: 'No profile data was changed. Check the connection and try again before starting a live session.',
+    retry: 'Try again',
+    archiveWarning: 'The live session ended, but its transcript could not be saved to your learning history.',
+    retryArchive: 'Retry save',
+    archiveSaved: 'Session history saved.',
+  },
+  Arabic: {
+    loadError: 'تعذّر تحميل ملف التدريب الصوتي',
+    loadErrorBody: 'لم تتغيّر أي بيانات في ملفك. تحقق من الاتصال وحاول مرة أخرى قبل بدء جلسة مباشرة.',
+    retry: 'حاول مرة أخرى',
+    archiveWarning: 'انتهت الجلسة المباشرة، لكن تعذّر حفظ نصها في سجل تعلّمك.',
+    retryArchive: 'أعد محاولة الحفظ',
+    archiveSaved: 'تم حفظ سجل الجلسة.',
+  },
+  Dutch: {
+    loadError: 'Je spraakprofiel kon niet worden geladen',
+    loadErrorBody: 'Er zijn geen profielgegevens gewijzigd. Controleer de verbinding en probeer opnieuw voordat je een livesessie start.',
+    retry: 'Opnieuw proberen',
+    archiveWarning: 'De livesessie is beëindigd, maar het transcript kon niet in je leergeschiedenis worden opgeslagen.',
+    retryArchive: 'Opslaan opnieuw proberen',
+    archiveSaved: 'Sessiegeschiedenis opgeslagen.',
+  },
+  French: {
+    loadError: 'Impossible de charger ton profil vocal',
+    loadErrorBody: 'Aucune donnée de profil n’a été modifiée. Vérifie la connexion et réessaie avant de lancer une session en direct.',
+    retry: 'Réessayer',
+    archiveWarning: 'La session en direct est terminée, mais sa transcription n’a pas pu être enregistrée dans ton historique.',
+    retryArchive: 'Réessayer l’enregistrement',
+    archiveSaved: 'Historique de session enregistré.',
+  },
+  German: {
+    loadError: 'Dein Sprachprofil konnte nicht geladen werden',
+    loadErrorBody: 'Es wurden keine Profildaten verändert. Prüfe die Verbindung und versuche es erneut, bevor du eine Live-Sitzung startest.',
+    retry: 'Erneut versuchen',
+    archiveWarning: 'Die Live-Sitzung wurde beendet, aber das Transkript konnte nicht in deinem Lernverlauf gespeichert werden.',
+    retryArchive: 'Speichern erneut versuchen',
+    archiveSaved: 'Sitzungsverlauf gespeichert.',
+  },
+  Spanish: {
+    loadError: 'No se pudo cargar tu perfil de voz',
+    loadErrorBody: 'No se modificó ningún dato de tu perfil. Revisa la conexión y vuelve a intentarlo antes de iniciar una sesión en directo.',
+    retry: 'Intentar de nuevo',
+    archiveWarning: 'La sesión en directo terminó, pero su transcripción no pudo guardarse en tu historial de aprendizaje.',
+    retryArchive: 'Reintentar guardado',
+    archiveSaved: 'Historial de sesión guardado.',
+  },
+};
 
 function base64ToBytes(value: string) {
   const binary = atob(value);
@@ -35,6 +102,8 @@ export default function VoiceLab() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [state, setState] = useState<VoiceState>('READY');
   const [error, setError] = useState('');
   const [transcript, setTranscript] = useState<TranscriptItem[]>([]);
@@ -42,6 +111,10 @@ export default function VoiceLab() {
   const [outputDraft, setOutputDraft] = useState('');
   const [voiceConsent, setVoiceConsent] = useState(() => localStorage.getItem(CONSENT_KEY) === 'accepted');
   const [showConsent, setShowConsent] = useState(false);
+  const [archiveWarning, setArchiveWarning] = useState('');
+  const [archiveNotice, setArchiveNotice] = useState('');
+  const [pendingArchive, setPendingArchive] = useState<SessionArchive | null>(null);
+  const [archiveBusy, setArchiveBusy] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
   const audioRef = useRef<AudioRuntime | null>(null);
@@ -66,25 +139,33 @@ export default function VoiceLab() {
     setOutputDraft(next);
   };
 
-  useEffect(
-    () =>
-      onAuthStateChanged(auth, async current => {
-        setUser(current);
-        if (!current) {
-          setProfile({});
-          setLoading(false);
-          return;
-        }
+  useEffect(() => {
+    let active = true;
+    const unsubscribe = onAuthStateChanged(auth, async current => {
+      if (!active) return;
+      setUser(current);
+      setLoading(true);
+      setLoadError(false);
+      if (!current) {
+        setProfile({});
+        setLoading(false);
+        return;
+      }
 
-        try {
-          const snap = await getDoc(doc(db, 'users', current.uid));
-          setProfile(snap.exists() ? snap.data() : {});
-        } finally {
-          setLoading(false);
-        }
-      }),
-    [],
-  );
+      try {
+        const snap = await getDoc(doc(db, 'users', current.uid));
+        if (active) setProfile(snap.exists() ? snap.data() : {});
+      } catch {
+        if (active) setLoadError(true);
+      } finally {
+        if (active) setLoading(false);
+      }
+    });
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [reloadKey]);
 
   useEffect(() => {
     transcriptRef.current = transcript;
@@ -98,23 +179,28 @@ export default function VoiceLab() {
     profile.explanationLanguage || profile.nativeLanguage || profile.interfaceLanguage || 'English',
   );
   const copy = liveVoiceSupportCopy[language];
+  const release = releaseCopy[language];
   const dir = directionFor(language);
 
   if (loading) {
-    return (
-      <div className="app-shell" dir={dir}>
-        <div className="phone">
-          <main className="page">
-            <span className="eyebrow">ENGLISH TWIN</span>
-            <p>{copy.loading}</p>
-          </main>
-          <AppDock language={language} />
-        </div>
-      </div>
-    );
+    return <LearningShell language={language} dir={dir} pageClassName="voice-live" showDock={false}>
+      <StatusState icon={<LoaderCircle />} eyebrow="ENGLISH TWIN" title={copy.loading} />
+    </LearningShell>;
   }
 
   if (!user) return <Navigate to="/welcome" replace />;
+
+  if (loadError) {
+    return <LearningShell language={language} dir={dir} pageClassName="voice-live">
+      <StatusState
+        icon={<AlertTriangle />}
+        tone="danger"
+        title={release.loadError}
+        body={release.loadErrorBody}
+        action={<ETButton onClick={() => setReloadKey(value => value + 1)}>{release.retry}</ETButton>}
+      />
+    </LearningShell>;
+  }
 
   function pushTranscript(role: 'learner' | 'twin', text: string) {
     const clean = text.trim();
@@ -237,7 +323,6 @@ export default function VoiceLab() {
         }
         if (message.type !== 'chunk') return;
         if (ws.readyState !== WebSocket.OPEN || stateRef.current === 'CONNECTING') return;
-
         if (ws.bufferedAmount > MAX_SOCKET_BUFFER_BYTES) return;
 
         ws.send(
@@ -276,6 +361,7 @@ export default function VoiceLab() {
     if (!user || (stateRef.current !== 'READY' && stateRef.current !== 'ERROR')) return;
 
     setError('');
+    setArchiveNotice('');
     setTranscript([]);
     transcriptRef.current = [];
     applyInputDraft('');
@@ -346,6 +432,30 @@ export default function VoiceLab() {
     }
   }
 
+  async function saveArchive(payload: SessionArchive) {
+    if (!user) throw new Error('missing-user');
+    await addDoc(collection(db, 'users', user.uid, 'learningSessions'), {
+      ...payload,
+      createdAt: serverTimestamp(),
+    });
+  }
+
+  async function retryArchive() {
+    if (!pendingArchive || archiveBusy) return;
+    setArchiveBusy(true);
+    setArchiveNotice('');
+    try {
+      await saveArchive(pendingArchive);
+      setPendingArchive(null);
+      setArchiveWarning('');
+      setArchiveNotice(release.archiveSaved);
+    } catch {
+      setArchiveWarning(release.archiveWarning);
+    } finally {
+      setArchiveBusy(false);
+    }
+  }
+
   async function teardown(saveSession = true) {
     const runtime = audioRef.current;
     audioRef.current = null;
@@ -376,16 +486,26 @@ export default function VoiceLab() {
     if (outputDraftRef.current.trim()) items.push({ role: 'twin', text: outputDraftRef.current.trim() });
 
     if (saveSession && user && startedAt && items.length) {
+      const payload: SessionArchive = {
+        type: 'speaking-live',
+        model: modelRef.current,
+        startedAtMs: startedAt,
+        durationSeconds: Math.max(1, Math.round((Date.now() - startedAt) / 1000)),
+        transcript: items,
+      };
+      setArchiveBusy(true);
+      setArchiveNotice('');
       try {
-        await addDoc(collection(db, 'users', user.uid, 'learningSessions'), {
-          type: 'speaking-live',
-          model: modelRef.current,
-          startedAtMs: startedAt,
-          durationSeconds: Math.max(1, Math.round((Date.now() - startedAt) / 1000)),
-          transcript: items,
-          createdAt: serverTimestamp(),
-        });
-      } catch {}
+        await saveArchive(payload);
+        setPendingArchive(null);
+        setArchiveWarning('');
+        setArchiveNotice(release.archiveSaved);
+      } catch {
+        setPendingArchive(payload);
+        setArchiveWarning(release.archiveWarning);
+      } finally {
+        setArchiveBusy(false);
+      }
     }
 
     applyInputDraft('');
@@ -406,102 +526,113 @@ export default function VoiceLab() {
             : copy.attention;
 
   return (
-    <div className="app-shell" dir={dir}>
-      <div className="phone">
-        <main className="page voice-live">
-          <button className="back" onClick={() => nav('/speak')}>
-            {copy.home}
-          </button>
+    <LearningShell language={language} dir={dir} className="voice-live-shell" pageClassName="voice-live">
+      <button type="button" className="back" onClick={() => nav('/speak')}>
+        {copy.home}
+      </button>
 
-          <header>
-            <span className="eyebrow">{copy.eyebrow}</span>
-            <h1>{copy.title}</h1>
-            <p>{copy.intro}</p>
-          </header>
+      <header>
+        <span className="eyebrow">{copy.eyebrow}</span>
+        <h1>{copy.title}</h1>
+        <p>{copy.intro}</p>
+      </header>
 
-          {showConsent && (
-            <section
-              className="rich-activity-card"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="voice-consent-title"
-            >
-              <div className="section-heading">
-                <span>{copy.privacy}</span>
-                <h3 id="voice-consent-title">{copy.consentTitle}</h3>
-              </div>
-              <p>{copy.consentBody}</p>
-              <div className="lesson-actions">
-                <button className="ghost" onClick={() => setShowConsent(false)}>
-                  {copy.notNow}
-                </button>
-                <button className="primary lime" onClick={acceptConsent}>
-                  {copy.acceptStart}
-                </button>
-              </div>
-            </section>
-          )}
-
-          <section className={`voice-stage ${state.toLowerCase()}`}>
-            <div className="voice-pulse" aria-hidden="true">
-              LIVE
-            </div>
-            <span className="status-dot">{state}</span>
-            <h2>{stateTitle}</h2>
-            <p>{state === 'READY' ? copy.readyHint : copy.activeHint}</p>
-            <button
-              className={active ? 'voice-stop' : 'primary lime'}
-              onClick={() => (active ? void teardown(true) : void start())}
-            >
-              {active ? copy.end : copy.start}
+      {showConsent && (
+        <section
+          className="rich-activity-card"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="voice-consent-title"
+        >
+          <div className="section-heading">
+            <span>{copy.privacy}</span>
+            <h3 id="voice-consent-title">{copy.consentTitle}</h3>
+          </div>
+          <p>{copy.consentBody}</p>
+          <div className="lesson-actions">
+            <button type="button" className="ghost" onClick={() => setShowConsent(false)}>
+              {copy.notNow}
             </button>
-          </section>
+            <button type="button" className="primary lime" onClick={acceptConsent}>
+              {copy.acceptStart}
+            </button>
+          </div>
+        </section>
+      )}
 
-          {error && (
-            <p className="error" role="alert">
-              {error}
-            </p>
-          )}
+      <section className={`voice-stage ${state.toLowerCase()}`} aria-live="polite" aria-busy={state === 'CONNECTING'}>
+        <div className="voice-pulse" aria-hidden="true">
+          LIVE
+        </div>
+        <span className="status-dot">{state}</span>
+        <h2>{stateTitle}</h2>
+        <p>{state === 'READY' ? copy.readyHint : copy.activeHint}</p>
+        <button
+          type="button"
+          className={active ? 'voice-stop' : 'primary lime'}
+          disabled={archiveBusy}
+          onClick={() => (active ? void teardown(true) : void start())}
+        >
+          {active ? copy.end : copy.start}
+        </button>
+      </section>
 
-          <section>
-            <div className="section-heading">
-              <span>{copy.transcript}</span>
-              <h3>{copy.evidence}</h3>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+
+      {archiveWarning ? (
+        <section className="et-surface et-surface-soft voice-archive-warning" role="alert">
+          <AlertTriangle aria-hidden="true" />
+          <div>
+            <p>{archiveWarning}</p>
+            <ETButton variant="soft" disabled={archiveBusy} onClick={() => void retryArchive()}>
+              <RefreshCw aria-hidden="true" /> {archiveBusy ? copy.loading : release.retryArchive}
+            </ETButton>
+          </div>
+        </section>
+      ) : null}
+
+      {archiveNotice ? <p className="voice-archive-notice" role="status">{archiveNotice}</p> : null}
+
+      <section>
+        <div className="section-heading">
+          <span>{copy.transcript}</span>
+          <h3>{copy.evidence}</h3>
+        </div>
+
+        {!transcript.length && !inputDraft && !outputDraft ? (
+          <div className="signal-empty">
+            <div>
+              <b>{copy.emptyTitle}</b>
+              <p>{copy.emptyBody}</p>
             </div>
-
-            {!transcript.length && !inputDraft && !outputDraft ? (
-              <div className="signal-empty">
-                <div>
-                  <b>{copy.emptyTitle}</b>
-                  <p>{copy.emptyBody}</p>
-                </div>
-              </div>
-            ) : (
-              <div className="voice-transcript">
-                {transcript.map((item, index) => (
-                  <article className={item.role} key={`${item.role}-${index}`}>
-                    <span>{item.role === 'learner' ? copy.you : copy.twin}</span>
-                    <p>{item.text}</p>
-                  </article>
-                ))}
-                {inputDraft && (
-                  <article className="learner partial">
-                    <span>{copy.you}</span>
-                    <p>{inputDraft}</p>
-                  </article>
-                )}
-                {outputDraft && (
-                  <article className="twin partial">
-                    <span>{copy.twin}</span>
-                    <p>{outputDraft}</p>
-                  </article>
-                )}
-              </div>
+          </div>
+        ) : (
+          <div className="voice-transcript" aria-live="polite">
+            {transcript.map((item, index) => (
+              <article className={item.role} key={`${item.role}-${index}`}>
+                <span>{item.role === 'learner' ? copy.you : copy.twin}</span>
+                <p>{item.text}</p>
+              </article>
+            ))}
+            {inputDraft && (
+              <article className="learner partial">
+                <span>{copy.you}</span>
+                <p>{inputDraft}</p>
+              </article>
             )}
-          </section>
-        </main>
-        <AppDock language={language} />
-      </div>
-    </div>
+            {outputDraft && (
+              <article className="twin partial">
+                <span>{copy.twin}</span>
+                <p>{outputDraft}</p>
+              </article>
+            )}
+          </div>
+        )}
+      </section>
+    </LearningShell>
   );
 }
