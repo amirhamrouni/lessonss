@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { Rating } from 'ts-fsrs';
-import { richA2, richLearningLessons } from './curriculumAll';
+import { advancedLessonsV2, richA2, richLearningLessons } from './curriculumAll';
 import {
   buildInitialReviewCard,
+  buildReviewSeedsFromAdvancedLessons,
   buildReviewSeedsFromRichLessons,
   dueCards,
   meaningForLanguage,
@@ -13,13 +14,17 @@ import {
 } from './review';
 
 describe('smart review engine', () => {
-  it('derives review seeds from every rich visual-word activity across A1 and A2', () => {
-    const expected = richLearningLessons.reduce(
+  it('preserves every legacy visual-word review seed and appends advanced lexical chunks', () => {
+    const legacyExpected = richLearningLessons.reduce(
       (count, lesson) => count + lesson.activities.filter(activity => activity.type === 'visual_word').length,
       0,
     );
-    expect(reviewSeeds).toHaveLength(expected);
-    expect(expected).toBeGreaterThan(20);
+    const legacySeeds = buildReviewSeedsFromRichLessons(richLearningLessons);
+    const advancedSeeds = buildReviewSeedsFromAdvancedLessons(advancedLessonsV2);
+    expect(legacySeeds).toHaveLength(legacyExpected);
+    expect(legacyExpected).toBeGreaterThan(20);
+    expect(advancedSeeds.length).toBeGreaterThan(100);
+    expect(reviewSeeds).toHaveLength(legacySeeds.length + advancedSeeds.length);
   });
 
   it('keeps generated review ids unique while preserving familiar legacy ids', () => {
@@ -43,6 +48,13 @@ describe('smart review engine', () => {
     expect(reviewSeeds.some(seed => seed.sourceLessonId.startsWith('a2-'))).toBe(true);
   });
 
+  it('includes B1-B2-C1 lexical chunks and grammar patterns', () => {
+    for (const level of ['b1-','b2-','c1-']) expect(reviewSeeds.some(seed => seed.sourceLessonId.startsWith(level))).toBe(true);
+    expect(reviewSeeds.some(seed => seed.kind === 'collocation')).toBe(true);
+    expect(reviewSeeds.some(seed => seed.kind === 'discourse_marker')).toBe(true);
+    expect(reviewSeeds.some(seed => seed.kind === 'grammar_pattern')).toBe(true);
+  });
+
   it('only unlocks cards from completed lessons', () => {
     const seeds = seedsForCompletedLessons(['a1-u1-l1']);
     expect(seeds.length).toBeGreaterThan(0);
@@ -56,6 +68,13 @@ describe('smart review engine', () => {
     const seeds = seedsForCompletedLessons([lesson!.id]);
     expect(seeds.length).toBeGreaterThan(0);
     expect(seeds.every(seed => seed.sourceLessonId === lesson!.id)).toBe(true);
+  });
+
+  it('unlocks advanced lexical cards only after their source lesson is completed', () => {
+    const lesson = advancedLessonsV2.find(item => (item.reviewSeeds || []).length > 0)!;
+    const seeds = seedsForCompletedLessons([lesson.id]);
+    expect(seeds.length).toBe(lesson.reviewSeeds!.length);
+    expect(seeds.every(seed => seed.sourceLessonId === lesson.id)).toBe(true);
   });
 
   it('returns the learner support-language meaning with a safe fallback', () => {

@@ -5,7 +5,8 @@ import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { AlertTriangle, Check, ChevronLeft, ChevronRight, Languages, LoaderCircle, Target, TimerReset } from 'lucide-react';
 import { ETButton, LearningShell, StatusState } from './ui/LearningUI';
 import { auth, db } from './firebase';
-import { defaultSkillLevels, directionFor, normalizeLanguage, SupportedLanguage, supportedLanguages } from './languageSupport';
+import { directionFor, normalizeLanguage, SupportedLanguage, supportedLanguages } from './languageSupport';
+import { defaultCEFRSkillLevels, normalizeLearningLevel } from './cefrProgress';
 import { setupSupportCopy } from './setupSupportCopy';
 
 type Draft = {
@@ -105,7 +106,7 @@ export default function LearnerSetup() {
             nativeLanguage,
             explanationLanguage,
             learningGoal: data.learningGoal || 'Daily conversation',
-            cefrLevel: data.cefrLevel || 'A1',
+            cefrLevel: data.declaredLevel || data.cefrLevel || 'A1',
             dailyTargetMinutes: data.dailyTargetMinutes || 15,
           });
         }
@@ -166,6 +167,7 @@ export default function LearnerSetup() {
     setBusy(true);
     setSaveError('');
     try {
+      const selectedLevel = normalizeLearningLevel(draft.cefrLevel);
       await setDoc(doc(db, 'users', currentUser.uid), {
         nativeLanguage: draft.nativeLanguage,
         explanationLanguage: draft.explanationLanguage,
@@ -174,9 +176,13 @@ export default function LearnerSetup() {
         targetLanguage: 'English',
         learningLanguage: 'English',
         learningGoal: draft.learningGoal,
-        cefrLevel: draft.cefrLevel,
+        cefrLevel: selectedLevel,
+        declaredLevel: selectedLevel,
+        estimatedOverall: selectedLevel,
+        currentCurriculumLevel: selectedLevel,
+        cefrStateVersion: 2,
         dailyTargetMinutes: draft.dailyTargetMinutes,
-        skillLevels: defaultSkillLevels(draft.cefrLevel),
+        skillLevels: defaultCEFRSkillLevels(selectedLevel),
         immersionMode: 'adaptive',
         onboardingCompleted: true,
         updatedAt: serverTimestamp(),

@@ -13,22 +13,24 @@ import './auth-onboarding-polish.css';
 import './pronunciation-lab.css';
 import './live-voice-v11.css';
 import './product-system-v12.css';
+import './advanced-learning-v12.css';
 
 const AuthGateway = React.lazy(() => import('./AuthGateway'));
 const SmartHomeV2 = React.lazy(() => import('./SmartHomeV2'));
 const LearnerSetup = React.lazy(() => import('./LearnerSetup'));
 const BeginnerFoundation = React.lazy(() => import('./BeginnerFoundation'));
 const AdaptiveSentenceBuilder = React.lazy(() => import('./AdaptiveSentenceBuilder'));
-const AutoLessonPlayer = React.lazy(() => import('./AutoLessonPlayer'));
+const LessonRouter = React.lazy(() => import('./LessonRouter'));
 const TutorMode = React.lazy(() => import('./TutorMode'));
 const SpeechDrill = React.lazy(() => import('./SpeechDrill'));
-const PronunciationLab = React.lazy(() => import('./PronunciationLab'));
+const PronunciationGateway = React.lazy(() => import('./PronunciationGateway'));
 const VoiceLab = React.lazy(() => import('./VoiceLab'));
 const PrivacyPolicy = React.lazy(() => import('./PrivacyPolicy'));
 const LearnJourney = React.lazy(() => import('./ReferenceLearnJourney'));
 const PracticeHub = React.lazy(() => import('./LearningModes').then(module => ({ default: module.PracticeHub })));
 const ReviewMode = React.lazy(() => import('./LearningModes').then(module => ({ default: module.ReviewMode })));
-const AssessmentMode = React.lazy(() => import('./LearningModes').then(module => ({ default: module.AssessmentMode })));
+const AssessmentV2 = React.lazy(() => import('./AssessmentV2'));
+const LevelCheckpoint = React.lazy(() => import('./LevelCheckpoint'));
 const ProfileHub = React.lazy(() => import('./ProfileHub').then(module => ({ default: module.ProfileHub })));
 const MistakeMemory = React.lazy(() => import('./ProfileHub').then(module => ({ default: module.MistakeMemory })));
 
@@ -46,14 +48,15 @@ function Root() {
           <Route path="/setup" element={<LearnerSetup />} />
           <Route path="/start" element={<BeginnerFoundation />} />
           <Route path="/learn" element={<LearnJourney />} />
-          <Route path="/lesson/:lessonId" element={<AutoLessonPlayer />} />
+          <Route path="/lesson/:lessonId" element={<LessonRouter />} />
           <Route path="/practice" element={<PracticeHub />} />
           <Route path="/review" element={<ReviewMode />} />
           <Route path="/sentence-builder" element={<AdaptiveSentenceBuilder />} />
-          <Route path="/assessment" element={<AssessmentMode />} />
+          <Route path="/assessment" element={<AssessmentV2 />} />
+          <Route path="/checkpoint" element={<LevelCheckpoint />} />
           <Route path="/twin" element={<TutorMode />} />
           <Route path="/speak" element={<SpeechDrill />} />
-          <Route path="/pronunciation" element={<PronunciationLab />} />
+          <Route path="/pronunciation" element={<PronunciationGateway />} />
           <Route path="/speak/live" element={<VoiceLab />} />
           <Route path="/profile" element={<ProfileHub />} />
           <Route path="/mistakes" element={<MistakeMemory />} />
