@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { collection, doc, getDoc, getDocs, increment, serverTimestamp, setDoc } from 'firebase/firestore';
-import { Headphones, Mic, RotateCcw, Sparkles, Volume2 } from 'lucide-react';
-import { ETButton, LearningShell, PageTitle, ProgressBar, SectionTitle, Surface } from './ui/LearningUI';
+import { AlertTriangle, Headphones, LoaderCircle, Mic, RotateCcw, Sparkles, Volume2 } from 'lucide-react';
+import { ETButton, LearningShell, PageTitle, ProgressBar, SectionTitle, StatusState, Surface } from './ui/LearningUI';
 import { auth, db } from './firebase';
-import { directionFor, normalizeLanguage } from './languageSupport';
+import { directionFor, normalizeLanguage, SupportedLanguage } from './languageSupport';
 import { prioritizeSpeakingPrompts, scoreSpokenAttempt, speakingPrompts, SpeakingMistakeSignal, SpeechScore } from './speakingEngine';
 import { speechSupportCopy } from './speechSupportCopy';
 import { pronunciationSupportCopy } from './pronunciationSupportCopy';
@@ -36,6 +36,15 @@ declare global {
 
 const GUIDED_SPEECH_CONSENT_KEY = 'english-twin-guided-speech-consent-v1';
 
+const stateCopy: Record<SupportedLanguage, { loadError:string; loadErrorBody:string; retry:string; noDrillsBody:string; backPractice:string }> = {
+  English:{loadError:'Couldn’t prepare speaking practice',loadErrorBody:'Your saved mistakes and progress were not changed. Check the connection and try again.',retry:'Try again',noDrillsBody:'Complete a lesson first so English Twin can choose a useful speaking prompt.',backPractice:'Back to practice'},
+  Arabic:{loadError:'تعذّر تجهيز تدريب المحادثة',loadErrorBody:'لم تتغيّر أخطاؤك أو نتائجك المحفوظة. تحقق من الاتصال وحاول مرة أخرى.',retry:'حاول مرة أخرى',noDrillsBody:'أكمل درسًا أولًا حتى يختار English Twin تمرين نطق مناسبًا.',backPractice:'العودة للتدريب'},
+  Dutch:{loadError:'Spreekoefening kon niet worden voorbereid',loadErrorBody:'Je opgeslagen fouten en voortgang zijn niet gewijzigd. Controleer de verbinding en probeer opnieuw.',retry:'Opnieuw proberen',noDrillsBody:'Voltooi eerst een les zodat English Twin een nuttige spreekoefening kan kiezen.',backPractice:'Terug naar oefenen'},
+  French:{loadError:'Impossible de préparer l’exercice oral',loadErrorBody:'Tes erreurs et ta progression enregistrées n’ont pas changé. Vérifie la connexion et réessaie.',retry:'Réessayer',noDrillsBody:'Termine d’abord une leçon pour que English Twin choisisse un exercice utile.',backPractice:'Retour aux exercices'},
+  German:{loadError:'Sprechtraining konnte nicht vorbereitet werden',loadErrorBody:'Deine gespeicherten Fehler und Fortschritte wurden nicht verändert. Prüfe die Verbindung und versuche es erneut.',retry:'Erneut versuchen',noDrillsBody:'Schließe zuerst eine Lektion ab, damit English Twin eine passende Sprechübung auswählen kann.',backPractice:'Zurück zum Üben'},
+  Spanish:{loadError:'No se pudo preparar la práctica oral',loadErrorBody:'Tus errores y progreso guardados no cambiaron. Revisa la conexión y vuelve a intentarlo.',retry:'Intentar de nuevo',noDrillsBody:'Completa primero una lección para que English Twin elija una práctica útil.',backPractice:'Volver a practicar'},
+};
+
 function speakTarget(text: string) {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();
@@ -50,6 +59,8 @@ export default function SpeechDrill() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [mistakes, setMistakes] = useState<SpeakingMistakeSignal[]>([]);
   const [index, setIndex] = useState(0);
   const [listening, setListening] = useState(false);
@@ -60,18 +71,27 @@ export default function SpeechDrill() {
   const [showConsent, setShowConsent] = useState(false);
   const recognitionRef = useRef<RecognitionLike | null>(null);
 
-  useEffect(() => onAuthStateChanged(auth, async current => {
-    setUser(current);
-    if (!current) { setLoading(false); return; }
-    try {
-      const [profileSnap, mistakesSnap] = await Promise.all([
-        getDoc(doc(db, 'users', current.uid)),
-        getDocs(collection(db, 'users', current.uid, 'mistakes')),
-      ]);
-      setProfile(profileSnap.exists() ? profileSnap.data() : {});
-      setMistakes(mistakesSnap.docs.map(item => item.data() as SpeakingMistakeSignal));
-    } finally { setLoading(false); }
-  }), []);
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async current => {
+      setUser(current);
+      setLoadError(false);
+      setLoading(true);
+      if (!current) { setLoading(false); return; }
+      try {
+        const [profileSnap, mistakesSnap] = await Promise.all([
+          getDoc(doc(db, 'users', current.uid)),
+          getDocs(collection(db, 'users', current.uid, 'mistakes')),
+        ]);
+        setProfile(profileSnap.exists() ? profileSnap.data() : {});
+        setMistakes(mistakesSnap.docs.map(item => item.data() as SpeakingMistakeSignal));
+      } catch {
+        setLoadError(true);
+      } finally {
+        setLoading(false);
+      }
+    });
+    return unsubscribe;
+  }, [reloadKey]);
 
   useEffect(() => () => { try { recognitionRef.current?.stop(); } catch { /* noop */ } }, []);
 
@@ -80,11 +100,13 @@ export default function SpeechDrill() {
   const language = normalizeLanguage(profile.explanationLanguage || profile.nativeLanguage || profile.interfaceLanguage || 'English');
   const copy = speechSupportCopy[language];
   const pronunciationCopy = pronunciationSupportCopy[language];
+  const state = stateCopy[language];
   const dir = directionFor(language);
 
-  if (loading) return <LearningShell language={language} dir={dir}><Mic /><p>{copy.loading}</p></LearningShell>;
+  if (loading) return <LearningShell language={language} dir={dir} showDock={false}><StatusState icon={<LoaderCircle />} eyebrow="ENGLISH TWIN" title={copy.loading} /></LearningShell>;
   if (!user) return <Navigate to="/welcome" replace />;
-  if (!item) return <LearningShell language={language} dir={dir}><p>{copy.noDrills}</p></LearningShell>;
+  if (loadError) return <LearningShell language={language} dir={dir} showDock={false}><StatusState icon={<AlertTriangle />} tone="danger" title={state.loadError} body={state.loadErrorBody} action={<ETButton onClick={() => setReloadKey(value => value + 1)}>{state.retry}</ETButton>} /></LearningShell>;
+  if (!item) return <LearningShell language={language} dir={dir}><StatusState icon={<Mic />} title={copy.noDrills} body={state.noDrillsBody} action={<ETButton variant="secondary" onClick={() => nav('/practice')}>{state.backPractice}</ETButton>} /></LearningShell>;
 
   async function saveWeakAttempt(result: SpeechScore, heard: string) {
     if (!user || result.verdict !== 'retry') return;
@@ -143,14 +165,19 @@ export default function SpeechDrill() {
       if (finalText.trim()) {
         const nextScore = scoreSpokenAttempt(item.target, finalText.trim());
         setScore(nextScore);
-        void saveWeakAttempt(nextScore, finalText.trim());
+        void saveWeakAttempt(nextScore, finalText.trim()).catch(() => undefined);
       }
     };
     recognition.onerror = event => { setError(copy.micError(event.error)); setListening(false); };
     recognition.onend = () => setListening(false);
     recognitionRef.current = recognition;
     setListening(true);
-    recognition.start();
+    try {
+      recognition.start();
+    } catch {
+      setListening(false);
+      setError(copy.micError('start-failed'));
+    }
   }
 
   function nextPrompt() {
@@ -178,8 +205,8 @@ export default function SpeechDrill() {
       <div className="et-speech-progress"><span>{index + 1} / {prompts.length}</span><small>{item.lessonId.toUpperCase()}</small></div>
       <h2>{item.prompt}</h2>
       <div className="et-speech-target" dir="ltr">{item.target}</div>
-      <ETButton variant="secondary" type="button" onClick={() => speakTarget(item.target)}><Volume2 /> {copy.hearTarget}</ETButton>
-      <button className={`et-mic-button ${listening ? 'listening' : ''}`} disabled={listening} onClick={startListening} aria-label={listening ? copy.listening : copy.speakNow}><Mic /></button>
+      <ETButton variant="secondary" onClick={() => speakTarget(item.target)}><Volume2 /> {copy.hearTarget}</ETButton>
+      <button type="button" className={`et-mic-button ${listening ? 'listening' : ''}`} disabled={listening} onClick={startListening} aria-label={listening ? copy.listening : copy.speakNow}><Mic /></button>
       <b className="et-mic-label">{listening ? copy.listening : copy.speakNow}</b>
     </Surface>
 

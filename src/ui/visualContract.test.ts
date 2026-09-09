@@ -41,10 +41,49 @@ describe('English Twin visual contract', () => {
     expect(css).toContain('.et-lesson-footer');
   });
 
-  it('keeps the dock to five learning destinations', () => {
+  it('keeps the dock to five destinations while nested routes retain section state', () => {
     const dock = source('../AppDock.tsx');
     for (const route of ["'/'", "'/learn'", "'/practice'", "'/speak'", "'/profile'"]) {
       expect(dock).toContain(route);
     }
+    expect(dock).toContain("'/review'");
+    expect(dock).toContain("'/sentence-builder'");
+    expect(dock).toContain("'/assessment'");
+    expect(dock).toContain("'/twin'");
+    expect(dock).toContain("'/pronunciation'");
+    expect(dock).toContain("'/speak/live'");
+    expect(dock).toContain("'/mistakes'");
+    expect(dock).toContain("'/privacy'");
+    expect(dock).toContain('aria-current');
+  });
+
+  it('uses shared loading and recoverable error states on core learner screens', () => {
+    const ui = source('./LearningUI.tsx');
+    expect(ui).toContain('export function StatusState');
+    for (const file of ['../SmartHomeV2.tsx', '../ReferenceLearnJourney.tsx', '../SpeechDrill.tsx', '../ProfileHub.tsx']) {
+      const screen = source(file);
+      expect(screen).toContain('StatusState');
+      expect(screen).toContain('loadError');
+    }
+  });
+
+  it('does not mark the first daily task complete just because any weekly lesson exists', () => {
+    const home = source('../SmartHomeV2.tsx');
+    expect(home).not.toContain('index === 0 && weeklyCompleted > 0');
+    expect(home).toContain("item.id === 'foundation'");
+    expect(home).toContain("item.id === 'lesson'");
+  });
+
+  it('keeps course unlocking sequential across unit boundaries', () => {
+    const learn = source('../ReferenceLearnJourney.tsx');
+    expect(learn).toContain('function lessonUnlocked');
+    expect(learn).toContain('levelLessons[globalIndex - 1]');
+    expect(learn).not.toContain('lessonIndex === 0 || complete');
+  });
+
+  it('keeps account deletion aligned with generated learner data', () => {
+    const profile = source('../ProfileHub.tsx');
+    expect(profile).toContain("'assessments'");
+    expect(profile).toContain("english-twin-guided-speech-consent-v1");
   });
 });
