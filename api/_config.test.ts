@@ -4,7 +4,7 @@ import { getFirebaseAdminCredentialSource, getFirebaseProjectId, getLiveModel, g
 describe('server readiness config', () => {
   it('uses the production Firebase project fallback and explicit model defaults', () => {
     expect(getFirebaseProjectId({} as NodeJS.ProcessEnv)).toBe('gen-lang-client-0217548336');
-    expect(getTutorModel({} as NodeJS.ProcessEnv)).toBe('gemini-3.7-flash');
+    expect(getTutorModel({} as NodeJS.ProcessEnv)).toBe('gemini-3.6-flash');
     expect(getLiveModel({} as NodeJS.ProcessEnv)).toBe('gemini-3.1-flash-live-preview');
   });
 
