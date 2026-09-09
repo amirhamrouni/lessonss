@@ -7,18 +7,20 @@ export function LearningShell({
   language,
   dir = 'ltr',
   className = '',
+  pageClassName = '',
   showDock = true,
 }: {
   children: ReactNode;
   language?: string;
   dir?: 'ltr' | 'rtl';
   className?: string;
+  pageClassName?: string;
   showDock?: boolean;
 }) {
   return (
     <div className={`app-shell et-shell ${className}`.trim()} dir={dir}>
       <div className="phone et-phone">
-        <main className="page et-page">{children}</main>
+        <main className={`page et-page ${pageClassName}`.trim()}>{children}</main>
         {showDock ? <AppDock language={language} /> : null}
       </div>
     </div>
@@ -93,9 +95,36 @@ export function ETButton({
   children,
   variant = 'primary',
   className = '',
+  type,
   ...rest
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'soft' | 'ghost' | 'danger' }) {
-  return <button className={`et-button et-button-${variant} ${className}`.trim()} {...rest}>{children}</button>;
+  return <button type={type || 'button'} className={`et-button et-button-${variant} ${className}`.trim()} {...rest}>{children}</button>;
+}
+
+export function StatusState({
+  icon,
+  eyebrow,
+  title,
+  body,
+  action,
+  tone = 'default',
+}: {
+  icon?: ReactNode;
+  eyebrow?: ReactNode;
+  title: ReactNode;
+  body?: ReactNode;
+  action?: ReactNode;
+  tone?: 'default' | 'soft' | 'blue' | 'teal' | 'danger';
+}) {
+  return (
+    <Surface className="et-status-state mode-empty" tone={tone} role="status" aria-live="polite">
+      {icon ? <div className="et-status-icon" aria-hidden="true">{icon}</div> : null}
+      {eyebrow ? <span className="et-eyebrow">{eyebrow}</span> : null}
+      <h2>{title}</h2>
+      {body ? <p>{body}</p> : null}
+      {action ? <div className="et-status-action">{action}</div> : null}
+    </Surface>
+  );
 }
 
 export function LanguagePair({
@@ -131,9 +160,10 @@ export function ChoiceButton({
   state = 'idle',
   children,
   className = '',
+  type,
   ...rest
 }: ButtonHTMLAttributes<HTMLButtonElement> & { state?: ChoiceState }) {
-  return <button className={`et-choice et-choice-${state} ${className}`.trim()} {...rest}>{children}</button>;
+  return <button type={type || 'button'} className={`et-choice et-choice-${state} ${className}`.trim()} {...rest}>{children}</button>;
 }
 
 export function FeedbackBanner({
