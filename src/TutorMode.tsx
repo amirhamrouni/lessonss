@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { collection, doc, getDoc, getDocs, increment, serverTimestamp, setDoc } from 'firebase/firestore';
-import { AlertTriangle, BrainCircuit, LoaderCircle, Send, Sparkles } from 'lucide-react';
+import { AlertTriangle, BrainCircuit, LoaderCircle, Send, Sparkles, Target } from 'lucide-react';
 import { ETButton, LearningShell, PageTitle, StatusState, Surface } from './ui/LearningUI';
 import { auth, db } from './firebase';
 import { loadLessonProgress } from './learning';
@@ -10,6 +10,7 @@ import { loadReviewCards } from './review';
 import { directionFor, normalizeLanguage, SupportedLanguage } from './languageSupport';
 import { twinSupportCopy } from './twinSupportCopy';
 import { buildTwinSnapshot, trimTwinConversation, TwinLearnerSnapshot, TwinMemoryMessage } from './twinMemory';
+import { buildTwinCurriculumContext, type TwinCurriculumContext } from './twinCurriculumContext';
 
 type TutorResponse = {
   reply: string;
@@ -22,6 +23,7 @@ type TutorResponse = {
 type Profile = {
   placementLevel?: string;
   cefrLevel?: string;
+  currentCurriculumLevel?: string;
   learningGoal?: string;
   interfaceLanguage?: SupportedLanguage;
   nativeLanguage?: SupportedLanguage;
@@ -37,6 +39,7 @@ const EMPTY_SNAPSHOT: TwinLearnerSnapshot = {
   dueReviewTerms: [],
   recentConversation: [],
 };
+const EMPTY_CONTEXT: TwinCurriculumContext = { level:'A1',canDo:[],targetFunctions:[] };
 
 const stateCopy: Record<SupportedLanguage, { loadError:string; loadErrorBody:string; retry:string; memoryWarning:string }> = {
   English:{loadError:'Couldn’t load Twin Coach',loadErrorBody:'Your saved progress and Twin memory were not changed. Check the connection and try again.',retry:'Try again',memoryWarning:'Twin replied, but this turn could not be saved to learning memory.'},
@@ -56,6 +59,7 @@ export default function TutorMode() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile>({});
   const [snapshot, setSnapshot] = useState<TwinLearnerSnapshot>(EMPTY_SNAPSHOT);
+  const [curriculumContext,setCurriculumContext] = useState<TwinCurriculumContext>(EMPTY_CONTEXT);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -97,6 +101,7 @@ export default function TutorMode() {
 
         setProfile(nextProfile);
         setSnapshot(learnerSnapshot);
+        setCurriculumContext(buildTwinCurriculumContext(nextProfile,progress));
         setMessages(savedConversation.length ? savedConversation.map(message => ({ ...message })) : []);
         setStarterPending(savedConversation.length === 0);
       } catch {
@@ -132,6 +137,8 @@ export default function TutorMode() {
         source: 'twin-coach',
         skill: 'twin-coach',
         status: 'active',
+        curriculumLevel: curriculumContext.level,
+        curriculumLessonId: curriculumContext.lessonId || null,
       },
       { merge: true },
     )));
@@ -142,6 +149,7 @@ export default function TutorMode() {
     const recentConversation = trimTwinConversation(nextMessages.map(message => ({ role: message.role, text: message.text })));
     await setDoc(doc(db, 'users', user.uid, 'twin', 'state'), {
       recentConversation,
+      curriculumContext,
       interactionCount: increment(1),
       updatedAt: serverTimestamp(),
     }, { merge: true });
@@ -169,12 +177,13 @@ export default function TutorMode() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
         body: JSON.stringify({
           message: text,
-          level: profile.placementLevel || profile.cefrLevel || 'A1',
+          level: curriculumContext.level || profile.currentCurriculumLevel || profile.placementLevel || profile.cefrLevel || 'A1',
           goal: profile.learningGoal || 'Daily conversation',
           nativeLanguage: profile.nativeLanguage || 'English',
           explanationLanguage: profile.explanationLanguage || profile.nativeLanguage || 'English',
           context: recentConversation.map(message => `${message.role}: ${message.text}`),
           learnerSnapshot: { ...snapshot, recentConversation },
+          curriculumContext,
         }),
       });
       if (!response.ok) throw new Error('Tutor unavailable');
@@ -201,6 +210,8 @@ export default function TutorMode() {
 
   return <LearningShell language={supportLanguage} dir={dir} className="et-twin-shell">
     <PageTitle eyebrow={copy.eyebrow} title={copy.title} description={copy.intro} />
+
+    {curriculumContext.lessonId ? <Surface className="et-curriculum-strip" tone="teal"><Target/><div><b>{curriculumContext.level} · {curriculumContext.unitTitle || curriculumContext.lessonId}</b><p>{curriculumContext.canDo.slice(0,2).join(' · ')}</p>{curriculumContext.targetFunctions.length?<small>{curriculumContext.targetFunctions.slice(0,4).join(' · ')}</small>:null}</div></Surface> : null}
 
     {(snapshot.weakSkills.length > 0 || snapshot.dueReviewTerms.length > 0) ? <Surface className="et-memory-strip" tone="blue">
       <BrainCircuit />
