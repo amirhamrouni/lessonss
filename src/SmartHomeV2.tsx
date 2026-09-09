@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { BookOpen, Check, ChevronRight, LoaderCircle, Mic2, RotateCcw, Target, UserRound } from 'lucide-react';
+import { BookOpen, Check, ChevronRight, LoaderCircle, Mic2, RotateCcw, Target } from 'lucide-react';
 import AppDock from './AppDock';
 import { auth, db } from './firebase';
 import { lessons } from './curriculumAll';
@@ -33,6 +33,8 @@ type Recommendation = {
   to: string;
   minutes: number;
 };
+
+type HomePlanItem = { id: 'foundation' | 'review' | 'lesson' | 'speaking' | 'pronunciation'; minutes: number; lessonId?: string };
 
 const copyByLanguage: Record<SupportedLanguage, { weekly:string; weeklyBody:string; continue:string; next:string; foundation:string; reviewBody:string; speak:string; speakBody:string; start:string; better:string }> = {
   English:{weekly:'Your goal this week',weeklyBody:'Complete 5 lessons',continue:'Continue lesson',next:'Build confidence with practical English you can use every day.',foundation:'Learn your first useful English through pictures, listening and speaking.',reviewBody:'Lock due words into memory before the next lesson.',speak:'Speak with Twin',speakBody:'Turn what you learned into a real conversation.',start:'Start now',better:'Every day, one step closer to better English'},
@@ -112,7 +114,8 @@ export default function SmartHomeV2() {
   function planRoute(id: string, lessonId?: string) {
     if (id === 'review') return '/review';
     if (id === 'lesson' && lessonId) return `/lesson/${lessonId}`;
-    if (id === 'speaking') return '/speak';
+    if (id === 'speaking') return '/twin';
+    if (id === 'pronunciation') return '/pronunciation';
     return '/practice';
   }
 
@@ -121,7 +124,13 @@ export default function SmartHomeV2() {
   if (!profile?.onboardingCompleted || !profile?.nativeLanguage) return <Navigate to="/setup" replace />;
 
   const name = profile.displayName || user.displayName || 'Learner';
-  const planItems = !profile.beginnerFoundationCompleted ? [{id:'foundation',minutes:5,lessonId:undefined}] : dailyPlan.slice(0,3);
+  const planItems: HomePlanItem[] = !profile.beginnerFoundationCompleted
+    ? [
+        { id:'foundation', minutes:5 },
+        { id:'pronunciation', minutes:5 },
+        { id:'speaking', minutes:5 },
+      ]
+    : (dailyPlan.slice(0,3) as HomePlanItem[]);
 
   return <div className="app-shell reference-home exact-reference-home" dir={dir}><div className="phone"><main className="page">
     <header className="exact-brand-row">
@@ -138,7 +147,7 @@ export default function SmartHomeV2() {
     <section className="exact-week-card">
       <span className="exact-goal-icon"><Target /></span>
       <div className="exact-week-copy"><b>{ui.weekly}</b><p>{ui.weeklyBody}</p></div>
-      <strong>{weeklyCompleted} / {weeklyGoal}</strong>
+      <strong dir="ltr">{weeklyCompleted} / {weeklyGoal}</strong>
       <div className="exact-week-progress"><i style={{width:`${weeklyPercent}%`}} /></div>
     </section>
 
@@ -157,9 +166,9 @@ export default function SmartHomeV2() {
     <section className="exact-today">
       <div className="exact-section-title"><h3>{t(language,'todayPlan')}</h3><button onClick={() => nav('/learn')}>{t(language,'seeAll')}</button></div>
       <div className="exact-plan-list">
-        {planItems.map((item:any,index) => {
-          const Icon = index === 0 ? BookOpen : index === 1 ? Mic2 : RotateCcw;
-          const label = item.id === 'foundation' ? t(language,'startFirstWords') : item.id === 'review' ? t(language,'vocabularyReview') : item.id === 'speaking' ? t(language,'speakWithTwin') : item.id === 'lesson' ? t(language,'nextLesson') : t(language,'smartReview');
+        {planItems.map((item,index) => {
+          const Icon = item.id === 'foundation' || item.id === 'lesson' ? BookOpen : item.id === 'pronunciation' ? Mic2 : item.id === 'speaking' ? Mic2 : RotateCcw;
+          const label = item.id === 'foundation' ? t(language,'startFirstWords') : item.id === 'review' ? t(language,'vocabularyReview') : item.id === 'pronunciation' ? (language === 'Arabic' ? 'تمرين الاستماع والنطق' : 'Listening & pronunciation') : item.id === 'speaking' ? t(language,'speakWithTwin') : item.id === 'lesson' ? t(language,'nextLesson') : t(language,'smartReview');
           const route = item.id === 'foundation' ? '/start' : planRoute(item.id,item.lessonId);
           return <button key={`${item.id}-${index}`} onClick={() => nav(route)}>
             <span className={index === 0 && weeklyCompleted > 0 ? 'exact-plan-state done' : 'exact-plan-state'}>{index === 0 && weeklyCompleted > 0 ? <Check/> : <Icon/>}</span>
