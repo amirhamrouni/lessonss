@@ -17,6 +17,7 @@ import './product-system-v12.css';
 import './advanced-learning-v12.css';
 import './product-system-v13.css';
 import './product-themes-v14.css';
+import './product-theme-mobile-hotfix-v14.css';
 
 initTheme();
 
