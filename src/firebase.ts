@@ -21,11 +21,7 @@ const envFirebase = {
 };
 
 const envConfigured = Object.values(envFirebase).every(Boolean);
-const baseFirebase = envConfigured ? envFirebase : productionFallback;
-const sameOriginAuthDomain = typeof window !== 'undefined' && window.location.hostname === 'english-twin-native-preview.vercel.app'
-  ? window.location.hostname
-  : baseFirebase.authDomain;
-const configuredFirebase = { ...baseFirebase, authDomain: sameOriginAuthDomain };
+const configuredFirebase = envConfigured ? envFirebase : productionFallback;
 
 export const isFirebaseConfigured = true;
 
