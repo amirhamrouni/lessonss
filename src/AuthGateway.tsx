@@ -2,10 +2,11 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import {
   createUserWithEmailAndPassword,
+  getRedirectResult,
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
   signOut,
   updateProfile,
   User,
@@ -70,27 +71,42 @@ export default function AuthGateway() {
     }
 
     let active = true;
+    let unsubscribe = () => {};
     setChecking(true);
     setSessionError('');
-    const unsubscribe = onAuthStateChanged(auth, async current => {
-      if (!active) return;
-      if (!current) {
-        setSessionTarget(null);
-        setChecking(false);
-        return;
-      }
+
+    void (async () => {
       try {
-        const completed = await ensureLearnerProfile(current);
-        if (active) setSessionTarget(completed ? '/' : '/setup');
-      } catch {
+        await getRedirectResult(auth);
+      } catch (error) {
         if (active) {
-          setSessionTarget(null);
-          setSessionError('We could not load or create your learner profile. Your account is still signed in and no learning data was overwritten.');
+          setNoticeType('error');
+          setNotice(authErrorMessage(error));
         }
-      } finally {
-        if (active) setChecking(false);
       }
-    });
+
+      if (!active) return;
+      unsubscribe = onAuthStateChanged(auth, async current => {
+        if (!active) return;
+        if (!current) {
+          setSessionTarget(null);
+          setChecking(false);
+          return;
+        }
+        try {
+          const completed = await ensureLearnerProfile(current);
+          if (active) setSessionTarget(completed ? '/' : '/setup');
+        } catch {
+          if (active) {
+            setSessionTarget(null);
+            setSessionError('We could not load or create your learner profile. Your account is still signed in and no learning data was overwritten.');
+          }
+        } finally {
+          if (active) setChecking(false);
+        }
+      });
+    })();
+
     return () => {
       active = false;
       unsubscribe();
@@ -184,12 +200,11 @@ export default function AuthGateway() {
       setNotice('');
       setBusy(true);
       try {
-        const credential = await signInWithPopup(auth, googleProvider);
-        const completed = await ensureLearnerProfile(credential.user);
-        navigate(completed ? '/' : '/setup', { replace: true });
+        await signInWithRedirect(auth, googleProvider);
       } catch (error) {
         showError(authErrorMessage(error));
-      } finally { setBusy(false); }
+        setBusy(false);
+      }
     }}>Continue with Google</button>
     {mode === 'login' && <button className="text" type="button" disabled={busy} onClick={async () => {
       if (!email) { showError('Enter your email first'); return; }
