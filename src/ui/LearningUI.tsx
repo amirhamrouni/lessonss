@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import AppDock from '../AppDock';
+import ThemeSwitcher from './ThemeSwitcher';
 
 export function LearningShell({
   children,
@@ -22,6 +23,7 @@ export function LearningShell({
       <div className="phone et-phone">
         <main className={`page et-page ${pageClassName}`.trim()}>{children}</main>
         {showDock ? <AppDock language={language} /> : null}
+        <ThemeSwitcher />
       </div>
     </div>
   );
