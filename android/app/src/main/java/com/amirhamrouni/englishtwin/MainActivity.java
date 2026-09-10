@@ -1,7 +1,6 @@
 package com.amirhamrouni.englishtwin;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.webkit.PermissionRequest;
@@ -10,7 +9,11 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-public class MainActivity extends Activity {
+import androidx.activity.ComponentActivity;
+import androidx.activity.OnBackPressedCallback;
+import androidx.annotation.NonNull;
+
+public class MainActivity extends ComponentActivity {
     private static final String APP_URL = "https://english-twin-native-preview.vercel.app/";
     private static final int MEDIA_PERMISSION_REQUEST = 1001;
 
@@ -41,6 +44,18 @@ public class MainActivity extends Activity {
             }
         });
 
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (webView != null && webView.canGoBack()) {
+                    webView.goBack();
+                } else {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                }
+            }
+        });
+
         if (savedInstanceState == null) {
             webView.loadUrl(APP_URL);
         } else {
@@ -67,17 +82,23 @@ public class MainActivity extends Activity {
             return;
         }
 
-        requestPermissions(
-                new String[]{Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA},
-                MEDIA_PERMISSION_REQUEST
-        );
+        if (needsMic && needsCamera) {
+            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA}, MEDIA_PERMISSION_REQUEST);
+        } else if (needsMic) {
+            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, MEDIA_PERMISSION_REQUEST);
+        } else if (needsCamera) {
+            requestPermissions(new String[]{Manifest.permission.CAMERA}, MEDIA_PERMISSION_REQUEST);
+        } else {
+            request.deny();
+            pendingWebPermissionRequest = null;
+        }
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == MEDIA_PERMISSION_REQUEST && pendingWebPermissionRequest != null) {
-            boolean allGranted = true;
+            boolean allGranted = grantResults.length > 0;
             for (int result : grantResults) {
                 if (result != PackageManager.PERMISSION_GRANTED) {
                     allGranted = false;
@@ -95,24 +116,25 @@ public class MainActivity extends Activity {
     }
 
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        webView.saveState(outState);
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        if (webView != null) {
+            webView.saveState(outState);
+        }
         super.onSaveInstanceState(outState);
     }
 
     @Override
-    public void onBackPressed() {
-        if (webView != null && webView.canGoBack()) {
-            webView.goBack();
-        } else {
-            super.onBackPressed();
-        }
-    }
-
-    @Override
     protected void onDestroy() {
+        if (pendingWebPermissionRequest != null) {
+            pendingWebPermissionRequest.deny();
+            pendingWebPermissionRequest = null;
+        }
         if (webView != null) {
+            webView.stopLoading();
+            webView.setWebChromeClient(null);
+            webView.setWebViewClient(null);
             webView.destroy();
+            webView = null;
         }
         super.onDestroy();
     }
