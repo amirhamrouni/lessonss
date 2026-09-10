@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import AppErrorBoundary from './AppErrorBoundary';
+import { initTheme } from './themeSystem';
 import './design-tokens.css';
 import './styles.css';
 import './lesson.css';
@@ -15,6 +16,9 @@ import './live-voice-v11.css';
 import './product-system-v12.css';
 import './advanced-learning-v12.css';
 import './product-system-v13.css';
+import './product-themes-v14.css';
+
+initTheme();
 
 const AuthGateway = React.lazy(() => import('./AuthGateway'));
 const SmartHomeV2 = React.lazy(() => import('./SmartHomeV2'));
