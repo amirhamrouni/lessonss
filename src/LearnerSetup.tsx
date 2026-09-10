@@ -126,6 +126,7 @@ export default function LearnerSetup() {
   const copy = setupSupportCopy[language];
   const state = stateCopy[language];
   const dir = directionFor(language);
+  const selectedLanguage = supportedLanguages.find(item => item.value === language) || supportedLanguages.find(item => item.value === 'English')!;
 
   if (loading) return <LearningShell language={language} dir={dir} showDock={false} pageClassName="setup-status-page"><StatusState icon={<LoaderCircle />} eyebrow="ENGLISH TWIN" title={copy.loading} /></LearningShell>;
   if (!user) return <Navigate to="/welcome" replace />;
@@ -143,6 +144,10 @@ export default function LearnerSetup() {
             <b>{item.nativeLabel}</b><small>{item.label}</small>{draft.nativeLanguage === item.value && <Check />}
           </button>
         ))}
+      </div>
+      <div className="et-language-pair compact" aria-label={`${selectedLanguage.label} support to English target`}>
+        <div><span>Support language</span><strong>{selectedLanguage.nativeLabel}</strong><p>Explanations and guidance use this language.</p></div>
+        <div><span>Fixed learning target</span><strong>English</strong><p>You are always learning English. The selected language only helps explain it.</p></div>
       </div>
     </section>,
     <section key="goal" className="setup-panel" dir={dir}>
@@ -188,7 +193,9 @@ export default function LearnerSetup() {
         updatedAt: serverTimestamp(),
       }, { merge: true });
       nav('/');
-    } catch {
+    } catch (error) {
+      const code = typeof error === 'object' && error !== null && 'code' in error ? String((error as { code?: unknown }).code || 'unknown') : 'unknown';
+      console.error('Learner setup Firestore save failed', code);
       setSaveError(state.saveError);
     } finally {
       setBusy(false);
