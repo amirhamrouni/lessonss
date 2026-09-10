@@ -1,0 +1,129 @@
+/* Mobile/RTL contrast hardening for selectable themes.
+   Added after product-themes-v14.css so screenshot-level regressions cannot be
+   reintroduced by earlier product-system rules. */
+
+/* Keep the theme control reachable without covering the learner name/header. */
+.et-theme-fab {
+  top:auto!important;
+  bottom:calc(var(--et-nav-h) + 14px + env(safe-area-inset-bottom))!important;
+}
+.et-theme-panel {
+  bottom:calc(var(--et-nav-h) + 66px + env(safe-area-inset-bottom))!important;
+}
+.et-shell[dir='rtl'] .et-theme-fab {
+  right:auto!important;
+  left:max(14px,calc((100vw - 440px)/2 + 14px))!important;
+}
+
+/* Mixed-script profile names must stay readable inside RTL interfaces. */
+.et-welcome-row > div:first-child {
+  min-width:0;
+  flex:1 1 auto;
+}
+.et-welcome-row h1 {
+  max-width:100%;
+  overflow-wrap:anywhere;
+  word-break:normal;
+  unicode-bidi:plaintext;
+  line-height:1.08!important;
+}
+[dir='rtl'] .et-welcome-row h1 { text-align:right; }
+
+/* Dark themes need stronger secondary-text contrast on real phone screens. */
+:root[data-theme='royal'] {
+  --et-text-2:#eadfca;
+  --et-muted:#c8bda3;
+  --et-line:#46536b;
+  --et-line-strong:#5a6881;
+}
+:root[data-theme='neon'] {
+  --et-text-2:#d8daf4;
+  --et-muted:#adb4d6;
+  --et-line:#39406f;
+  --et-line-strong:#4b558c;
+}
+
+/* CEFR chip was inheriting the light-theme surface in Royal/Neon. */
+html[data-theme='royal'] .et-level-chip {
+  color:#f5d77e!important;
+  background:linear-gradient(145deg,#18243b,#0d172a)!important;
+  border-color:#8b7138!important;
+  box-shadow:0 8px 22px rgba(0,0,0,.28)!important;
+}
+html[data-theme='royal'] .et-level-chip strong { color:#ffe7a5!important; }
+html[data-theme='royal'] .et-level-chip small { color:#cdbf9d!important; }
+html[data-theme='neon'] .et-level-chip {
+  color:#d9c4ff!important;
+  background:linear-gradient(145deg,#171b3c,#10142f)!important;
+  border-color:#6945ad!important;
+  box-shadow:0 8px 22px rgba(0,0,0,.28),0 0 18px rgba(154,92,255,.16)!important;
+}
+html[data-theme='neon'] .et-level-chip strong { color:#f2e8ff!important; }
+html[data-theme='neon'] .et-level-chip small { color:#b7bddc!important; }
+
+/* Fix white-on-white language examples inside the dark recommendation card. */
+html[data-theme='royal'] .et-surface-blue .et-language-pair,
+html[data-theme='neon'] .et-surface-blue .et-language-pair {
+  overflow:hidden;
+  background:transparent!important;
+  border-color:rgba(255,255,255,.2)!important;
+  box-shadow:none!important;
+}
+html[data-theme='royal'] .et-surface-blue .et-language-pair .et-target,
+html[data-theme='royal'] .et-surface-blue .et-language-pair .et-support,
+html[data-theme='neon'] .et-surface-blue .et-language-pair .et-target,
+html[data-theme='neon'] .et-surface-blue .et-language-pair .et-support {
+  background:rgba(255,255,255,.075)!important;
+}
+html[data-theme='royal'] .et-surface-blue .et-language-pair .et-support,
+html[data-theme='neon'] .et-surface-blue .et-language-pair .et-support {
+  border-top-color:rgba(255,255,255,.16)!important;
+}
+html[data-theme='royal'] .et-surface-blue .et-language-pair .et-target span { color:#f0cc74!important; }
+html[data-theme='royal'] .et-surface-blue .et-language-pair .et-target strong { color:#fff9ea!important; }
+html[data-theme='royal'] .et-surface-blue .et-language-pair .et-support span { color:#d8c89f!important; }
+html[data-theme='royal'] .et-surface-blue .et-language-pair .et-support p { color:#fff7e5!important; }
+html[data-theme='neon'] .et-surface-blue .et-language-pair .et-target span { color:#58f1df!important; }
+html[data-theme='neon'] .et-surface-blue .et-language-pair .et-target strong { color:#ffffff!important; }
+html[data-theme='neon'] .et-surface-blue .et-language-pair .et-support span { color:#c7b5ef!important; }
+html[data-theme='neon'] .et-surface-blue .et-language-pair .et-support p { color:#f7f7ff!important; }
+
+html[data-theme='royal'] .et-recommendation {
+  border-color:#755f32!important;
+}
+html[data-theme='royal'] .et-recommendation-head span { color:#f0cc74!important; }
+html[data-theme='royal'] .et-recommendation-head em { color:#d7cba9!important; }
+html[data-theme='neon'] .et-recommendation-head span { color:#58f1df!important; }
+html[data-theme='neon'] .et-recommendation-head em { color:#c6c9e9!important; }
+
+/* Preserve readable rows/cards in the two dark themes instead of leaking v13 whites. */
+html[data-theme='royal'] .et-task-stack,
+html[data-theme='royal'] .et-lesson-list,
+html[data-theme='royal'] .et-settings-list,
+html[data-theme='neon'] .et-task-stack,
+html[data-theme='neon'] .et-lesson-list,
+html[data-theme='neon'] .et-settings-list {
+  background:var(--et-surface)!important;
+}
+html[data-theme='royal'] .et-task-copy b,
+html[data-theme='royal'] .et-lesson-row b,
+html[data-theme='neon'] .et-task-copy b,
+html[data-theme='neon'] .et-lesson-row b {
+  color:var(--et-text)!important;
+}
+
+@media (max-width:390px) {
+  .et-theme-fab {
+    width:40px!important;
+    height:40px!important;
+    bottom:calc(var(--et-nav-h) + 10px + env(safe-area-inset-bottom))!important;
+  }
+  .et-theme-panel {
+    bottom:calc(var(--et-nav-h) + 58px + env(safe-area-inset-bottom))!important;
+  }
+  .et-welcome-row h1 { font-size:clamp(1.35rem,7vw,1.72rem)!important; }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .et-theme-fab,.et-theme-panel { transition:none!important; }
+}
