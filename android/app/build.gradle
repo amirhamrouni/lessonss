@@ -7,7 +7,7 @@ def hasReleaseSigning = keystorePath && file(keystorePath).exists() &&
         System.getenv('ANDROID_KEYSTORE_PASSWORD') &&
         System.getenv('ANDROID_KEY_ALIAS') &&
         System.getenv('ANDROID_KEY_PASSWORD')
-def googleWebClientId = System.getenv('GOOGLE_WEB_CLIENT_ID') ?: 'MISSING_GOOGLE_WEB_CLIENT_ID'
+def googleWebClientId = System.getenv('GOOGLE_WEB_CLIENT_ID') ?: '391040417078-90jpo9ld068p4jf6vjhki4tnhj78id6f.apps.googleusercontent.com'
 
 android {
     namespace 'com.amirhamrouni.englishtwin'
