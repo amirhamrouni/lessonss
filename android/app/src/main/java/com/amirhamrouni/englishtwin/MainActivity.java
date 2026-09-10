@@ -1,10 +1,15 @@
 package com.amirhamrouni.englishtwin;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.CancellationSignal;
+import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -12,18 +17,33 @@ import android.webkit.WebViewClient;
 import androidx.activity.ComponentActivity;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
+import androidx.credentials.Credential;
+import androidx.credentials.CredentialManager;
+import androidx.credentials.CredentialManagerCallback;
+import androidx.credentials.CustomCredential;
+import androidx.credentials.GetCredentialRequest;
+import androidx.credentials.GetCredentialResponse;
+import androidx.credentials.exceptions.GetCredentialException;
+
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
+
+import org.json.JSONObject;
 
 public class MainActivity extends ComponentActivity {
     private static final String APP_URL = "https://english-twin-native-preview.vercel.app/";
+    private static final String APP_HOST = "english-twin-native-preview.vercel.app";
     private static final int MEDIA_PERMISSION_REQUEST = 1001;
 
     private WebView webView;
     private PermissionRequest pendingWebPermissionRequest;
+    private CredentialManager credentialManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        credentialManager = CredentialManager.create(this);
         webView = new WebView(this);
         setContentView(webView);
 
@@ -36,7 +56,18 @@ public class MainActivity extends ComponentActivity {
         settings.setAllowContentAccess(true);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
 
-        webView.setWebViewClient(new WebViewClient());
+        webView.addJavascriptInterface(new NativeAuthBridge(), "EnglishTwinAndroid");
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                Uri uri = request.getUrl();
+                if ("https".equalsIgnoreCase(uri.getScheme()) && APP_HOST.equalsIgnoreCase(uri.getHost())) {
+                    return false;
+                }
+                startActivity(new Intent(Intent.ACTION_VIEW, uri));
+                return true;
+            }
+        });
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onPermissionRequest(PermissionRequest request) {
@@ -61,6 +92,75 @@ public class MainActivity extends ComponentActivity {
         } else {
             webView.restoreState(savedInstanceState);
         }
+    }
+
+    private final class NativeAuthBridge {
+        @JavascriptInterface
+        public void signInWithGoogle() {
+            runOnUiThread(() -> startNativeGoogleSignIn(false));
+        }
+    }
+
+    private void startNativeGoogleSignIn(boolean authorizedOnly) {
+        String webClientId = getString(R.string.default_web_client_id);
+        if (webClientId.isBlank() || "MISSING_GOOGLE_WEB_CLIENT_ID".equals(webClientId)) {
+            sendNativeAuthError("Native Google Sign-In is not configured: missing Web OAuth client ID.");
+            return;
+        }
+
+        GetGoogleIdOption googleIdOption = new GetGoogleIdOption.Builder()
+                .setServerClientId(webClientId)
+                .setFilterByAuthorizedAccounts(authorizedOnly)
+                .build();
+
+        GetCredentialRequest request = new GetCredentialRequest.Builder()
+                .addCredentialOption(googleIdOption)
+                .build();
+
+        credentialManager.getCredentialAsync(
+                this,
+                request,
+                new CancellationSignal(),
+                Runnable::run,
+                new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
+                    @Override
+                    public void onResult(GetCredentialResponse result) {
+                        Credential credential = result.getCredential();
+                        if (credential instanceof CustomCredential &&
+                                GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(credential.getType())) {
+                            try {
+                                GoogleIdTokenCredential googleCredential = GoogleIdTokenCredential.createFrom(credential.getData());
+                                sendNativeGoogleIdToken(googleCredential.getIdToken());
+                            } catch (Exception error) {
+                                sendNativeAuthError("Google credential could not be parsed.");
+                            }
+                        } else {
+                            sendNativeAuthError("Google did not return a supported credential.");
+                        }
+                    }
+
+                    @Override
+                    public void onError(@NonNull GetCredentialException error) {
+                        sendNativeAuthError(error.getMessage() == null ? "Google Sign-In failed." : error.getMessage());
+                    }
+                }
+        );
+    }
+
+    private void sendNativeGoogleIdToken(String idToken) {
+        runOnUiThread(() -> {
+            if (webView == null) return;
+            String js = "window.__englishTwinNativeGoogleCredential && window.__englishTwinNativeGoogleCredential(" + JSONObject.quote(idToken) + ")";
+            webView.evaluateJavascript(js, null);
+        });
+    }
+
+    private void sendNativeAuthError(String message) {
+        runOnUiThread(() -> {
+            if (webView == null) return;
+            String js = "window.__englishTwinNativeGoogleError && window.__englishTwinNativeGoogleError(" + JSONObject.quote(message) + ")";
+            webView.evaluateJavascript(js, null);
+        });
     }
 
     private void handleWebPermissionRequest(PermissionRequest request) {
@@ -130,6 +230,7 @@ public class MainActivity extends ComponentActivity {
             pendingWebPermissionRequest = null;
         }
         if (webView != null) {
+            webView.removeJavascriptInterface("EnglishTwinAndroid");
             webView.stopLoading();
             webView.setWebChromeClient(null);
             webView.setWebViewClient(null);
