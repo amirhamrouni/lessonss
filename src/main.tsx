@@ -14,6 +14,7 @@ import './pronunciation-lab.css';
 import './live-voice-v11.css';
 import './product-system-v12.css';
 import './advanced-learning-v12.css';
+import './product-system-v13.css';
 
 const AuthGateway = React.lazy(() => import('./AuthGateway'));
 const SmartHomeV2 = React.lazy(() => import('./SmartHomeV2'));
