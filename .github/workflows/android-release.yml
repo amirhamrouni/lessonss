@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
+      GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -44,6 +45,19 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
+
+      - name: Validate Google native auth config
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${GOOGLE_WEB_CLIENT_ID:-}" ]; then
+            echo 'GOOGLE_WEB_CLIENT_ID secret is required for native Google Sign-In.' >&2
+            exit 1
+          fi
+          case "$GOOGLE_WEB_CLIENT_ID" in
+            *.apps.googleusercontent.com) ;;
+            *) echo 'GOOGLE_WEB_CLIENT_ID has an invalid format.' >&2; exit 1 ;;
+          esac
 
       - name: Configure optional Play upload signing
         shell: bash
@@ -94,5 +108,6 @@ jobs:
           echo "### English Twin Android artifacts" >> "$GITHUB_STEP_SUMMARY"
           echo "- applicationId: com.amirhamrouni.englishtwin" >> "$GITHUB_STEP_SUMMARY"
           echo "- targetSdk: 36" >> "$GITHUB_STEP_SUMMARY"
+          echo "- native Google Sign-In: Credential Manager" >> "$GITHUB_STEP_SUMMARY"
           echo "- installable debug APK: generated" >> "$GITHUB_STEP_SUMMARY"
           echo "- signed Play bundle: $PLAY_BUNDLE_SIGNED" >> "$GITHUB_STEP_SUMMARY"
