@@ -61,6 +61,20 @@ jobs:
       - name: Lint release
         run: gradle -p android :app:lintRelease --no-daemon
 
+      - name: Build installable debug APK
+        run: gradle -p android :app:assembleDebug --no-daemon
+
+      - name: Verify APK exists
+        run: test -s android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: english-twin-installable-apk-${{ github.sha }}
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Build release AAB
         run: gradle -p android :app:bundleRelease --no-daemon
 
@@ -77,7 +91,8 @@ jobs:
 
       - name: Release summary
         run: |
-          echo "### English Twin Android bundle" >> "$GITHUB_STEP_SUMMARY"
+          echo "### English Twin Android artifacts" >> "$GITHUB_STEP_SUMMARY"
           echo "- applicationId: com.amirhamrouni.englishtwin" >> "$GITHUB_STEP_SUMMARY"
           echo "- targetSdk: 36" >> "$GITHUB_STEP_SUMMARY"
-          echo "- signed with configured upload key: $PLAY_BUNDLE_SIGNED" >> "$GITHUB_STEP_SUMMARY"
+          echo "- installable debug APK: generated" >> "$GITHUB_STEP_SUMMARY"
+          echo "- signed Play bundle: $PLAY_BUNDLE_SIGNED" >> "$GITHUB_STEP_SUMMARY"
