@@ -6,6 +6,7 @@ import { AlertTriangle, BrainCircuit, ChevronRight, Languages, LoaderCircle, Log
 import { ETButton, LearningShell, PageTitle, SectionTitle, StatusState, Surface } from './ui/LearningUI';
 import { auth, db } from './firebase';
 import { directionFor, normalizeLanguage, SupportedLanguage, supportedLanguages } from './languageSupport';
+import { definedProfileFields } from './profilePersistence';
 
 type LearnerProfile = {
   displayName?: string;
@@ -51,11 +52,26 @@ export function ProfileHub(){
     event.preventDefault();if(!user||saving)return;setSaving(true);setNotice('');setNoticeOk(false);
     const selectedSupport=normalizeLanguage(draft.explanationLanguage||draft.nativeLanguage||draft.interfaceLanguage||'English');
     const next:LearnerProfile={...draft,displayName:draft.displayName?.trim()||'Learner',nativeLanguage:selectedSupport,explanationLanguage:selectedSupport,interfaceLanguage:selectedSupport,targetLanguage:'English',learningLanguage:'English',dailyTargetMinutes:Number(draft.dailyTargetMinutes||15)};
+    const profileFields=definedProfileFields({
+      displayName:next.displayName||'Learner',
+      interfaceLanguage:selectedSupport,
+      nativeLanguage:selectedSupport,
+      explanationLanguage:selectedSupport,
+      targetLanguage:'English',
+      learningLanguage:'English',
+      learningGoal:next.learningGoal||'Daily conversation',
+      dailyTargetMinutes:Number(next.dailyTargetMinutes||15),
+      cefrLevel:next.cefrLevel,
+      placementLevel:next.placementLevel,
+      estimatedOverall:next.estimatedOverall,
+      currentCurriculumLevel:next.currentCurriculumLevel,
+      onboardingCompleted:next.onboardingCompleted,
+    });
     try{
-      await setDoc(doc(db,'users',user.uid),{...next,uid:user.uid,email:user.email,targetLanguage:'English',learningLanguage:'English',updatedAt:serverTimestamp()},{merge:true});
+      await setDoc(doc(db,'users',user.uid),{...profileFields,uid:user.uid,email:user.email,updatedAt:serverTimestamp()},{merge:true});
       try{await updateProfile(user,{displayName:next.displayName||'Learner'});}catch(error){console.warn('Auth display-name sync skipped after profile save',errorCode(error));}
       setProfile(next);setDraft(next);document.documentElement.lang=htmlLanguageTags[selectedSupport];document.documentElement.dir=directionFor(selectedSupport);setNotice(stateCopy[selectedSupport].saved);setNoticeOk(true);
-    }catch(error){console.error('Profile Firestore save failed',errorCode(error));setNotice(stateCopy[selectedSupport].saveError);setNoticeOk(false);}finally{setSaving(false);}
+    }catch(error){const code=errorCode(error);console.error('Profile Firestore save failed',code);setNotice(`${stateCopy[selectedSupport].saveError} [${code}]`);setNoticeOk(false);}finally{setSaving(false);}
   }
   async function removeAccount(){if(!user||deleting)return;setNotice('');setNoticeOk(false);setDeleting(true);try{const token=await user.getIdTokenResult(true);const authAgeMs=Date.now()-new Date(token.authTime).getTime();if(!Number.isFinite(authAgeMs)||authAgeMs>5*60*1000){setNotice('For security, sign out and sign in again before deleting your account. No data was deleted.');setConfirmDelete(false);return;}await deleteLearnerData(user.uid);await deleteUser(user);localStorage.removeItem('english-twin-voice-consent-v1');localStorage.removeItem('english-twin-guided-speech-consent-v1');nav('/welcome',{replace:true});}catch(error){const message=error instanceof Error?error.message:'';if(message.includes('requires-recent-login'))setNotice('Sign out and sign in again, then retry account deletion.');else setNotice('Account deletion could not be completed. Please retry.');}finally{setDeleting(false);}}
   const measuredLevel=draft.currentCurriculumLevel||draft.estimatedOverall||draft.placementLevel||draft.cefrLevel||'A1';
