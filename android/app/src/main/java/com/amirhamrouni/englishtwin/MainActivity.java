@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CancellationSignal;
+import android.speech.tts.TextToSpeech;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
@@ -30,6 +31,8 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 
 import org.json.JSONObject;
 
+import java.util.Locale;
+
 public class MainActivity extends ComponentActivity {
     private static final String APP_URL = "https://english-twin-native-preview.vercel.app/";
     private static final String APP_HOST = "english-twin-native-preview.vercel.app";
@@ -38,12 +41,28 @@ public class MainActivity extends ComponentActivity {
     private WebView webView;
     private PermissionRequest pendingWebPermissionRequest;
     private CredentialManager credentialManager;
+    private TextToSpeech textToSpeech;
+    private boolean textToSpeechReady = false;
+    private String pendingSpeechText;
+    private float pendingSpeechRate = 0.82f;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         credentialManager = CredentialManager.create(this);
+        textToSpeech = new TextToSpeech(this, status -> {
+            if (status != TextToSpeech.SUCCESS || textToSpeech == null) return;
+            int languageStatus = textToSpeech.setLanguage(Locale.US);
+            textToSpeechReady = languageStatus != TextToSpeech.LANG_MISSING_DATA && languageStatus != TextToSpeech.LANG_NOT_SUPPORTED;
+            if (textToSpeechReady && pendingSpeechText != null) {
+                String text = pendingSpeechText;
+                float rate = pendingSpeechRate;
+                pendingSpeechText = null;
+                speakNativeEnglish(text, rate);
+            }
+        });
+
         webView = new WebView(this);
         setContentView(webView);
 
@@ -56,7 +75,7 @@ public class MainActivity extends ComponentActivity {
         settings.setAllowContentAccess(true);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
 
-        webView.addJavascriptInterface(new NativeAuthBridge(), "EnglishTwinAndroid");
+        webView.addJavascriptInterface(new NativeBridge(), "EnglishTwinAndroid");
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -70,6 +89,12 @@ public class MainActivity extends ComponentActivity {
                     sendNativeAuthError("Unable to open this external link.");
                 }
                 return true;
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                if (url != null && url.startsWith(APP_URL)) installNativeSpeechFallback();
             }
         });
         webView.setWebChromeClient(new WebChromeClient() {
@@ -91,18 +116,58 @@ public class MainActivity extends ComponentActivity {
             }
         });
 
-        if (savedInstanceState == null) {
-            webView.loadUrl(APP_URL);
-        } else {
-            webView.restoreState(savedInstanceState);
-        }
+        if (savedInstanceState == null) webView.loadUrl(APP_URL);
+        else webView.restoreState(savedInstanceState);
     }
 
-    private final class NativeAuthBridge {
+    private final class NativeBridge {
         @JavascriptInterface
         public void signInWithGoogle() {
             runOnUiThread(() -> startNativeGoogleSignIn(false));
         }
+
+        @JavascriptInterface
+        public void speakEnglish(String text, double rate) {
+            if (text == null || text.trim().isEmpty()) return;
+            float safeRate = (float) Math.max(0.5d, Math.min(1.5d, rate));
+            runOnUiThread(() -> speakNativeEnglish(text.trim(), safeRate));
+        }
+
+        @JavascriptInterface
+        public void stopSpeech() {
+            runOnUiThread(() -> {
+                pendingSpeechText = null;
+                if (textToSpeech != null) textToSpeech.stop();
+            });
+        }
+    }
+
+    private void speakNativeEnglish(String text, float rate) {
+        if (textToSpeech == null || !textToSpeechReady) {
+            pendingSpeechText = text;
+            pendingSpeechRate = rate;
+            return;
+        }
+        textToSpeech.stop();
+        textToSpeech.setLanguage(Locale.US);
+        textToSpeech.setSpeechRate(rate);
+        textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "english-twin-tts-" + System.currentTimeMillis());
+    }
+
+    private void installNativeSpeechFallback() {
+        if (webView == null) return;
+        String js = "(function(){" +
+                "if(!window.EnglishTwinAndroid||!window.EnglishTwinAndroid.speakEnglish)return;" +
+                "var bridge=window.EnglishTwinAndroid;" +
+                "if(typeof window.SpeechSynthesisUtterance==='undefined'){window.SpeechSynthesisUtterance=function(text){this.text=String(text||'');this.lang='en-US';this.rate=1;this.pitch=1;this.volume=1;};}" +
+                "var nativeSpeak=function(u){try{bridge.speakEnglish(String((u&&u.text)||''),Number((u&&u.rate)||1));}catch(e){}};" +
+                "var nativeCancel=function(){try{bridge.stopSpeech();}catch(e){}};" +
+                "try{" +
+                "if(!window.speechSynthesis){Object.defineProperty(window,'speechSynthesis',{value:{speak:nativeSpeak,cancel:nativeCancel,pause:nativeCancel,resume:function(){},getVoices:function(){return[];}},configurable:true});}" +
+                "else{window.speechSynthesis.speak=nativeSpeak;window.speechSynthesis.cancel=nativeCancel;window.speechSynthesis.pause=nativeCancel;}" +
+                "}catch(e){}" +
+                "})();";
+        webView.evaluateJavascript(js, null);
     }
 
     private void startNativeGoogleSignIn(boolean authorizedOnly) {
@@ -116,10 +181,7 @@ public class MainActivity extends ComponentActivity {
                 .setServerClientId(webClientId)
                 .setFilterByAuthorizedAccounts(authorizedOnly)
                 .build();
-
-        GetCredentialRequest request = new GetCredentialRequest.Builder()
-                .addCredentialOption(googleIdOption)
-                .build();
+        GetCredentialRequest request = new GetCredentialRequest.Builder().addCredentialOption(googleIdOption).build();
 
         credentialManager.getCredentialAsync(
                 this,
@@ -130,17 +192,14 @@ public class MainActivity extends ComponentActivity {
                     @Override
                     public void onResult(@NonNull GetCredentialResponse result) {
                         Credential credential = result.getCredential();
-                        if (credential instanceof CustomCredential &&
-                                GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(credential.getType())) {
+                        if (credential instanceof CustomCredential && GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(credential.getType())) {
                             try {
                                 GoogleIdTokenCredential googleCredential = GoogleIdTokenCredential.createFrom(credential.getData());
                                 sendNativeGoogleIdToken(googleCredential.getIdToken());
                             } catch (Exception error) {
                                 sendNativeAuthError("Google credential could not be parsed.");
                             }
-                        } else {
-                            sendNativeAuthError("Google did not return a supported credential.");
-                        }
+                        } else sendNativeAuthError("Google did not return a supported credential.");
                     }
 
                     @Override
@@ -170,7 +229,6 @@ public class MainActivity extends ComponentActivity {
 
     private void handleWebPermissionRequest(PermissionRequest request) {
         pendingWebPermissionRequest = request;
-
         boolean needsMic = false;
         boolean needsCamera = false;
         for (String resource : request.getResources()) {
@@ -180,20 +238,16 @@ public class MainActivity extends ComponentActivity {
 
         boolean micGranted = !needsMic || checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
         boolean cameraGranted = !needsCamera || checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
-
         if (micGranted && cameraGranted) {
             request.grant(request.getResources());
             pendingWebPermissionRequest = null;
             return;
         }
 
-        if (needsMic && needsCamera) {
-            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA}, MEDIA_PERMISSION_REQUEST);
-        } else if (needsMic) {
-            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, MEDIA_PERMISSION_REQUEST);
-        } else if (needsCamera) {
-            requestPermissions(new String[]{Manifest.permission.CAMERA}, MEDIA_PERMISSION_REQUEST);
-        } else {
+        if (needsMic && needsCamera) requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA}, MEDIA_PERMISSION_REQUEST);
+        else if (needsMic) requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, MEDIA_PERMISSION_REQUEST);
+        else if (needsCamera) requestPermissions(new String[]{Manifest.permission.CAMERA}, MEDIA_PERMISSION_REQUEST);
+        else {
             request.deny();
             pendingWebPermissionRequest = null;
         }
@@ -210,21 +264,15 @@ public class MainActivity extends ComponentActivity {
                     break;
                 }
             }
-
-            if (allGranted) {
-                pendingWebPermissionRequest.grant(pendingWebPermissionRequest.getResources());
-            } else {
-                pendingWebPermissionRequest.deny();
-            }
+            if (allGranted) pendingWebPermissionRequest.grant(pendingWebPermissionRequest.getResources());
+            else pendingWebPermissionRequest.deny();
             pendingWebPermissionRequest = null;
         }
     }
 
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
-        if (webView != null) {
-            webView.saveState(outState);
-        }
+        if (webView != null) webView.saveState(outState);
         super.onSaveInstanceState(outState);
     }
 
@@ -233,6 +281,11 @@ public class MainActivity extends ComponentActivity {
         if (pendingWebPermissionRequest != null) {
             pendingWebPermissionRequest.deny();
             pendingWebPermissionRequest = null;
+        }
+        if (textToSpeech != null) {
+            textToSpeech.stop();
+            textToSpeech.shutdown();
+            textToSpeech = null;
         }
         if (webView != null) {
             webView.removeJavascriptInterface("EnglishTwinAndroid");
