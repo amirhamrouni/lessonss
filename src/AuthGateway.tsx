@@ -2,11 +2,12 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import {
   createUserWithEmailAndPassword,
-  getRedirectResult,
+  GoogleAuthProvider,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  signInWithCredential,
   signInWithEmailAndPassword,
-  signInWithRedirect,
+  signInWithPopup,
   signOut,
   updateProfile,
   User,
@@ -16,6 +17,14 @@ import { AlertTriangle, LoaderCircle } from 'lucide-react';
 import { ETButton, LearningShell, StatusState } from './ui/LearningUI';
 import { auth, db, googleProvider, isFirebaseConfigured } from './firebase';
 import { authErrorMessage } from './authErrors';
+
+declare global {
+  interface Window {
+    EnglishTwinAndroid?: { signInWithGoogle: () => void };
+    __englishTwinNativeGoogleCredential?: (idToken: string) => void;
+    __englishTwinNativeGoogleError?: (message: string) => void;
+  }
+}
 
 const defaultProfile = {
   displayName: 'Learner',
@@ -64,6 +73,37 @@ export default function AuthGateway() {
   const [noticeType, setNoticeType] = useState<'error' | 'success'>('error');
   const [busy, setBusy] = useState(false);
 
+  function showError(message: string) {
+    setNoticeType('error');
+    setNotice(message);
+  }
+
+  useEffect(() => {
+    window.__englishTwinNativeGoogleCredential = idToken => {
+      void (async () => {
+        try {
+          const firebaseCredential = GoogleAuthProvider.credential(idToken);
+          const result = await signInWithCredential(auth, firebaseCredential);
+          const completed = await ensureLearnerProfile(result.user);
+          navigate(completed ? '/' : '/setup', { replace: true });
+        } catch (error) {
+          showError(authErrorMessage(error));
+        } finally {
+          setBusy(false);
+        }
+      })();
+    };
+    window.__englishTwinNativeGoogleError = message => {
+      showError(message || 'Google Sign-In failed.');
+      setBusy(false);
+    };
+
+    return () => {
+      delete window.__englishTwinNativeGoogleCredential;
+      delete window.__englishTwinNativeGoogleError;
+    };
+  }, [navigate]);
+
   useEffect(() => {
     if (!isFirebaseConfigured) {
       setChecking(false);
@@ -71,41 +111,27 @@ export default function AuthGateway() {
     }
 
     let active = true;
-    let unsubscribe = () => {};
     setChecking(true);
     setSessionError('');
-
-    void (async () => {
-      try {
-        await getRedirectResult(auth);
-      } catch (error) {
-        if (active) {
-          setNoticeType('error');
-          setNotice(authErrorMessage(error));
-        }
-      }
-
+    const unsubscribe = onAuthStateChanged(auth, async current => {
       if (!active) return;
-      unsubscribe = onAuthStateChanged(auth, async current => {
-        if (!active) return;
-        if (!current) {
+      if (!current) {
+        setSessionTarget(null);
+        setChecking(false);
+        return;
+      }
+      try {
+        const completed = await ensureLearnerProfile(current);
+        if (active) setSessionTarget(completed ? '/' : '/setup');
+      } catch {
+        if (active) {
           setSessionTarget(null);
-          setChecking(false);
-          return;
+          setSessionError('We could not load or create your learner profile. Your account is still signed in and no learning data was overwritten.');
         }
-        try {
-          const completed = await ensureLearnerProfile(current);
-          if (active) setSessionTarget(completed ? '/' : '/setup');
-        } catch {
-          if (active) {
-            setSessionTarget(null);
-            setSessionError('We could not load or create your learner profile. Your account is still signed in and no learning data was overwritten.');
-          }
-        } finally {
-          if (active) setChecking(false);
-        }
-      });
-    })();
+      } finally {
+        if (active) setChecking(false);
+      }
+    });
 
     return () => {
       active = false;
@@ -121,13 +147,7 @@ export default function AuthGateway() {
 
   if (!isFirebaseConfigured) {
     return <LearningShell showDock={false} pageClassName="auth-status-page">
-      <StatusState
-        icon={<AlertTriangle />}
-        tone="danger"
-        eyebrow="SETUP REQUIRED"
-        title="Account services are not configured"
-        body="Sign-in and learner data cannot start until the Firebase configuration is available."
-      />
+      <StatusState icon={<AlertTriangle />} tone="danger" eyebrow="SETUP REQUIRED" title="Account services are not configured" body="Sign-in and learner data cannot start until the Firebase configuration is available." />
     </LearningShell>;
   }
 
@@ -148,11 +168,6 @@ export default function AuthGateway() {
   }
 
   if (sessionTarget) return <Navigate to={sessionTarget} replace />;
-
-  function showError(message: string) {
-    setNoticeType('error');
-    setNotice(message);
-  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -183,6 +198,31 @@ export default function AuthGateway() {
     }
   }
 
+  async function googleSignIn() {
+    setNotice('');
+    setBusy(true);
+
+    if (window.EnglishTwinAndroid?.signInWithGoogle) {
+      try {
+        window.EnglishTwinAndroid.signInWithGoogle();
+      } catch (error) {
+        showError(authErrorMessage(error));
+        setBusy(false);
+      }
+      return;
+    }
+
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const completed = await ensureLearnerProfile(result.user);
+      navigate(completed ? '/' : '/setup', { replace: true });
+    } catch (error) {
+      showError(authErrorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return <main className="center auth-stage"><section className="auth-card" aria-busy={busy}>
     <div className="auth-brand"><BrandMark /><div><span className="eyebrow">YOUR PERSONAL ENGLISH COACH</span><h1>English Twin</h1><p>Structured lessons, intelligent review and speaking practice in one place.</p></div></div>
     <div className="seg" role="group" aria-label="Account mode">
@@ -196,16 +236,7 @@ export default function AuthGateway() {
       {notice && <p className={noticeType === 'error' ? 'error' : 'auth-notice'} role={noticeType === 'error' ? 'alert' : 'status'}>{notice}</p>}
       <button className="primary" type="submit" disabled={busy}>{busy ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}</button>
     </form>
-    <button className="google" type="button" disabled={busy} onClick={async () => {
-      setNotice('');
-      setBusy(true);
-      try {
-        await signInWithRedirect(auth, googleProvider);
-      } catch (error) {
-        showError(authErrorMessage(error));
-        setBusy(false);
-      }
-    }}>Continue with Google</button>
+    <button className="google" type="button" disabled={busy} onClick={() => void googleSignIn()}>Continue with Google</button>
     {mode === 'login' && <button className="text" type="button" disabled={busy} onClick={async () => {
       if (!email) { showError('Enter your email first'); return; }
       setBusy(true);
