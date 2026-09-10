@@ -64,7 +64,11 @@ public class MainActivity extends ComponentActivity {
                 if ("https".equalsIgnoreCase(uri.getScheme()) && APP_HOST.equalsIgnoreCase(uri.getHost())) {
                     return false;
                 }
-                startActivity(new Intent(Intent.ACTION_VIEW, uri));
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, uri));
+                } catch (Exception ignored) {
+                    sendNativeAuthError("Unable to open this external link.");
+                }
                 return true;
             }
         });
@@ -103,7 +107,7 @@ public class MainActivity extends ComponentActivity {
 
     private void startNativeGoogleSignIn(boolean authorizedOnly) {
         String webClientId = getString(R.string.default_web_client_id);
-        if (webClientId.isBlank() || "MISSING_GOOGLE_WEB_CLIENT_ID".equals(webClientId)) {
+        if (webClientId == null || webClientId.trim().isEmpty() || "MISSING_GOOGLE_WEB_CLIENT_ID".equals(webClientId)) {
             sendNativeAuthError("Native Google Sign-In is not configured: missing Web OAuth client ID.");
             return;
         }
@@ -124,7 +128,7 @@ public class MainActivity extends ComponentActivity {
                 Runnable::run,
                 new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
                     @Override
-                    public void onResult(GetCredentialResponse result) {
+                    public void onResult(@NonNull GetCredentialResponse result) {
                         Credential credential = result.getCredential();
                         if (credential instanceof CustomCredential &&
                                 GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(credential.getType())) {
@@ -141,7 +145,8 @@ public class MainActivity extends ComponentActivity {
 
                     @Override
                     public void onError(@NonNull GetCredentialException error) {
-                        sendNativeAuthError(error.getMessage() == null ? "Google Sign-In failed." : error.getMessage());
+                        String message = error.getMessage();
+                        sendNativeAuthError(message == null || message.trim().isEmpty() ? "Google Sign-In failed." : message);
                     }
                 }
         );
