@@ -21,7 +21,11 @@ const envFirebase = {
 };
 
 const envConfigured = Object.values(envFirebase).every(Boolean);
-const configuredFirebase = envConfigured ? envFirebase : productionFallback;
+const baseFirebase = envConfigured ? envFirebase : productionFallback;
+const sameOriginAuthDomain = typeof window !== 'undefined' && window.location.hostname === 'english-twin-native-preview.vercel.app'
+  ? window.location.hostname
+  : baseFirebase.authDomain;
+const configuredFirebase = { ...baseFirebase, authDomain: sameOriginAuthDomain };
 
 export const isFirebaseConfigured = true;
 
@@ -29,3 +33,4 @@ const app = getApps().length ? getApps()[0] : initializeApp(configuredFirebase);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
