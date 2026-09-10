@@ -46,19 +46,6 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Validate Google native auth config
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -z "${GOOGLE_WEB_CLIENT_ID:-}" ]; then
-            echo 'GOOGLE_WEB_CLIENT_ID secret is required for native Google Sign-In.' >&2
-            exit 1
-          fi
-          case "$GOOGLE_WEB_CLIENT_ID" in
-            *.apps.googleusercontent.com) ;;
-            *) echo 'GOOGLE_WEB_CLIENT_ID has an invalid format.' >&2; exit 1 ;;
-          esac
-
       - name: Configure optional Play upload signing
         shell: bash
         run: |
