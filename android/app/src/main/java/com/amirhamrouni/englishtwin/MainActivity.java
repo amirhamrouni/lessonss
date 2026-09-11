@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.speech.tts.TextToSpeech;
+import android.speech.tts.Voice;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
@@ -32,11 +33,14 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import org.json.JSONObject;
 
 import java.util.Locale;
+import java.util.Set;
 
 public class MainActivity extends ComponentActivity {
     private static final String APP_URL = "https://english-twin-native-preview.vercel.app/";
     private static final String APP_HOST = "english-twin-native-preview.vercel.app";
     private static final int MEDIA_PERMISSION_REQUEST = 1001;
+    private static final float DEFAULT_TEACHER_RATE = 0.92f;
+    private static final float DEFAULT_TEACHER_PITCH = 1.0f;
 
     private WebView webView;
     private PermissionRequest pendingWebPermissionRequest;
@@ -44,7 +48,7 @@ public class MainActivity extends ComponentActivity {
     private TextToSpeech textToSpeech;
     private boolean textToSpeechReady = false;
     private String pendingSpeechText;
-    private float pendingSpeechRate = 0.82f;
+    private float pendingSpeechRate = DEFAULT_TEACHER_RATE;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,11 +59,14 @@ public class MainActivity extends ComponentActivity {
             if (status != TextToSpeech.SUCCESS || textToSpeech == null) return;
             int languageStatus = textToSpeech.setLanguage(Locale.US);
             textToSpeechReady = languageStatus != TextToSpeech.LANG_MISSING_DATA && languageStatus != TextToSpeech.LANG_NOT_SUPPORTED;
-            if (textToSpeechReady && pendingSpeechText != null) {
-                String text = pendingSpeechText;
-                float rate = pendingSpeechRate;
-                pendingSpeechText = null;
-                speakNativeEnglish(text, rate);
+            if (textToSpeechReady) {
+                configureNaturalTeacherVoice();
+                if (pendingSpeechText != null) {
+                    String text = pendingSpeechText;
+                    float rate = pendingSpeechRate;
+                    pendingSpeechText = null;
+                    speakNativeEnglish(text, rate);
+                }
             }
         });
 
@@ -129,7 +136,8 @@ public class MainActivity extends ComponentActivity {
         @JavascriptInterface
         public void speakEnglish(String text, double rate) {
             if (text == null || text.trim().isEmpty()) return;
-            float safeRate = (float) Math.max(0.5d, Math.min(1.5d, rate));
+            float requestedRate = (float) rate;
+            float safeRate = Math.max(0.86f, Math.min(1.08f, requestedRate <= 0f ? DEFAULT_TEACHER_RATE : requestedRate));
             runOnUiThread(() -> speakNativeEnglish(text.trim(), safeRate));
         }
 
@@ -142,6 +150,43 @@ public class MainActivity extends ComponentActivity {
         }
     }
 
+    private void configureNaturalTeacherVoice() {
+        if (textToSpeech == null) return;
+        textToSpeech.setLanguage(Locale.US);
+        textToSpeech.setPitch(DEFAULT_TEACHER_PITCH);
+        textToSpeech.setSpeechRate(DEFAULT_TEACHER_RATE);
+
+        Set<Voice> voices = textToSpeech.getVoices();
+        if (voices == null || voices.isEmpty()) return;
+
+        Voice best = null;
+        int bestScore = Integer.MIN_VALUE;
+        for (Voice voice : voices) {
+            Locale locale = voice.getLocale();
+            if (locale == null || !"en".equalsIgnoreCase(locale.getLanguage())) continue;
+
+            String name = voice.getName() == null ? "" : voice.getName().toLowerCase(Locale.ROOT);
+            if (name.contains("child") || name.contains("robot")) continue;
+
+            int score = voice.getQuality();
+            if (Locale.US.getCountry().equalsIgnoreCase(locale.getCountry())) score += 700;
+            else if (Locale.UK.getCountry().equalsIgnoreCase(locale.getCountry())) score += 500;
+            else score += 200;
+
+            if (name.contains("neural") || name.contains("natural") || name.contains("enhanced") || name.contains("wavenet")) score += 1200;
+            if (voice.getFeatures() != null && voice.getFeatures().contains(TextToSpeech.Engine.KEY_FEATURE_NETWORK_SYNTHESIS)) score += 350;
+            if (!voice.isNetworkConnectionRequired()) score += 120;
+            score -= Math.max(0, voice.getLatency() / 10);
+
+            if (best == null || score > bestScore) {
+                best = voice;
+                bestScore = score;
+            }
+        }
+
+        if (best != null) textToSpeech.setVoice(best);
+    }
+
     private void speakNativeEnglish(String text, float rate) {
         if (textToSpeech == null || !textToSpeechReady) {
             pendingSpeechText = text;
@@ -149,9 +194,10 @@ public class MainActivity extends ComponentActivity {
             return;
         }
         textToSpeech.stop();
-        textToSpeech.setLanguage(Locale.US);
-        textToSpeech.setSpeechRate(rate);
-        textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "english-twin-tts-" + System.currentTimeMillis());
+        configureNaturalTeacherVoice();
+        textToSpeech.setSpeechRate(Math.max(0.86f, Math.min(1.08f, rate)));
+        textToSpeech.setPitch(DEFAULT_TEACHER_PITCH);
+        textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "english-twin-teacher-tts-" + System.currentTimeMillis());
     }
 
     private void installNativeSpeechFallback() {
@@ -159,8 +205,8 @@ public class MainActivity extends ComponentActivity {
         String js = "(function(){" +
                 "if(!window.EnglishTwinAndroid||!window.EnglishTwinAndroid.speakEnglish)return;" +
                 "var bridge=window.EnglishTwinAndroid;" +
-                "if(typeof window.SpeechSynthesisUtterance==='undefined'){window.SpeechSynthesisUtterance=function(text){this.text=String(text||'');this.lang='en-US';this.rate=1;this.pitch=1;this.volume=1;};}" +
-                "var nativeSpeak=function(u){try{bridge.speakEnglish(String((u&&u.text)||''),Number((u&&u.rate)||1));}catch(e){}};" +
+                "if(typeof window.SpeechSynthesisUtterance==='undefined'){window.SpeechSynthesisUtterance=function(text){this.text=String(text||'');this.lang='en-US';this.rate=0.92;this.pitch=1;this.volume=1;};}" +
+                "var nativeSpeak=function(u){try{bridge.speakEnglish(String((u&&u.text)||''),Number((u&&u.rate)||0.92));}catch(e){}};" +
                 "var nativeCancel=function(){try{bridge.stopSpeech();}catch(e){}};" +
                 "try{" +
                 "if(!window.speechSynthesis){Object.defineProperty(window,'speechSynthesis',{value:{speak:nativeSpeak,cancel:nativeCancel,pause:nativeCancel,resume:function(){},getVoices:function(){return[];}},configurable:true});}" +
