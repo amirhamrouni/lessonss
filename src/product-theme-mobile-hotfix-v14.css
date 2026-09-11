@@ -112,6 +112,75 @@ html[data-theme='neon'] .et-lesson-row b {
   color:var(--et-text)!important;
 }
 
+/* Practice hub regression fix: earlier light-theme rules left white cards under dark-theme text. */
+html[data-theme='royal'] .practice-command,
+html[data-theme='neon'] .practice-command,
+html[data-theme='royal'] .mode-list > button,
+html[data-theme='neon'] .mode-list > button {
+  background:var(--et-surface)!important;
+  color:var(--et-text)!important;
+  border-color:var(--et-line)!important;
+}
+html[data-theme='royal'] .mode-list > button,
+html[data-theme='neon'] .mode-list > button {
+  margin:8px 0!important;
+  padding:18px!important;
+  border:1px solid var(--et-line)!important;
+  border-radius:20px!important;
+  box-shadow:var(--et-shadow-soft)!important;
+}
+html[data-theme='royal'] .practice-command h2,
+html[data-theme='royal'] .mode-list h3,
+html[data-theme='neon'] .practice-command h2,
+html[data-theme='neon'] .mode-list h3 {
+  color:var(--et-text)!important;
+}
+html[data-theme='royal'] .practice-command p,
+html[data-theme='royal'] .mode-list p,
+html[data-theme='neon'] .practice-command p,
+html[data-theme='neon'] .mode-list p {
+  color:var(--et-text-2)!important;
+  opacity:1!important;
+}
+html[data-theme='royal'] .practice-command .mode-kicker,
+html[data-theme='royal'] .mode-list span,
+html[data-theme='neon'] .practice-command .mode-kicker,
+html[data-theme='neon'] .mode-list span {
+  color:var(--et-brand-light)!important;
+  opacity:1!important;
+}
+html[data-theme='royal'] .mode-list > button > svg:first-child { color:#f0cc74!important; }
+html[data-theme='neon'] .mode-list > button > svg:first-child { color:#58f1df!important; }
+html[data-theme='royal'] .mode-list > button > svg:last-child,
+html[data-theme='neon'] .mode-list > button > svg:last-child { color:var(--et-muted)!important; }
+
+/* Live voice screen must use theme surfaces too; fixed white panels caused the same contrast bug. */
+html[data-theme='royal'] .voice-stage,
+html[data-theme='royal'] .voice-live .signal-empty,
+html[data-theme='royal'] .voice-transcript article.twin,
+html[data-theme='neon'] .voice-stage,
+html[data-theme='neon'] .voice-live .signal-empty,
+html[data-theme='neon'] .voice-transcript article.twin {
+  background:var(--et-surface)!important;
+  color:var(--et-text)!important;
+  border-color:var(--et-line)!important;
+}
+html[data-theme='royal'] .voice-stage h2,
+html[data-theme='royal'] .voice-live .section-heading h3,
+html[data-theme='neon'] .voice-stage h2,
+html[data-theme='neon'] .voice-live .section-heading h3 { color:var(--et-text)!important; }
+html[data-theme='royal'] .voice-stage p,
+html[data-theme='royal'] .voice-live .section-heading span,
+html[data-theme='neon'] .voice-stage p,
+html[data-theme='neon'] .voice-live .section-heading span { color:var(--et-text-2)!important; }
+html[data-theme='royal'] .voice-pulse,
+html[data-theme='neon'] .voice-pulse {
+  background:var(--et-blue-soft)!important;
+  border-color:var(--et-line)!important;
+}
+html[data-theme='royal'] .status-dot,
+html[data-theme='neon'] .status-dot { color:var(--et-muted)!important; }
+
 @media (max-width:390px) {
   .et-theme-fab {
     width:40px!important;
