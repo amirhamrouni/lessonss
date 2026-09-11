@@ -78,78 +78,67 @@ jobs:
           esac
           echo 'Native Google Sign-In Web OAuth client configuration: valid'
 
-      - name: Configure Play upload signing
+      - name: Configure stable Android signing
         shell: bash
         run: |
           set -euo pipefail
-          configured=0
-          [ -n "${ANDROID_KEYSTORE_BASE64:-}" ] && configured=$((configured+1))
-          [ -n "${ANDROID_KEYSTORE_PASSWORD:-}" ] && configured=$((configured+1))
-          [ -n "${ANDROID_KEY_ALIAS:-}" ] && configured=$((configured+1))
-          [ -n "${ANDROID_KEY_PASSWORD:-}" ] && configured=$((configured+1))
+          missing=0
+          [ -n "${ANDROID_KEYSTORE_BASE64:-}" ] || { echo 'Missing ANDROID_KEYSTORE_BASE64' >&2; missing=1; }
+          [ -n "${ANDROID_KEYSTORE_PASSWORD:-}" ] || { echo 'Missing ANDROID_KEYSTORE_PASSWORD' >&2; missing=1; }
+          [ -n "${ANDROID_KEY_ALIAS:-}" ] || { echo 'Missing ANDROID_KEY_ALIAS' >&2; missing=1; }
+          [ -n "${ANDROID_KEY_PASSWORD:-}" ] || { echo 'Missing ANDROID_KEY_PASSWORD' >&2; missing=1; }
+          [ "$missing" -eq 0 ] || { echo 'Stable Android signing is mandatory. Refusing to create OAuth-unstable debug APKs.' >&2; exit 1; }
 
-          if [ "$configured" -ne 0 ] && [ "$configured" -ne 4 ]; then
-            echo 'Partial Android signing configuration detected. Configure all four signing secrets or none.' >&2
-            exit 1
-          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/android/release-upload.jks"
+          keytool -list -keystore "$GITHUB_WORKSPACE/android/release-upload.jks" \
+            -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/dev/null
+          echo "ANDROID_KEYSTORE_PATH=$GITHUB_WORKSPACE/android/release-upload.jks" >> "$GITHUB_ENV"
+          echo 'Stable signing key loaded.'
 
-          if [ "$configured" -eq 4 ]; then
-            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$GITHUB_WORKSPACE/android/release-upload.jks"
-            keytool -list -keystore "$GITHUB_WORKSPACE/android/release-upload.jks" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/dev/null
-            echo "ANDROID_KEYSTORE_PATH=$GITHUB_WORKSPACE/android/release-upload.jks" >> "$GITHUB_ENV"
-            echo "PLAY_BUNDLE_SIGNED=true" >> "$GITHUB_ENV"
-          else
-            echo "PLAY_BUNDLE_SIGNED=false" >> "$GITHUB_ENV"
-            echo 'Signing secrets are absent: CI will create a QA-only unsigned AAB, never label it Play-ready.'
-          fi
+      - name: Print stable signing fingerprints
+        shell: bash
+        run: |
+          set -euo pipefail
+          keytool -list -v \
+            -keystore "$ANDROID_KEYSTORE_PATH" \
+            -storepass "$ANDROID_KEYSTORE_PASSWORD" \
+            -alias "$ANDROID_KEY_ALIAS" | grep -E 'SHA1:|SHA256:'
 
       - name: Lint release
         run: gradle -p android :app:lintRelease --no-daemon
 
-      - name: Build installable debug APK
-        run: gradle -p android :app:assembleDebug --no-daemon
+      - name: Build stable installable release APK
+        run: gradle -p android :app:assembleRelease --no-daemon
 
-      - name: Verify APK and print signing fingerprints
+      - name: Verify stable APK and print signing fingerprints
         shell: bash
         run: |
           set -euo pipefail
-          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          APK=android/app/build/outputs/apk/release/app-release.apk
           test -s "$APK"
           APKSIGNER="${ANDROID_SDK_ROOT}/build-tools/35.0.0/apksigner"
           "$APKSIGNER" verify --verbose --print-certs "$APK"
 
-      - name: Upload installable APK
+      - name: Upload stable installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: english-twin-installable-apk-${{ github.sha }}
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: english-twin-stable-apk-${{ github.sha }}
+          path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14
 
-      - name: Build release AAB
+      - name: Build signed release AAB
         run: gradle -p android :app:bundleRelease --no-daemon
 
-      - name: Verify bundle exists
-        run: test -s android/app/build/outputs/bundle/release/app-release.aab
-
       - name: Verify signed release bundle
-        if: env.PLAY_BUNDLE_SIGNED == 'true'
-        run: jarsigner -verify -strict android/app/build/outputs/bundle/release/app-release.aab
+        run: |
+          test -s android/app/build/outputs/bundle/release/app-release.aab
+          jarsigner -verify -strict android/app/build/outputs/bundle/release/app-release.aab
 
       - name: Upload signed Play AAB
-        if: env.PLAY_BUNDLE_SIGNED == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: english-twin-play-signed-aab-${{ github.sha }}
-          path: android/app/build/outputs/bundle/release/app-release.aab
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Upload unsigned QA AAB
-        if: env.PLAY_BUNDLE_SIGNED != 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: english-twin-qa-unsigned-aab-${{ github.sha }}
           path: android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 14
@@ -161,8 +150,6 @@ jobs:
           echo "- targetSdk: 36" >> "$GITHUB_STEP_SUMMARY"
           echo "- architecture: native WebView shell + Credential Manager" >> "$GITHUB_STEP_SUMMARY"
           echo "- native Google Sign-In: verified configuration gate" >> "$GITHUB_STEP_SUMMARY"
-          echo "- debug APK signature: printed in CI log" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Play upload signed AAB: $PLAY_BUNDLE_SIGNED" >> "$GITHUB_STEP_SUMMARY"
-          if [ "$PLAY_BUNDLE_SIGNED" != "true" ]; then
-            echo "- status: QA ONLY — signing secrets are not configured" >> "$GITHUB_STEP_SUMMARY"
-          fi
+          echo "- signing: stable mandatory certificate" >> "$GITHUB_STEP_SUMMARY"
+          echo "- installable APK: signed release artifact" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Play AAB: signed release artifact" >> "$GITHUB_STEP_SUMMARY"
