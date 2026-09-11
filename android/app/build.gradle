@@ -27,13 +27,18 @@ android {
             release {
                 storeFile file(keystorePath)
                 storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
-                keyAlias System.getenv('ANDROID_KEYSTORE_ALIAS') ?: System.getenv('ANDROID_KEY_ALIAS')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS')
                 keyPassword System.getenv('ANDROID_KEY_PASSWORD')
             }
         }
     }
 
     buildTypes {
+        debug {
+            // Use the same stable certificate as release whenever CI/local signing is configured.
+            // This prevents Google OAuth from breaking whenever a hosted runner regenerates its debug keystore.
+            if (hasReleaseSigning) signingConfig signingConfigs.release
+        }
         release {
             minifyEnabled true
             shrinkResources true
