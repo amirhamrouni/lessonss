@@ -154,6 +154,41 @@ html[data-theme='neon'] .mode-list > button > svg:first-child { color:#58f1df!im
 html[data-theme='royal'] .mode-list > button > svg:last-child,
 html[data-theme='neon'] .mode-list > button > svg:last-child { color:var(--et-muted)!important; }
 
+/* Pronunciation cards intentionally stay light in every theme.  The global
+   dark-theme typography rules otherwise turn their content into pale text on
+   white surfaces, which is unreadable on real mobile screens. */
+html[data-theme] .pronunciation-card > h2,
+html[data-theme] .pronunciation-card h3,
+html[data-theme] .pronunciation-card strong,
+html[data-theme] .pronunciation-coach-grid article > b,
+html[data-theme] .pronunciation-coach-grid .contrast-card b {
+  color:#16213e!important;
+}
+html[data-theme] .pronunciation-card .pronunciation-stage-label small,
+html[data-theme] .pronunciation-card .pronunciation-heard span,
+html[data-theme] .pronunciation-card .pronunciation-score span,
+html[data-theme] .pronunciation-coach-grid article > span {
+  color:#64748b!important;
+}
+html[data-theme] .pronunciation-coach-grid article p,
+html[data-theme] .pronunciation-card .pronunciation-heard p,
+html[data-theme] .pronunciation-card .pronunciation-score small,
+html[data-theme] .pronunciation-card .pronunciation-score h3 {
+  color:#475569!important;
+  opacity:1!important;
+}
+html[data-theme] .pronunciation-card .syllable-row span,
+html[data-theme] .pronunciation-card .stress-preview span {
+  color:#64748b!important;
+}
+html[data-theme] .pronunciation-card .syllable-row span.stressed,
+html[data-theme] .pronunciation-card .stress-preview span.stressed {
+  color:#92400e!important;
+}
+html[data-theme] .pronunciation-card .score-ring strong {
+  color:#2e1065!important;
+}
+
 /* Live voice screen must use theme surfaces too; fixed white panels caused the same contrast bug. */
 html[data-theme='royal'] .voice-stage,
 html[data-theme='royal'] .voice-live .signal-empty,
