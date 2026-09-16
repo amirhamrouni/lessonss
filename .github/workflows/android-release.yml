@@ -106,6 +106,9 @@ jobs:
             -storepass "$ANDROID_KEYSTORE_PASSWORD" \
             -alias "$ANDROID_KEY_ALIAS" | grep -E 'SHA1:|SHA256:'
 
+      - name: Test Android project
+        run: gradle -p android :app:test --no-daemon
+
       - name: Lint release
         run: gradle -p android :app:lintRelease --no-daemon
 
