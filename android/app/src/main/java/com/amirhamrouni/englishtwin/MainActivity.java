@@ -136,8 +136,7 @@ public class MainActivity extends ComponentActivity {
         @JavascriptInterface
         public void speakEnglish(String text, double rate) {
             if (text == null || text.trim().isEmpty()) return;
-            float requestedRate = (float) rate;
-            float safeRate = Math.max(0.86f, Math.min(1.08f, requestedRate <= 0f ? DEFAULT_TEACHER_RATE : requestedRate));
+            float safeRate = SpeechRate.normalize(rate);
             runOnUiThread(() -> speakNativeEnglish(text.trim(), safeRate));
         }
 
@@ -195,7 +194,7 @@ public class MainActivity extends ComponentActivity {
         }
         textToSpeech.stop();
         configureNaturalTeacherVoice();
-        textToSpeech.setSpeechRate(Math.max(0.86f, Math.min(1.08f, rate)));
+        textToSpeech.setSpeechRate(SpeechRate.normalize(rate));
         textToSpeech.setPitch(DEFAULT_TEACHER_PITCH);
         textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "english-twin-teacher-tts-" + System.currentTimeMillis());
     }

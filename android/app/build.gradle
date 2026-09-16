@@ -17,8 +17,8 @@ android {
         applicationId 'com.amirhamrouni.englishtwin'
         minSdk 23
         targetSdk 36
-        versionCode 8
-        versionName '1.1.6'
+        versionCode 9
+        versionName '1.1.7'
         resValue 'string', 'default_web_client_id', googleWebClientId
     }
 
@@ -54,6 +54,7 @@ android {
 }
 
 dependencies {
+    testImplementation 'junit:junit:4.13.2'
     implementation 'androidx.activity:activity:1.10.1'
     implementation 'androidx.credentials:credentials:1.5.0'
     implementation 'androidx.credentials:credentials-play-services-auth:1.5.0'
