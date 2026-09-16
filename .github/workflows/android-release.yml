@@ -118,7 +118,11 @@ jobs:
           set -euo pipefail
           APK=android/app/build/outputs/apk/release/app-release.apk
           test -s "$APK"
+          AAPT="${ANDROID_SDK_ROOT}/build-tools/35.0.0/aapt"
+          ZIPALIGN="${ANDROID_SDK_ROOT}/build-tools/35.0.0/zipalign"
           APKSIGNER="${ANDROID_SDK_ROOT}/build-tools/35.0.0/apksigner"
+          "$AAPT" dump badging "$APK"
+          "$ZIPALIGN" -c -v 4 "$APK"
           "$APKSIGNER" verify --verbose --print-certs "$APK"
 
       - name: Upload stable installable APK
